@@ -119,10 +119,11 @@ Vercel → Project → **Settings** → **Domains** → 新增網域 → 依指�
 
 ## 7. 開課提醒 Cron（選填）
 
-專案含 `vercel.json`，每小時呼叫 `/api/cron/reminders`。
+專案含 `vercel.json`，**每天 UTC 01:00** 呼叫一次 `/api/cron/reminders`（符合 Vercel Hobby「每日一次」限制）。
 
 1. 在 Vercel 設 `CRON_SECRET`（隨機字串）
-2. Vercel Cron 會帶 `Authorization: Bearer <CRON_SECRET>`（需 Pro 方案才支援完整 Cron；Hobby 可改用手動或外部 cron 打 API）
+2. 部署後 Cron 請求需帶 `Authorization: Bearer <CRON_SECRET>`（見 [Vercel Cron](https://vercel.com/docs/cron-jobs)）
+3. 若要每小時提醒，需 **Pro** 方案，或改用 [cron-job.org](https://cron-job.org) 等外部服務打你的 API
 
 ---
 
