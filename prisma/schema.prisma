@@ -1,0 +1,434 @@
+// playplayplay — 多租戶匹克球預約平台
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Auth.js ───────────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  platformRole  PlatformRole?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts               Account[]
+  sessions               Session[]
+  tenantMemberships      TenantMembership[]
+  tenantStaffRoles       TenantStaffRole[]
+  bookings               Booking[]
+  activitiesCreated      Activity[]              @relation("ActivityCreator")
+  notificationPreferences NotificationPreference[]
+  duprProfile            DuprProfile?
+  duprMatchSubmissions   DuprMatchSubmission[]   @relation("DuprSubmissionSubmitter")
+  waitlistEntries        WaitlistEntry[]
+  rentalBookings         RentalBooking[]
+  rentalSlotsBooked      RentalSlot[]            @relation("RentalBookedBy")
+  notifications          UserNotification[]
+  reviews                TenantReview[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── 平台 / 租戶 / 場館 ─────────────────────────────────────────────────────
+
+model Tenant {
+  id             String           @id @default(cuid())
+  slug           String           @unique
+  displayName    String
+  description    String?          @db.Text
+  logoUrl        String?
+  visibility     TenantVisibility @default(PUBLIC)
+  /// 私人俱樂部邀請碼（SHA-256 hex，不存明文）
+  accessCodeHash String?
+  isActive       Boolean          @default(true)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  venues                  Venue[]
+  memberships             TenantMembership[]
+  staffRoles              TenantStaffRole[]
+  activities              Activity[]
+  rentalSlots             RentalSlot[]
+  notificationPreferences NotificationPreference[]
+  reviews                 TenantReview[]
+  userNotifications       UserNotification[]
+}
+
+model Venue {
+  id        String   @id @default(cuid())
+  tenantId  String
+  slug      String
+  name      String
+  address   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  courts     Court[]
+  activities  Activity[]
+  rentalSlots RentalSlot[]
+  staffRoles  TenantStaffRole[]
+
+  @@unique([tenantId, slug])
+}
+
+model Court {
+  id        String   @id @default(cuid())
+  venueId   String
+  name      String
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  venue       Venue        @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  activities  Activity[]
+  rentalSlots RentalSlot[]
+
+  @@unique([venueId, name])
+}
+
+// ─── 會員（跨租戶）─────────────────────────────────────────────────────────
+
+model TenantMembership {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  nickname  String?
+  avatarUrl String?
+  isBanned  Boolean  @default(false)
+  joinedAt  DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+}
+
+model TenantStaffRole {
+  id        String     @id @default(cuid())
+  tenantId  String
+  userId    String
+  role      TenantRole
+  venueId   String?
+  createdAt DateTime   @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  venue  Venue? @relation(fields: [venueId], references: [id], onDelete: SetNull)
+
+  @@unique([tenantId, userId, role, venueId])
+}
+
+// ─── 活動 / 預約 ───────────────────────────────────────────────────────────
+
+model Activity {
+  id          String         @id @default(cuid())
+  tenantId    String
+  venueId     String
+  courtId     String?
+  createdById String?
+
+  type        ActivityType
+  status      ActivityStatus @default(DRAFT)
+  title       String
+  description String?        @db.Text
+
+  startAt DateTime
+  endAt   DateTime
+  capacity Int
+
+  // 取消規則：每活動由管理員自訂（二擇一）
+  cancelPolicyType   CancelPolicyType
+  cancelHoursBefore  Int?
+  cancelDeadlineAt   DateTime?
+
+  // DUPR 專場（第二階段串接 API / 上傳戰績）
+  requiresDupr  Boolean @default(false)
+  duprEventId   String?
+  duprEventName String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant              Tenant                @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  venue               Venue                 @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  court               Court?                @relation(fields: [courtId], references: [id], onDelete: SetNull)
+  createdBy           User?                 @relation("ActivityCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  bookings             Booking[]
+  waitlistEntries      WaitlistEntry[]
+  duprMatchSubmissions DuprMatchSubmission[]
+}
+
+model Booking {
+  id          String        @id @default(cuid())
+  activityId  String
+  userId      String
+  /// 同一帳號一次報名佔用的人數（球敘可 >1）
+  partySize   Int           @default(1)
+  status      BookingStatus @default(CONFIRMED)
+  createdAt   DateTime      @default(now())
+  cancelledAt DateTime?
+
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([activityId, userId])
+}
+
+model WaitlistEntry {
+  id         String         @id @default(cuid())
+  activityId String
+  userId     String
+  position   Int
+  status     WaitlistStatus @default(WAITING)
+  createdAt  DateTime       @default(now())
+  promotedAt DateTime?
+
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([activityId, userId])
+  @@index([activityId, status, position])
+}
+
+// ─── 場地租借（多球場、月曆檢視）────────────────────────────────────────────
+
+model RentalSlot {
+  id                String           @id @default(cuid())
+  tenantId          String
+  venueId           String
+  courtId           String
+  startAt           DateTime
+  endAt             DateTime
+  status            RentalSlotStatus @default(OPEN)
+  note              String?
+  cancelHoursBefore Int              @default(4)
+  bookedById        String?
+  createdById       String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  venue         Venue          @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  court         Court          @relation(fields: [courtId], references: [id], onDelete: Cascade)
+  bookedBy      User?          @relation("RentalBookedBy", fields: [bookedById], references: [id], onDelete: SetNull)
+  rentalBooking RentalBooking?
+
+  @@index([tenantId, startAt, endAt])
+  @@index([courtId, startAt])
+}
+
+model RentalBooking {
+  id          String        @id @default(cuid())
+  slotId      String        @unique
+  userId      String
+  status      BookingStatus @default(CONFIRMED)
+  createdAt   DateTime      @default(now())
+  cancelledAt DateTime?
+
+  slot RentalSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── DUPR（會員中心 + 第二階段戰績）──────────────────────────────────────────
+
+model DuprProfile {
+  id             String         @id @default(cuid())
+  userId         String         @unique
+  duprId         String?        @unique
+  duprName       String?
+  singlesRating  Decimal?       @db.Decimal(4, 2)
+  doublesRating  Decimal?       @db.Decimal(4, 2)
+  profileUrl     String?
+  linkStatus     DuprLinkStatus @default(NOT_LINKED)
+  lastSyncedAt   DateTime?
+  rawData        Json?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model DuprMatchSubmission {
+  id            String                  @id @default(cuid())
+  activityId    String
+  submittedById String
+  status        DuprSubmissionStatus    @default(PENDING)
+  notes         String?                 @db.Text
+  payload       Json?
+  syncedAt      DateTime?
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+
+  activity    Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  submittedBy User     @relation("DuprSubmissionSubmitter", fields: [submittedById], references: [id], onDelete: Cascade)
+}
+
+// ─── 通知偏好（第二階段 LINE；第一階段先建表）────────────────────────────────
+
+model NotificationPreference {
+  id       String @id @default(cuid())
+  userId   String
+  tenantId String
+
+  lineLinked     Boolean @default(false)
+  lineUserId     String?
+  masterEnabled  Boolean @default(true)
+
+  notifyActivityChange Boolean @default(true)
+  notifyReminder       Boolean @default(true)
+  notifyBookingSelf    Boolean @default(true)
+  notifyBookingCancel  Boolean @default(true)
+  notifyRosterChange   Boolean @default(false)
+  notifyRentalBooking  Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tenantId])
+}
+
+// ─── 站內通知收件匣 ─────────────────────────────────────────────────────────
+
+model UserNotification {
+  id        String    @id @default(cuid())
+  userId    String
+  tenantId  String?
+  title     String
+  body      String    @db.Text
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Tenant? @relation(fields: [tenantId], references: [id], onDelete: SetNull)
+
+  @@index([userId, readAt, createdAt])
+}
+
+// ─── 場館評價 ───────────────────────────────────────────────────────────────
+
+model TenantReview {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  rating    Int
+  comment   String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum PlatformRole {
+  SUPER_ADMIN
+}
+
+enum TenantRole {
+  TENANT_ADMIN
+  VENUE_MANAGER
+  STAFF
+}
+
+enum TenantVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum ActivityType {
+  OPEN_PLAY
+  COURSE
+}
+
+enum ActivityStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+}
+
+enum CancelPolicyType {
+  HOURS_BEFORE
+  DEADLINE
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+enum DuprLinkStatus {
+  NOT_LINKED
+  PENDING
+  LINKED
+}
+
+enum DuprSubmissionStatus {
+  PENDING
+  SYNCED
+  FAILED
+}
+
+enum WaitlistStatus {
+  WAITING
+  PROMOTED
+  CANCELLED
+}
+
+enum RentalSlotStatus {
+  OPEN
+  BOOKED
+  BLOCKED
+}
