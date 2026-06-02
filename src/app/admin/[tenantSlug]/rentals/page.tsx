@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { blockRentalSlot, createRentalSlots, deleteRentalSlot } from "@/app/admin/[tenantSlug]/rental-actions";
+import { createRentalSlots } from "@/app/admin/[tenantSlug]/rental-actions";
+import { RentalRangeDeleteForm } from "@/components/admin/rental-range-delete-form";
+import { RentalSlotsList, type RentalSlotRow } from "@/components/admin/rental-slots-list";
 import { requireTenantStaff } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { ROUTES } from "@/lib/constants";
@@ -10,10 +12,10 @@ export default async function AdminRentalsPage({
   searchParams,
 }: {
   params: Promise<{ tenantSlug: string }>;
-  searchParams: Promise<{ created?: string; error?: string }>;
+  searchParams: Promise<{ created?: string; deleted?: string; blocked?: string; error?: string }>;
 }) {
   const { tenantSlug } = await params;
-  const { created, error } = await searchParams;
+  const { created, deleted, blocked, error } = await searchParams;
   const { tenant } = await requireTenantStaff(tenantSlug);
 
   const courts = await prisma.court.findMany({
@@ -34,9 +36,23 @@ export default async function AdminRentalsPage({
       where: { tenantId: tenant.id, startAt: { gte: from, lt: to } },
       include: { court: true, venue: true, bookedBy: { select: { email: true, name: true } } },
       orderBy: { startAt: "asc" },
-      take: 40,
+      take: 100,
     }),
   ]);
+
+  const courtOptions = courts.map((c) => ({
+    id: c.id,
+    label: `${c.venue.name} · ${c.name}`,
+  }));
+
+  const slotRows: RentalSlotRow[] = slots.map((s) => ({
+    id: s.id,
+    startLabel: s.startAt.toLocaleString("zh-TW"),
+    venueName: s.venue.name,
+    courtName: s.court.name,
+    status: s.status,
+    bookedByLabel: s.bookedBy ? (s.bookedBy.name ?? s.bookedBy.email) : null,
+  }));
 
   const today = toDatetimeLocalValue(from).slice(0, 10);
   const monthLater = toDatetimeLocalValue(to).slice(0, 10);
@@ -50,6 +66,8 @@ export default async function AdminRentalsPage({
         </Link>
       </p>
       {created && <p className="text-sm text-emerald-600">已新增 {created} 個開放時段</p>}
+      {deleted && <p className="text-sm text-emerald-600">已刪除 {deleted} 個時段</p>}
+      {blocked && <p className="text-sm text-amber-700">已封鎖 {blocked} 個時段</p>}
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <form
@@ -95,30 +113,19 @@ export default async function AdminRentalsPage({
         </button>
       </form>
 
+      <RentalRangeDeleteForm
+        tenantSlug={tenantSlug}
+        courts={courtOptions}
+        defaultStartDate={today}
+        defaultEndDate={monthLater}
+      />
+
       <section>
         <h2 className="font-semibold text-slate-800">近期時段</h2>
-        <ul className="mt-3 space-y-2">
-          {slots.map((s) => (
-            <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm">
-              <span>
-                {s.startAt.toLocaleString("zh-TW")} · {s.venue.name} {s.court.name} · {s.status}
-                {s.bookedBy && ` · ${s.bookedBy.name ?? s.bookedBy.email}`}
-              </span>
-              <span className="flex gap-2">
-                {s.status === "OPEN" && (
-                  <>
-                    <form action={blockRentalSlot.bind(null, tenantSlug, s.id)}>
-                      <button type="submit" className="text-amber-600">封鎖</button>
-                    </form>
-                    <form action={deleteRentalSlot.bind(null, tenantSlug, s.id)}>
-                      <button type="submit" className="text-red-600">刪除</button>
-                    </form>
-                  </>
-                )}
-              </span>
-            </li>
-          ))}
-        </ul>
+        <p className="mt-1 text-sm text-slate-500">
+          顯示未來 30 天內最多 100 筆；可勾選後批量刪除／封鎖，或使用上方「依區間批量刪除」。
+        </p>
+        <RentalSlotsList tenantSlug={tenantSlug} slots={slotRows} />
       </section>
     </div>
   );

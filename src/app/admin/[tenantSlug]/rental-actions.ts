@@ -114,3 +114,92 @@ export async function deleteRentalSlot(tenantSlug: string, slotId: string) {
   revalidatePath(ROUTES.tenantRentals(tenantSlug));
   revalidatePath(`/admin/${tenantSlug}/rentals`);
 }
+
+function rentalsAdminPath(tenantSlug: string, query?: Record<string, string | number>) {
+  const base = `/admin/${tenantSlug}/rentals`;
+  if (!query || Object.keys(query).length === 0) return base;
+  const params = new URLSearchParams();
+  for (const [k, v] of Object.entries(query)) params.set(k, String(v));
+  return `${base}?${params.toString()}`;
+}
+
+/** 勾選多筆：封鎖 OPEN 時段 */
+export async function bulkBlockRentalSlots(tenantSlug: string, formData: FormData) {
+  const { tenant } = await assertStaff(tenantSlug);
+  const slotIds = formData.getAll("slotIds").filter((v): v is string => typeof v === "string");
+  if (!slotIds.length) {
+    redirect(rentalsAdminPath(tenantSlug, { error: "請至少勾選一個時段" }));
+  }
+
+  const { count } = await prisma.rentalSlot.updateMany({
+    where: { id: { in: slotIds }, tenantId: tenant.id, status: "OPEN" },
+    data: { status: "BLOCKED" },
+  });
+
+  revalidatePath(ROUTES.tenantRentals(tenantSlug));
+  revalidatePath(`/admin/${tenantSlug}/rentals`);
+  redirect(rentalsAdminPath(tenantSlug, { blocked: count }));
+}
+
+/** 勾選多筆：刪除 OPEN / BLOCKED（不含已預約 BOOKED） */
+export async function bulkDeleteRentalSlots(tenantSlug: string, formData: FormData) {
+  const { tenant } = await assertStaff(tenantSlug);
+  const slotIds = formData.getAll("slotIds").filter((v): v is string => typeof v === "string");
+  if (!slotIds.length) {
+    redirect(rentalsAdminPath(tenantSlug, { error: "請至少勾選一個時段" }));
+  }
+
+  const { count } = await prisma.rentalSlot.deleteMany({
+    where: {
+      id: { in: slotIds },
+      tenantId: tenant.id,
+      status: { in: ["OPEN", "BLOCKED"] },
+    },
+  });
+
+  revalidatePath(ROUTES.tenantRentals(tenantSlug));
+  revalidatePath(`/admin/${tenantSlug}/rentals`);
+  redirect(rentalsAdminPath(tenantSlug, { deleted: count }));
+}
+
+/** 依日期區間與球場刪除未預約的 OPEN / BLOCKED 時段 */
+export async function deleteRentalSlotsInRange(tenantSlug: string, formData: FormData) {
+  const { tenant } = await assertStaff(tenantSlug);
+
+  const courtIds = formData.getAll("courtIds").filter((v): v is string => typeof v === "string");
+  const startDate = String(formData.get("startDate") ?? "");
+  const endDate = String(formData.get("endDate") ?? "");
+
+  if (!courtIds.length || !startDate || !endDate) {
+    redirect(rentalsAdminPath(tenantSlug, { error: "請選擇球場與日期區間" }));
+  }
+
+  const from = new Date(startDate);
+  from.setHours(0, 0, 0, 0);
+  const to = new Date(endDate);
+  to.setHours(23, 59, 59, 999);
+  if (to < from) {
+    redirect(rentalsAdminPath(tenantSlug, { error: "結束日期不可早於開始日期" }));
+  }
+
+  const courts = await prisma.court.findMany({
+    where: { id: { in: courtIds }, venue: { tenantId: tenant.id } },
+    select: { id: true },
+  });
+  if (!courts.length) {
+    redirect(rentalsAdminPath(tenantSlug, { error: "找不到所選球場" }));
+  }
+
+  const { count } = await prisma.rentalSlot.deleteMany({
+    where: {
+      tenantId: tenant.id,
+      courtId: { in: courts.map((c) => c.id) },
+      startAt: { gte: from, lte: to },
+      status: { in: ["OPEN", "BLOCKED"] },
+    },
+  });
+
+  revalidatePath(ROUTES.tenantRentals(tenantSlug));
+  revalidatePath(`/admin/${tenantSlug}/rentals`);
+  redirect(rentalsAdminPath(tenantSlug, { deleted: count }));
+}
