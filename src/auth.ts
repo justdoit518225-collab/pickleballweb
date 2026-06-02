@@ -1,14 +1,11 @@
 import { AuthError } from "next-auth";
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
-import Credentials from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import type { Provider } from "next-auth/providers";
 import { linkLineFromProvider } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
 import type { PlatformRole } from "@/generated/prisma/client";
-
-const devLoginEnabled = process.env.ALLOW_DEV_LOGIN === "true";
 
 /** LINE Login OAuth 2.1（需於 LINE Developers 建立 Channel） */
 function LineProvider(): Provider {
@@ -61,6 +58,8 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      // 同一 Neon 若曾用開發信箱登入，允許以相同 email 連結 Google
+      allowDangerousEmailAccountLinking: true,
     }),
   );
 }
@@ -69,72 +68,23 @@ if (process.env.LINE_CLIENT_ID && process.env.LINE_CLIENT_SECRET) {
   providers.push(LineProvider());
 }
 
-if (devLoginEnabled) {
-  providers.push(
-    Credentials({
-      id: "dev-email",
-      name: "開發用信箱登入",
-      credentials: {
-        email: { label: "Email", type: "email" },
-      },
-      async authorize(credentials) {
-        const email = credentials?.email as string | undefined;
-        if (!email?.includes("@")) return null;
-
-        const superAdminEmail = process.env.SEED_SUPER_ADMIN_EMAIL;
-        let user = await prisma.user.findUnique({ where: { email } });
-
-        if (!user) {
-          user = await prisma.user.create({
-            data: {
-              email,
-              name: email.split("@")[0],
-              emailVerified: new Date(),
-              platformRole: email === superAdminEmail ? "SUPER_ADMIN" : null,
-            },
-          });
-        } else if (email === superAdminEmail && user.platformRole !== "SUPER_ADMIN") {
-          user = await prisma.user.update({
-            where: { id: user.id },
-            data: { platformRole: "SUPER_ADMIN" },
-          });
-        }
-
-        return user;
-      },
-    }),
-  );
-}
-
 const nextAuth = NextAuth({
-  adapter: devLoginEnabled ? undefined : PrismaAdapter(prisma),
+  adapter: PrismaAdapter(prisma),
   providers,
   pages: {
     signIn: "/login",
   },
   callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.sub = user.id;
-        token.platformRole = user.platformRole;
-      }
-      return token;
-    },
-    session({ session, token, user }) {
-      if (session.user) {
-        if (devLoginEnabled && token.sub) {
-          session.user.id = token.sub;
-          session.user.platformRole = (token.platformRole as PlatformRole | null) ?? null;
-        } else if (user) {
-          session.user.id = user.id;
-          session.user.platformRole = user.platformRole as PlatformRole | null;
-        }
+    session({ session, user }) {
+      if (session.user && user) {
+        session.user.id = user.id;
+        session.user.platformRole = user.platformRole as PlatformRole | null;
       }
       return session;
     },
   },
   session: {
-    strategy: devLoginEnabled ? "jwt" : "database",
+    strategy: "database",
   },
   events: {
     async signIn({ user, account }) {
