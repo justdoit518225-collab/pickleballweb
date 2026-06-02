@@ -48,7 +48,7 @@ npm run db:seed
 git init   # 若尚未
 git add .
 git commit -m "Prepare for Vercel deploy"
-git remote add origin https://github.com/你的帳號/PickleballWeb.git
+git remote add origin https://github.com/justdoit518225-collab/pickleballweb.git
 git push -u origin main
 ```
 
@@ -72,14 +72,14 @@ git push -u origin main
 | `AUTH_URL` | `https://你的專案.vercel.app` 或自訂網域 |
 | `GOOGLE_CLIENT_ID` | Google OAuth |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth |
-| `ALLOW_DEV_LOGIN` | `false` |
+| `LINE_CLIENT_ID` | LINE Login Channel ID（見 `docs/LINE_LOGIN.md`） |
+| `LINE_CLIENT_SECRET` | LINE Channel secret |
 | `SEED_SUPER_ADMIN_EMAIL` | 你的 Gmail（僅 seed 用，可部署後刪） |
 
 ### 選填
 
 | 變數 | 說明 |
 |------|------|
-| `LINE_CLIENT_ID` / `LINE_CLIENT_SECRET` | LINE 登入 |
 | `LINE_CHANNEL_ACCESS_TOKEN` | LINE 推播 |
 | `CRON_SECRET` | 開課提醒 API 驗證（見 `vercel.json`） |
 | `SMTP_*` | Email 通知 |
@@ -98,9 +98,9 @@ git push -u origin main
 - 已授權 JavaScript 來源：`https://你的網域`
 - 重新導向 URI：`https://你的網域/api/auth/callback/google`
 
-**LINE Developers**
+**LINE Developers**（見 `docs/LINE_LOGIN.md`）
 
-- Callback URL：`https://你的網域/api/auth/callback/line`
+- Callback URL：`https://你的網域/api/auth/callback/line`（本機加 `http://localhost:3000/api/auth/callback/line`）
 
 更新後到 Vercel 確認 `AUTH_URL` 與網域一致。
 
@@ -134,7 +134,6 @@ Vercel → Project → **Settings** → **Domains** → 新增網域 → 依指�
 - [ ] Google 登入成功
 - [ ] 預約／取消可寫入資料庫
 - [ ] `/admin/active-pickleball` 管理員可進入
-- [ ] `ALLOW_DEV_LOGIN` 為 `false`（正式站不應出現開發信箱登入）
 
 ---
 

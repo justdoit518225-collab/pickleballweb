@@ -18,18 +18,42 @@ function LineProvider(): Provider {
     authorization: {
       url: "https://access.line.me/oauth2/v2.1/authorize",
       params: {
-        scope: "profile openid email",
+        // 未申請 email 權限時勿要求 email，避免 LINE 授權失敗
+        scope: "profile openid",
         response_type: "code",
       },
     },
     token: "https://api.line.me/oauth2/v2.1/token",
     userinfo: {
-      url: "https://api.line.me/v2/profile",
+      url: "https://api.line.me/oauth2/v2.1/userinfo",
       async request(context: { tokens: { access_token?: string } }) {
-        const res = await fetch("https://api.line.me/v2/profile", {
-          headers: { Authorization: `Bearer ${context.tokens.access_token}` },
-        });
-        const profile = (await res.json()) as {
+        const accessToken = context.tokens.access_token;
+        if (!accessToken) {
+          throw new Error("LINE access_token missing");
+        }
+        const headers = { Authorization: `Bearer ${accessToken}` };
+
+        const oidcRes = await fetch("https://api.line.me/oauth2/v2.1/userinfo", { headers });
+        if (oidcRes.ok) {
+          const profile = (await oidcRes.json()) as {
+            sub: string;
+            name?: string;
+            picture?: string;
+            email?: string;
+          };
+          return {
+            id: profile.sub,
+            name: profile.name,
+            email: profile.email,
+            image: profile.picture,
+          };
+        }
+
+        const profileRes = await fetch("https://api.line.me/v2/profile", { headers });
+        if (!profileRes.ok) {
+          throw new Error(`LINE profile failed: ${profileRes.status}`);
+        }
+        const profile = (await profileRes.json()) as {
           userId: string;
           displayName: string;
           pictureUrl?: string;
@@ -45,6 +69,7 @@ function LineProvider(): Provider {
       return {
         id: profile.id as string,
         name: profile.name as string,
+        email: profile.email as string | undefined,
         image: profile.image as string | undefined,
       };
     },
@@ -70,6 +95,7 @@ if (process.env.LINE_CLIENT_ID && process.env.LINE_CLIENT_SECRET) {
 
 const nextAuth = NextAuth({
   adapter: PrismaAdapter(prisma),
+  allowDangerousEmailAccountLinking: true,
   providers,
   pages: {
     signIn: "/login",
@@ -92,7 +118,11 @@ const nextAuth = NextAuth({
       if (!userId) return;
 
       if (account?.provider === "line" && account.providerAccountId) {
-        await linkLineFromProvider(userId, account.providerAccountId);
+        try {
+          await linkLineFromProvider(userId, account.providerAccountId);
+        } catch (err) {
+          console.error("[auth] linkLineFromProvider failed", err);
+        }
       }
 
       // 同步 OAuth 顯示名稱與頭像至 User（LINE pictureUrl、Google 頭像等）

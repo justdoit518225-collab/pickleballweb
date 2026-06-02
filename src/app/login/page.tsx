@@ -12,6 +12,8 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
     "此信箱已在系統中註冊（例如曾用開發信箱登入）。請再試一次 Google 登入；若仍失敗，請聯絡管理員。",
   AccessDenied: "Google 未授權登入，或尚未加入 OAuth 測試使用者。",
   Configuration: "登入設定有誤，請確認 AUTH_URL 與 Google 回調網址。",
+  OAuthCallbackError:
+    "登入回調失敗。請確認：① Vercel 的 AUTH_URL 與瀏覽器網址完全一致（含 www）；② LINE Callback URL 已登記相同網域；③ Channel secret 正確。",
 };
 
 export default async function LoginPage({
@@ -24,11 +26,6 @@ export default async function LoginPage({
 
   const { error } = await searchParams;
   const errorMessage = error ? AUTH_ERROR_MESSAGES[error] : undefined;
-
-  const showGoogle = Boolean(
-    process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET,
-  );
-  const showLine = Boolean(process.env.LINE_CLIENT_ID && process.env.LINE_CLIENT_SECRET);
 
   return (
     <div className="mx-auto flex max-w-md flex-col items-center px-4 py-16">
@@ -43,7 +40,7 @@ export default async function LoginPage({
         </p>
       ) : null}
       <div className="mt-8 flex w-full justify-center">
-        <SignInButtons showGoogle={showGoogle} showLine={showLine} />
+        <SignInButtons />
       </div>
     </div>
   );
