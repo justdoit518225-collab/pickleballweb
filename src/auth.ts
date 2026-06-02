@@ -95,7 +95,6 @@ if (process.env.LINE_CLIENT_ID && process.env.LINE_CLIENT_SECRET) {
 
 const nextAuth = NextAuth({
   adapter: PrismaAdapter(prisma),
-  allowDangerousEmailAccountLinking: true,
   providers,
   pages: {
     signIn: "/login",
