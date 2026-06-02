@@ -8,7 +8,9 @@ export default async function MeOverviewPage() {
   const session = await auth();
   const userId = session!.user!.id;
 
-  const [memberships, dupr, staffRoles] = await Promise.all([
+  const isSuperAdmin = session!.user!.platformRole === "SUPER_ADMIN";
+
+  const [memberships, dupr, staffRoles, allTenantsForSuper] = await Promise.all([
     prisma.tenantMembership.findMany({
       where: { userId },
       include: { tenant: true },
@@ -18,11 +20,17 @@ export default async function MeOverviewPage() {
       where: { userId },
       include: { tenant: true },
     }),
+    isSuperAdmin
+      ? prisma.tenant.findMany({
+          where: { isActive: true },
+          orderBy: { displayName: "asc" },
+        })
+      : Promise.resolve([]),
   ]);
 
-  const adminTenants = [
-    ...new Map(staffRoles.map((r) => [r.tenant.id, r.tenant])).values(),
-  ];
+  const adminTenants = isSuperAdmin
+    ? allTenantsForSuper
+    : [...new Map(staffRoles.map((r) => [r.tenant.id, r.tenant])).values()];
 
   return (
     <div className="grid gap-6 md:grid-cols-2">

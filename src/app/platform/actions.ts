@@ -40,22 +40,47 @@ export async function createTenant(formData: FormData) {
     redirect(`${ROUTES.platformAdmin}?error=${encodeURIComponent("此 slug 已被使用")}`);
   }
 
-  const tenant = await prisma.tenant.create({
-    data: {
-      ...parsed.data,
-      visibility: "PUBLIC",
-      venues: {
-        create: {
-          slug: "main",
-          name: `${parsed.data.displayName} 主館`,
-          address: "",
-          courts: { create: [{ name: "A 場", sortOrder: 1 }, { name: "B 場", sortOrder: 2 }] },
+  const creatorId = session.user!.id!;
+
+  const tenant = await prisma.$transaction(async (tx) => {
+    const created = await tx.tenant.create({
+      data: {
+        ...parsed.data,
+        visibility: "PUBLIC",
+        venues: {
+          create: {
+            slug: "main",
+            name: `${parsed.data.displayName} 主館`,
+            address: "",
+            courts: { create: [{ name: "A 場", sortOrder: 1 }, { name: "B 場", sortOrder: 2 }] },
+          },
         },
       },
-    },
+    });
+
+    const existingStaff = await tx.tenantStaffRole.findFirst({
+      where: {
+        tenantId: created.id,
+        userId: creatorId,
+        role: "TENANT_ADMIN",
+        venueId: null,
+      },
+    });
+    if (!existingStaff) {
+      await tx.tenantStaffRole.create({
+        data: {
+          tenantId: created.id,
+          userId: creatorId,
+          role: "TENANT_ADMIN",
+        },
+      });
+    }
+
+    return created;
   });
 
   revalidatePath(ROUTES.platformAdmin);
+  revalidatePath(ROUTES.me);
   redirect(ROUTES.tenantAdmin(tenant.slug));
 }
 

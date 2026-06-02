@@ -11,7 +11,6 @@
 ```env
 GOOGLE_CLIENT_ID="你的用戶端ID.apps.googleusercontent.com"
 GOOGLE_CLIENT_SECRET="你的密鑰"
-ALLOW_DEV_LOGIN="false"
 ```
 
 8. 重啟 `npm run dev`，到 http://localhost:3000/login 用 Google 登入
