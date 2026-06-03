@@ -73,16 +73,6 @@ export default async function MeAccountsPage({
 
   return (
     <div className="space-y-6">
-      <section className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-        <p>
-          連結多種登入方式後，可用 <strong className="text-slate-800">Google 或 LINE</strong>{" "}
-          登入同一個會員帳號，預約與場館資料會共用。
-        </p>
-        <p className="mt-2">
-          若曾分別用 Google、LINE 登入而變成兩個帳號，請先決定要保留哪一個，用該方式登入後，再在此連結另一種平台。
-        </p>
-      </section>
-
       {successMessage && (
         <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           {successMessage}

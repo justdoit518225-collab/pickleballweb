@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { auth } from "@/auth";
+import { readAvatarDataUrl } from "@/lib/avatar-upload";
 import { importDuprProfileFromApi, linkDuprProfile, syncDuprFromApi } from "@/lib/dupr";
 import { prisma } from "@/lib/prisma";
 import { ROUTES } from "@/lib/constants";
@@ -18,7 +19,8 @@ export async function updateMembershipProfile(formData: FormData) {
   const user = await requireUser();
   const tenantId = String(formData.get("tenantId") ?? "");
   const nicknameRaw = String(formData.get("nickname") ?? "").trim();
-  const avatarRaw = String(formData.get("avatarUrl") ?? "").trim();
+  const removeAvatar = formData.get("removeAvatar") === "on";
+  const avatarFile = formData.get("avatar");
 
   const account = await prisma.user.findUnique({
     where: { id: user.id },
@@ -29,15 +31,26 @@ export async function updateMembershipProfile(formData: FormData) {
     !nicknameRaw || nicknameRaw === account?.name?.trim()
       ? null
       : nicknameRaw;
-  const avatarUrl =
-    !avatarRaw || avatarRaw === account?.image?.trim() ? null : avatarRaw;
 
   if (!tenantId) redirect(`${ROUTES.meProfile}?error=${encodeURIComponent("請選擇場館")}`);
 
+  let avatarPatch: { avatarUrl?: string | null } = {};
+  try {
+    if (removeAvatar) {
+      avatarPatch = { avatarUrl: null };
+    } else if (avatarFile instanceof File && avatarFile.size > 0) {
+      avatarPatch = { avatarUrl: await readAvatarDataUrl(avatarFile) };
+    }
+  } catch (e) {
+    redirect(
+      `${ROUTES.meProfile}?error=${encodeURIComponent(e instanceof Error ? e.message : "頭像上傳失敗")}`,
+    );
+  }
+
   await prisma.tenantMembership.upsert({
     where: { tenantId_userId: { tenantId, userId: user.id } },
-    create: { tenantId, userId: user.id, nickname, avatarUrl },
-    update: { nickname, avatarUrl },
+    create: { tenantId, userId: user.id, nickname, ...avatarPatch },
+    update: { nickname, ...avatarPatch },
   });
 
   const tenant = await prisma.tenant.findUnique({
@@ -50,30 +63,6 @@ export async function updateMembershipProfile(formData: FormData) {
   }
 
   revalidatePath(ROUTES.me);
-  revalidatePath(ROUTES.meProfile);
-  redirect(`${ROUTES.meProfile}?saved=1`);
-}
-
-/** 清除場館自訂頭像，改回使用登入帳號頭像（LINE／Google） */
-export async function resetMembershipAvatarToLogin(formData: FormData) {
-  const user = await requireUser();
-  const tenantId = String(formData.get("tenantId") ?? "");
-  if (!tenantId) redirect(`${ROUTES.meProfile}?error=${encodeURIComponent("請選擇場館")}`);
-
-  await prisma.tenantMembership.updateMany({
-    where: { tenantId, userId: user.id },
-    data: { avatarUrl: null },
-  });
-
-  const tenant = await prisma.tenant.findUnique({
-    where: { id: tenantId },
-    select: { slug: true },
-  });
-  if (tenant) {
-    revalidatePath(ROUTES.tenant(tenant.slug));
-    revalidatePath(ROUTES.tenantActivities(tenant.slug));
-  }
-
   revalidatePath(ROUTES.meProfile);
   redirect(`${ROUTES.meProfile}?saved=1`);
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { auth } from "@/auth";
+import { MembershipVenueCards } from "@/components/me/membership-venue-cards";
 import { Avatar } from "@/components/ui/avatar";
 import { prisma } from "@/lib/prisma";
 import { ROUTES } from "@/lib/constants";
@@ -10,10 +11,20 @@ export default async function MeOverviewPage() {
 
   const isSuperAdmin = session!.user!.platformRole === "SUPER_ADMIN";
 
-  const [memberships, dupr, staffRoles, allTenantsForSuper] = await Promise.all([
+  const [memberships, dupr, staffRoles, allTenantsForSuper, accountUser] = await Promise.all([
     prisma.tenantMembership.findMany({
       where: { userId },
-      include: { tenant: true },
+      include: {
+        tenant: {
+          select: {
+            slug: true,
+            displayName: true,
+            logoUrl: true,
+            description: true,
+          },
+        },
+      },
+      orderBy: { joinedAt: "desc" },
     }),
     prisma.duprProfile.findUnique({ where: { userId } }),
     prisma.tenantStaffRole.findMany({
@@ -26,7 +37,17 @@ export default async function MeOverviewPage() {
           orderBy: { displayName: "asc" },
         })
       : Promise.resolve([]),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true, image: true },
+    }),
   ]);
+
+  const accountForDisplay = {
+    id: userId,
+    name: accountUser?.name ?? session!.user!.name ?? null,
+    image: accountUser?.image ?? session!.user!.image ?? null,
+  };
 
   const adminTenants = isSuperAdmin
     ? allTenantsForSuper
@@ -91,20 +112,15 @@ export default async function MeOverviewPage() {
       </section>
 
       <section className="col-span-full rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="font-semibold">已加入的場館</h2>
-        {memberships.length === 0 ? (
-          <p className="mt-2 text-sm text-slate-500">預約任一場館活動後會自動加入該館會員</p>
-        ) : (
-          <ul className="mt-3 space-y-2">
-            {memberships.map((m) => (
-              <li key={m.id}>
-                <Link href={ROUTES.tenant(m.tenant.slug)} className="text-sm text-brand-navy">
-                  {m.tenant.displayName}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900">已加入的場館</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              共 {memberships.length} 個場館
+            </p>
+          </div>
+        </div>
+        <MembershipVenueCards memberships={memberships} accountUser={accountForDisplay} />
       </section>
     </div>
   );

@@ -3,10 +3,10 @@ import Image from "next/image";
 type AvatarProps = {
   src?: string | null;
   name: string;
-  size?: "sm" | "md";
+  size?: "sm" | "md" | "lg";
 };
 
-const sizes = { sm: 32, md: 40 };
+const sizes = { sm: 32, md: 40, lg: 64 };
 
 export function Avatar({ src, name, size = "md" }: AvatarProps) {
   const px = sizes[size];
@@ -28,7 +28,11 @@ export function Avatar({ src, name, size = "md" }: AvatarProps) {
   return (
     <span
       className="inline-flex items-center justify-center rounded-full bg-brand-navy-soft font-medium text-brand-navy"
-      style={{ width: px, height: px, fontSize: size === "sm" ? 12 : 14 }}
+      style={{
+        width: px,
+        height: px,
+        fontSize: size === "sm" ? 12 : size === "lg" ? 18 : 14,
+      }}
     >
       {initial}
     </span>
