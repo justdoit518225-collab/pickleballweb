@@ -12,6 +12,7 @@ export const ROUTES = {
   meInbox: "/me/inbox",
   meDupr: "/me/dupr",
   meProfile: "/me/profile",
+  meAccounts: "/me/accounts",
   meNotifications: "/me/notifications",
   platformAdmin: "/platform/tenants",
   tenant: (slug: string) => `/t/${slug}`,

@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 const AUTH_ERROR_MESSAGES: Record<string, string> = {
   OAuthAccountNotLinked:
-    "此信箱已在系統中註冊（例如曾用開發信箱登入）。請再試一次 Google 登入；若仍失敗，請聯絡管理員。",
+    "此信箱已用其他登入方式註冊。請先用原方式登入，再到會員中心「登入方式」連結 Google 或 LINE。",
   AccessDenied: "Google 未授權登入，或尚未加入 OAuth 測試使用者。",
   Configuration: "登入設定有誤，請確認 AUTH_URL 與 Google 回調網址。",
   OAuthCallbackError:

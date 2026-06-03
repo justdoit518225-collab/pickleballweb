@@ -43,6 +43,9 @@ export default async function MeOverviewPage() {
           </div>
         </div>
         <div className="mt-4 flex flex-col gap-1 text-sm">
+          <Link href={ROUTES.meAccounts} className="font-medium text-brand-navy">
+            → 登入方式（連結 Google / LINE）
+          </Link>
           {session!.user!.platformRole === "SUPER_ADMIN" && (
             <Link href={ROUTES.platformAdmin} className="font-medium text-brand-teal">
               → 平台管理（建立租戶）

@@ -38,6 +38,25 @@ const nextAuth = NextAuth({
     signIn: "/login",
   },
   callbacks: {
+    async signIn({ user, account }) {
+      if (!account?.providerAccountId || !user.id) return true;
+
+      const existing = await prisma.account.findUnique({
+        where: {
+          provider_providerAccountId: {
+            provider: account.provider,
+            providerAccountId: account.providerAccountId,
+          },
+        },
+        select: { userId: true },
+      });
+
+      if (existing && existing.userId !== user.id) {
+        return "/me/accounts?error=provider_taken";
+      }
+
+      return true;
+    },
     session({ session, user }) {
       if (session.user && user) {
         session.user.id = user.id;
