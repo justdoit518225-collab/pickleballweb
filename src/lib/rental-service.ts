@@ -72,6 +72,95 @@ export async function bookRentalSlot(
   });
 }
 
+/** 連續預約多個 OPEN 租場時段（同一球場、時間相鄰） */
+export async function bookRentalSlotRange(
+  slotIds: string[],
+  userId: string,
+  options?: { racketRental?: number },
+) {
+  if (!slotIds.length) {
+    throw new BookingError("請選擇時段", "INVALID_RANGE");
+  }
+
+  const racketRental = options?.racketRental ?? 0;
+  if (!Number.isInteger(racketRental) || racketRental < 0) {
+    throw new BookingError("球拍數量無效", "INVALID_RACKET");
+  }
+
+  const slots = await prisma.rentalSlot.findMany({
+    where: { id: { in: slotIds } },
+    include: { rentalBooking: true },
+    orderBy: { startAt: "asc" },
+  });
+
+  if (slots.length !== slotIds.length) {
+    throw new BookingError("部分時段不存在", "NOT_FOUND", 404);
+  }
+
+  const courtId = slots[0].courtId;
+  const tenantId = slots[0].tenantId;
+
+  for (const slot of slots) {
+    if (slot.courtId !== courtId) {
+      throw new BookingError("請選擇同一球場的連續時段", "INVALID_RANGE");
+    }
+    if (slot.status !== "OPEN") {
+      throw new BookingError("所選時段中有不可預約的格子", "NOT_AVAILABLE");
+    }
+    if (slot.startAt <= new Date()) {
+      throw new BookingError("所選時段已過期", "EXPIRED");
+    }
+    if (slot.rentalBooking?.status === "CONFIRMED") {
+      throw new BookingError("所選時段已被預約", "BOOKED");
+    }
+  }
+
+  for (let i = 1; i < slots.length; i++) {
+    if (slots[i].startAt.getTime() !== slots[i - 1].endAt.getTime()) {
+      throw new BookingError("請選擇連續的時段", "INVALID_RANGE");
+    }
+  }
+
+  const membership = await prisma.tenantMembership.findUnique({
+    where: { tenantId_userId: { tenantId, userId } },
+  });
+  if (membership?.isBanned) {
+    throw new BookingError("您的帳號在此場館已被停權", "BANNED", 403);
+  }
+
+  await ensureTenantMembership(tenantId, userId);
+
+  return prisma.$transaction(async (tx) => {
+    const results = [];
+    for (const slot of slots) {
+      const fresh = await tx.rentalSlot.findUnique({ where: { id: slot.id } });
+      if (!fresh || fresh.status !== "OPEN") {
+        throw new BookingError("時段已被他人預約", "BOOKED");
+      }
+      await tx.rentalSlot.update({
+        where: { id: slot.id },
+        data: { status: "BOOKED", bookedById: userId },
+      });
+      const existing = await tx.rentalBooking.findUnique({ where: { slotId: slot.id } });
+      if (existing) {
+        results.push(
+          await tx.rentalBooking.update({
+            where: { id: existing.id },
+            data: { status: "CONFIRMED", cancelledAt: null, userId, racketRental },
+          }),
+        );
+      } else {
+        results.push(
+          await tx.rentalBooking.create({
+            data: { slotId: slot.id, userId, status: "CONFIRMED", racketRental },
+          }),
+        );
+      }
+    }
+    return results;
+  });
+}
+
 export async function cancelRentalBooking(slotId: string, userId: string) {
   const slot = await prisma.rentalSlot.findUnique({
     where: { id: slotId },
