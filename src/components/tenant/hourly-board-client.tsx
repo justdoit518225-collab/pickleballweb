@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toTimeInputValue } from "@/lib/booking-display";
 import { formatBoardHourWindow } from "@/lib/venue-timezone";
 import type {
@@ -13,15 +13,16 @@ import type {
 } from "@/lib/hourly-board";
 import { ROUTES } from "@/lib/constants";
 
+type BookingKind = "drop-in" | "rental";
+
 type ModalState =
-  | { mode: "choice"; cell: HourlyCell; courtId: string; courtName: string }
-  | { mode: "drop-in"; dropIn: HourlyDropIn; courtName: string }
   | {
-      mode: "rental-confirm";
+      mode: "booking-confirm";
       courtId: string;
       courtName: string;
       startHour: number;
       endHour: number;
+      initialKind?: BookingKind;
     }
   | null;
 
@@ -68,6 +69,55 @@ function resolveRentalSlotIds(
   return { ok: true, slotIds };
 }
 
+function isDropInBookableCell(cell: HourlyCell) {
+  return Boolean(
+    cell.dropIn?.bookable && !cell.dropIn.isFull && !cell.dropIn.hasJoined,
+  );
+}
+
+function getBookingOptions(
+  col: HourlyCourtColumn,
+  startHour: number,
+  endHourInclusive: number,
+) {
+  if (endHourInclusive < startHour) {
+    return { canDropIn: false, dropIn: null as HourlyDropIn | null, canRent: false };
+  }
+
+  let dropIn: HourlyDropIn | null = null;
+  let canDropIn = true;
+  let canRent = true;
+
+  for (const h of hoursInRange(startHour, endHourInclusive)) {
+    const cell = getCell(col, h);
+    if (isDropInBookableCell(cell)) {
+      if (!dropIn) {
+        dropIn = cell.dropIn!;
+      } else if (dropIn.activityId !== cell.dropIn!.activityId) {
+        canDropIn = false;
+      }
+    } else {
+      canDropIn = false;
+    }
+    if (!isRentalOpenCell(cell)) {
+      canRent = false;
+    }
+  }
+
+  return { canDropIn, dropIn, canRent };
+}
+
+function pickDefaultKind(
+  options: ReturnType<typeof getBookingOptions>,
+  preferred?: BookingKind,
+): BookingKind | null {
+  if (preferred === "drop-in" && options.canDropIn) return "drop-in";
+  if (preferred === "rental" && options.canRent) return "rental";
+  if (options.canDropIn) return "drop-in";
+  if (options.canRent) return "rental";
+  return null;
+}
+
 const kindStyles: Record<HourlyCellKind, string> = {
   empty: "border-slate-100 bg-slate-50/80 text-slate-400",
   "drop-in": "border-brand-teal/30 bg-brand-lime-soft/30 text-brand-navy",
@@ -95,19 +145,21 @@ export function HourlyBoardClient({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  function openRentalConfirm(
+  function openBookingConfirm(
     courtId: string,
     courtName: string,
     startHour: number,
     endHour: number,
+    initialKind?: BookingKind,
   ) {
     setError(null);
     setModal({
-      mode: "rental-confirm",
+      mode: "booking-confirm",
       courtId,
       courtName,
       startHour,
       endHour,
+      initialKind,
     });
   }
 
@@ -144,7 +196,15 @@ export function HourlyBoardClient({
     if (!loggedIn) return;
 
     if (cell.kind === "dual" && cell.dropIn && cell.rental) {
-      setModal({ mode: "choice", cell, courtId: col.courtId, courtName });
+      if (cell.dropIn.hasJoined) {
+        void callApi(`/api/activities/${cell.dropIn.activityId}/cancel`);
+        return;
+      }
+      if (cell.rental.isMineRental) {
+        void callApi(`/api/rentals/${cell.rental.slotId}/cancel`);
+        return;
+      }
+      openBookingConfirm(col.courtId, courtName, cell.hour, cell.hour);
       return;
     }
 
@@ -154,7 +214,7 @@ export function HourlyBoardClient({
         return;
       }
       if (cell.dropIn.isFull) return;
-      setModal({ mode: "drop-in", dropIn: cell.dropIn, courtName });
+      openBookingConfirm(col.courtId, courtName, cell.hour, cell.hour, "drop-in");
       return;
     }
 
@@ -164,7 +224,7 @@ export function HourlyBoardClient({
         return;
       }
       if (cell.rental.rentalOpen) {
-        openRentalConfirm(col.courtId, courtName, cell.hour, cell.hour);
+        openBookingConfirm(col.courtId, courtName, cell.hour, cell.hour, "rental");
       }
     }
   }
@@ -189,7 +249,7 @@ export function HourlyBoardClient({
         <p className="text-sm text-slate-500">{dateLabel}</p>
         <h1 className="mt-1 text-2xl font-bold text-slate-900">今日球場</h1>
         <p className="mt-1 text-sm text-slate-600">
-          營業 09:00–24:00 · A → B → C。點租場格後可在確認畫面調整開始／結束時間；臨打仍點格報名。
+          營業 09:00–24:00 · A → B → C。點格子後在確認畫面選擇臨打或租場，並可調整時間。
         </p>
       </header>
 
@@ -218,16 +278,18 @@ export function HourlyBoardClient({
                 </td>
                 {columns.map((col) => {
                   const cell = col.cells.find((c) => c.hour === hour)!;
-                  const rentOpen = loggedIn && isRentalOpenCell(cell);
+                  const bookable =
+                    loggedIn &&
+                    (isRentalOpenCell(cell) || isDropInBookableCell(cell));
                   return (
                     <td key={col.courtId} className="p-1">
                       <button
                         type="button"
-                        disabled={!cellClickable(cell) && !rentOpen}
+                        disabled={!cellClickable(cell) && !bookable}
                         onClick={() => onCellClick(cell, col)}
                         className={`flex min-h-[56px] w-full flex-col items-stretch rounded-lg border px-2 py-1.5 text-left transition hover:ring-2 hover:ring-brand-teal/40 disabled:cursor-default disabled:hover:ring-0 ${kindStyles[cell.kind]}`}
                       >
-                        <CellContent cell={cell} loggedIn={loggedIn} rentOpen={rentOpen} />
+                        <CellContent cell={cell} loggedIn={loggedIn} bookable={bookable} />
                       </button>
                     </td>
                   );
@@ -247,52 +309,24 @@ export function HourlyBoardClient({
         </p>
       )}
 
-      {modal?.mode === "choice" && modal.cell.dropIn && modal.cell.rental && (
-        <ChoiceModal
-          cell={modal.cell}
-          courtName={modal.courtName}
-          loading={loading}
-          error={error}
-          onClose={() => setModal(null)}
-          onPickDropIn={() =>
-            setModal({ mode: "drop-in", dropIn: modal.cell.dropIn!, courtName: modal.courtName })
-          }
-          onPickRental={() =>
-            openRentalConfirm(
-              modal.courtId,
-              modal.courtName,
-              modal.cell.hour,
-              modal.cell.hour,
-            )
-          }
-        />
-      )}
-      {modal?.mode === "drop-in" && (
-        <DropInModal
-          dropIn={modal.dropIn}
-          courtName={modal.courtName}
-          loading={loading}
-          error={error}
-          onClose={() => setModal(null)}
-          onSubmit={(body) =>
-            callApi(`/api/activities/${modal.dropIn.activityId}/book`, body)
-          }
-        />
-      )}
-      {modal?.mode === "rental-confirm" && (() => {
+      {modal?.mode === "booking-confirm" && (() => {
         const col = columns.find((c) => c.courtId === modal.courtId);
         if (!col) return null;
         return (
-          <RentalConfirmModal
+          <BookingConfirmModal
             courtName={modal.courtName}
             column={col}
             boardHours={hours.map((h) => h.hour)}
             initialStartHour={modal.startHour}
             initialEndHour={modal.endHour}
+            initialKind={modal.initialKind}
             loading={loading}
             error={error}
             onClose={() => setModal(null)}
-            onSubmit={(body) => callApi("/api/rentals/book-range", body)}
+            onDropInSubmit={(activityId, body) =>
+              callApi(`/api/activities/${activityId}/book`, body)
+            }
+            onRentalSubmit={(body) => callApi("/api/rentals/book-range", body)}
           />
         );
       })()}
@@ -303,11 +337,11 @@ export function HourlyBoardClient({
 function CellContent({
   cell,
   loggedIn,
-  rentOpen,
+  bookable,
 }: {
   cell: HourlyCell;
   loggedIn: boolean;
-  rentOpen?: boolean;
+  bookable?: boolean;
 }) {
   if (cell.kind === "empty") {
     return <span className="text-xs text-slate-400">—</span>;
@@ -342,8 +376,8 @@ function CellContent({
         <span className="text-xs text-slate-600">
           租場 {cell.rental.isBooked ? cell.rental.label : "可租"}
         </span>
-        {loggedIn && (
-          <span className="mt-1 text-[10px] font-medium text-violet-700">點擊選擇 →</span>
+        {loggedIn && bookable && (
+          <span className="mt-1 text-[10px] font-medium text-violet-700">點擊預約 →</span>
         )}
       </>
     );
@@ -360,6 +394,9 @@ function CellContent({
         {loggedIn && cell.dropIn.hasJoined && (
           <span className="text-[10px] text-brand-teal">已報名·點取消</span>
         )}
+        {loggedIn && !cell.dropIn.hasJoined && bookable && (
+          <span className="text-[10px] text-emerald-700">點擊報名，確認頁可調時間</span>
+        )}
       </>
     );
   }
@@ -371,7 +408,7 @@ function CellContent({
         <span className="text-xs font-medium">{cell.rental.label}</span>
         {loggedIn && cell.rental.rentalOpen && (
           <span className="text-[10px] text-emerald-700">
-            {rentOpen ? "點擊租場，確認頁可調時間" : "點擊租場"}
+            {bookable ? "點擊租場，確認頁可調時間" : "點擊租場"}
           </span>
         )}
         {loggedIn && cell.rental.isMineRental && (
@@ -384,81 +421,6 @@ function CellContent({
   return null;
 }
 
-function ChoiceModal({
-  cell,
-  courtName,
-  loading,
-  error,
-  onClose,
-  onPickDropIn,
-  onPickRental,
-}: {
-  cell: HourlyCell;
-  courtName: string;
-  loading: boolean;
-  error: string | null;
-  onClose: () => void;
-  onPickDropIn: () => void;
-  onPickRental: () => void;
-}) {
-  const d = cell.dropIn!;
-  const r = cell.rental!;
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-sm rounded-2xl bg-white p-5 shadow-xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3 className="text-lg font-bold text-slate-900">選擇預約方式</h3>
-        <p className="mt-1 text-sm text-slate-500">{courtName}</p>
-        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-        <div className="mt-4 space-y-2">
-          {d.bookable && !d.isFull && !d.hasJoined && (
-            <button
-              type="button"
-              disabled={loading}
-              onClick={onPickDropIn}
-              className="w-full rounded-xl border border-brand-teal/40 bg-brand-lime-soft/40 px-4 py-3 text-left hover:bg-brand-lime-soft/70 disabled:opacity-60"
-            >
-              <span className="font-semibold text-brand-navy">報名臨打</span>
-              <span className="mt-0.5 block text-xs text-slate-600">
-                {d.label} · {d.detail}
-              </span>
-            </button>
-          )}
-          {d.hasJoined && (
-            <p className="text-xs text-brand-teal">您已報名臨打，請在格子上點擊取消</p>
-          )}
-          {r.rentalOpen && (
-            <button
-              type="button"
-              disabled={loading}
-              onClick={onPickRental}
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-left hover:bg-slate-50 disabled:opacity-60"
-            >
-              <span className="font-semibold text-slate-800">租場</span>
-              <span className="mt-0.5 block text-xs text-slate-600">整面球場預約</span>
-            </button>
-          )}
-          {r.isMineRental && (
-            <p className="text-xs text-slate-500">您已租場，請在格子上點擊取消</p>
-          )}
-          {r.isBooked && !r.isMineRental && (
-            <p className="text-xs text-slate-500">租場：{r.label}（已被預約）</p>
-          )}
-        </div>
-        <button type="button" onClick={onClose} className="mt-4 w-full text-sm text-slate-500">
-          關閉
-        </button>
-      </div>
-    </div>
-  );
-}
-
 function ModalShell({
   title,
   subtitle,
@@ -468,6 +430,7 @@ function ModalShell({
   children,
   onSubmit,
   submitLabel,
+  submitDisabled,
 }: {
   title: string;
   subtitle: string;
@@ -477,6 +440,7 @@ function ModalShell({
   children: React.ReactNode;
   onSubmit: () => void;
   submitLabel: string;
+  submitDisabled?: boolean;
 }) {
   return (
     <div
@@ -504,7 +468,7 @@ function ModalShell({
           </button>
           <button
             type="button"
-            disabled={loading}
+            disabled={loading || submitDisabled}
             onClick={onSubmit}
             className="rounded-lg bg-brand-navy px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
           >
@@ -516,126 +480,51 @@ function ModalShell({
   );
 }
 
-function DropInModal({
-  dropIn,
-  courtName,
-  loading,
-  error,
-  onClose,
-  onSubmit,
-}: {
-  dropIn: HourlyDropIn;
-  courtName: string;
-  loading: boolean;
-  error: string | null;
-  onClose: () => void;
-  onSubmit: (body: {
-    partySize: number;
-    startTime: string;
-    endTime: string;
-    racketRental: number;
-  }) => void;
-}) {
-  const minTime = toTimeInputValue(dropIn.startAt);
-  const maxTime = toTimeInputValue(dropIn.endAt);
-  const remaining = Math.max(1, dropIn.capacity - dropIn.headCount);
-  const [partySize, setPartySize] = useState(1);
-  const [startTime, setStartTime] = useState(minTime);
-  const [endTime, setEndTime] = useState(maxTime);
-  const [racketRental, setRacketRental] = useState(0);
-
-  return (
-    <ModalShell
-      title="報名臨打"
-      subtitle={`${courtName} · ${dropIn.label}`}
-      loading={loading}
-      error={error}
-      onClose={onClose}
-      submitLabel={partySize > 1 ? `報名 ${partySize} 人` : "確認報名"}
-      onSubmit={() => onSubmit({ partySize, startTime, endTime, racketRental })}
-    >
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className="block text-sm font-medium text-slate-700">開始</label>
-          <input
-            type="time"
-            value={startTime}
-            min={minTime}
-            max={maxTime}
-            onChange={(e) => setStartTime(e.target.value)}
-            className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700">結束</label>
-          <input
-            type="time"
-            value={endTime}
-            min={minTime}
-            max={maxTime}
-            onChange={(e) => setEndTime(e.target.value)}
-            className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-          />
-        </div>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-slate-700">人數</label>
-        <select
-          value={partySize}
-          onChange={(e) => setPartySize(Number(e.target.value))}
-          className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-        >
-          {Array.from({ length: remaining }, (_, i) => i + 1).map((n) => (
-            <option key={n} value={n}>
-              {n} 人
-            </option>
-          ))}
-        </select>
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-slate-700">球拍</label>
-        <select
-          value={racketRental}
-          onChange={(e) => setRacketRental(Number(e.target.value))}
-          className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-        >
-          <option value={0}>不需要</option>
-          {Array.from({ length: partySize }, (_, i) => i + 1).map((n) => (
-            <option key={n} value={n}>
-              {n} 支
-            </option>
-          ))}
-        </select>
-      </div>
-    </ModalShell>
-  );
-}
-
-function RentalConfirmModal({
+function BookingConfirmModal({
   courtName,
   column,
   boardHours,
   initialStartHour,
   initialEndHour,
+  initialKind,
   loading,
   error,
   onClose,
-  onSubmit,
+  onDropInSubmit,
+  onRentalSubmit,
 }: {
   courtName: string;
   column: HourlyCourtColumn;
   boardHours: number[];
   initialStartHour: number;
   initialEndHour: number;
+  initialKind?: BookingKind;
   loading: boolean;
   error: string | null;
   onClose: () => void;
-  onSubmit: (body: { slotIds: string[]; racketRental: number }) => void;
+  onDropInSubmit: (
+    activityId: string,
+    body: {
+      partySize: number;
+      startTime: string;
+      endTime: string;
+      racketRental: number;
+    },
+  ) => void;
+  onRentalSubmit: (body: { slotIds: string[]; racketRental: number }) => void;
 }) {
   const [startHour, setStartHour] = useState(initialStartHour);
   const [endHour, setEndHour] = useState(initialEndHour);
+  const [kind, setKind] = useState<BookingKind>(() => {
+    const opts = getBookingOptions(column, initialStartHour, initialEndHour);
+    return pickDefaultKind(opts, initialKind) ?? "rental";
+  });
+  const [partySize, setPartySize] = useState(1);
   const [racketRental, setRacketRental] = useState(0);
   const [localError, setLocalError] = useState<string | null>(null);
+
+  const options = getBookingOptions(column, startHour, endHour);
+  const { canDropIn, dropIn, canRent } = options;
 
   const boardEndHour = 24;
   const maxStartHour = boardHours[boardHours.length - 1] ?? boardEndHour - 1;
@@ -647,6 +536,29 @@ function RentalConfirmModal({
   const hourCount = Math.max(0, endHour - startHour + 1);
   const windowLabel = formatBoardHourWindow(startHour, endHour);
   const displayError = localError ?? error;
+  const remaining = dropIn ? Math.max(1, dropIn.capacity - dropIn.headCount) : 1;
+  const activeKind =
+    kind === "drop-in" && canDropIn
+      ? "drop-in"
+      : kind === "rental" && canRent
+        ? "rental"
+        : canDropIn
+          ? "drop-in"
+          : canRent
+            ? "rental"
+            : null;
+
+  useEffect(() => {
+    if (activeKind && activeKind !== kind) {
+      setKind(activeKind);
+    }
+  }, [activeKind, kind]);
+
+  useEffect(() => {
+    if (partySize > remaining) {
+      setPartySize(remaining);
+    }
+  }, [partySize, remaining]);
 
   function handleStartChange(nextStart: number) {
     setStartHour(nextStart);
@@ -660,28 +572,116 @@ function RentalConfirmModal({
   }
 
   function handleSubmit() {
-    const resolved = resolveRentalSlotIds(column, startHour, endHour);
-    if (!resolved.ok) {
-      setLocalError(resolved.message);
+    if (!activeKind) {
+      setLocalError("此時段無法預約臨打或租場，請調整時間");
       return;
     }
-    onSubmit({ slotIds: resolved.slotIds, racketRental });
+
+    if (activeKind === "rental") {
+      const resolved = resolveRentalSlotIds(column, startHour, endHour);
+      if (!resolved.ok) {
+        setLocalError(resolved.message);
+        return;
+      }
+      onRentalSubmit({ slotIds: resolved.slotIds, racketRental });
+      return;
+    }
+
+    if (!dropIn) {
+      setLocalError("找不到臨打活動，請調整時間");
+      return;
+    }
+
+    const startTime = hourLabel(startHour);
+    const endTime = endHourLabel(endHour + 1);
+    const minTime = toTimeInputValue(dropIn.startAt);
+    const maxTime = toTimeInputValue(dropIn.endAt);
+    if (startTime < minTime || endTime > maxTime) {
+      setLocalError(`臨打開放時段為 ${minTime}–${maxTime}，請調整時間`);
+      return;
+    }
+
+    onDropInSubmit(dropIn.activityId, {
+      partySize,
+      startTime,
+      endTime,
+      racketRental,
+    });
   }
+
+  const submitLabel =
+    activeKind === "drop-in"
+      ? partySize > 1
+        ? `確認報名 ${partySize} 人`
+        : "確認報名臨打"
+      : hourCount > 1
+        ? `確認租場 ${hourCount} 小時`
+        : "確認租場";
 
   return (
     <ModalShell
-      title="確認租場"
+      title="確認預約"
       subtitle={`${courtName} · ${windowLabel}`}
       loading={loading}
       error={displayError}
       onClose={onClose}
-      submitLabel={hourCount > 1 ? `確認租場 ${hourCount} 小時` : "確認租場"}
+      submitLabel={submitLabel}
       onSubmit={handleSubmit}
+      submitDisabled={!activeKind}
     >
+      {canDropIn && canRent ? (
+        <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+          <button
+            type="button"
+            onClick={() => {
+              setKind("drop-in");
+              setLocalError(null);
+            }}
+            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition ${
+              activeKind === "drop-in"
+                ? "bg-brand-teal text-white shadow-sm"
+                : "text-slate-600 hover:bg-white"
+            }`}
+          >
+            臨打
+            {dropIn?.detail ? (
+              <span className="mt-0.5 block text-[10px] font-normal opacity-90">
+                {dropIn.detail}
+              </span>
+            ) : null}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setKind("rental");
+              setLocalError(null);
+            }}
+            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition ${
+              activeKind === "rental"
+                ? "bg-brand-navy text-white shadow-sm"
+                : "text-slate-600 hover:bg-white"
+            }`}
+          >
+            租場
+            <span className="mt-0.5 block text-[10px] font-normal opacity-90">整面球場</span>
+          </button>
+        </div>
+      ) : activeKind === "drop-in" && dropIn ? (
+        <p className="rounded-lg bg-brand-lime-soft/40 px-3 py-2 text-sm text-brand-navy">
+          臨打 · {dropIn.label}
+          {dropIn.detail ? ` · ${dropIn.detail}` : ""}
+        </p>
+      ) : activeKind === "rental" ? (
+        <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">租場 · 整面球場預約</p>
+      ) : (
+        <p className="text-sm text-amber-700">此時段目前無法預約，請調整開始或結束時間。</p>
+      )}
+
       <p className="text-sm text-slate-600">
-        可調整租用時段（每小時一格）。目前為 <strong>{windowLabel}</strong>
+        可調整時段（每小時一格）。目前為 <strong>{windowLabel}</strong>
         {hourCount > 1 ? `，共 ${hourCount} 小時` : ""}。
       </p>
+
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-medium text-slate-700">開始時間</label>
@@ -714,6 +714,24 @@ function RentalConfirmModal({
           </select>
         </div>
       </div>
+
+      {activeKind === "drop-in" && (
+        <div>
+          <label className="block text-sm font-medium text-slate-700">人數</label>
+          <select
+            value={partySize}
+            onChange={(e) => setPartySize(Number(e.target.value))}
+            className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
+          >
+            {Array.from({ length: remaining }, (_, i) => i + 1).map((n) => (
+              <option key={n} value={n}>
+                {n} 人
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <div>
         <label className="block text-sm font-medium text-slate-700">租借球拍（支）</label>
         <select
@@ -722,7 +740,10 @@ function RentalConfirmModal({
           className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
         >
           <option value={0}>不需要</option>
-          {[1, 2, 3, 4].map((n) => (
+          {(activeKind === "drop-in"
+            ? Array.from({ length: partySize }, (_, i) => i + 1)
+            : [1, 2, 3, 4]
+          ).map((n) => (
             <option key={n} value={n}>
               {n} 支
             </option>
