@@ -3,6 +3,10 @@ import { resolveMemberDisplay } from "@/lib/member-display";
 import { prisma } from "@/lib/prisma";
 import { dayBounds } from "@/lib/day-board";
 import { toTimeInputValue } from "@/lib/booking-display";
+import {
+  overlapsHourInTaipei,
+  slotStartsInTaipeiHour,
+} from "@/lib/venue-timezone";
 
 /** 樂活板橋營業時段：09:00–24:00（含 9，不含 24 → 最後一格為 23:00–24:00） */
 export const LOHO_BOARD_HOUR_START = 9;
@@ -87,12 +91,19 @@ type ActivityRow = Awaited<
 >[number];
 type RentalRow = Awaited<ReturnType<typeof fetchBoardRentals>>[number];
 
-function overlapsHour(start: Date, end: Date, day: Date, hour: number): boolean {
-  const cellStart = new Date(day);
-  cellStart.setHours(hour, 0, 0, 0);
-  const cellEnd = new Date(day);
-  cellEnd.setHours(hour + 1, 0, 0, 0);
-  return start < cellEnd && end > cellStart;
+function pickRentalForCell(
+  rentals: RentalRow[],
+  courtId: string,
+  day: Date,
+  hour: number,
+): RentalRow | undefined {
+  const exact = rentals.find(
+    (r) => r.courtId === courtId && slotStartsInTaipeiHour(r.startAt, day, hour),
+  );
+  if (exact) return exact;
+  return rentals.find(
+    (r) => r.courtId === courtId && overlapsHourInTaipei(r.startAt, r.endAt, day, hour),
+  );
 }
 
 /** A 場 → B 場 → C 場 */
@@ -285,11 +296,11 @@ export async function getHourlyBoard(tenantId: string, day: Date, viewerId?: str
     venueId: court.venueId,
     cells: ctx.hours.map(({ hour }) => {
       const act = ctx.activities.find(
-        (a) => a.courtId === court.id && overlapsHour(a.startAt, a.endAt, day, hour),
+        (a) =>
+          a.courtId === court.id &&
+          overlapsHourInTaipei(a.startAt, a.endAt, day, hour),
       );
-      const rental = ctx.rentals.find(
-        (r) => r.courtId === court.id && overlapsHour(r.startAt, r.endAt, day, hour),
-      );
+      const rental = pickRentalForCell(ctx.rentals, court.id, day, hour);
       return buildCell(hour, act, rental, ctx.membershipMap, viewerId, true);
     }),
   }));
@@ -330,11 +341,11 @@ export async function getAdminHourlyBoard(tenantId: string, day: Date) {
     venueId: court.venueId,
     cells: ctx.hours.map(({ hour }) => {
       const act = ctx.activities.find(
-        (a) => a.courtId === court.id && overlapsHour(a.startAt, a.endAt, day, hour),
+        (a) =>
+          a.courtId === court.id &&
+          overlapsHourInTaipei(a.startAt, a.endAt, day, hour),
       );
-      const rental = ctx.rentals.find(
-        (r) => r.courtId === court.id && overlapsHour(r.startAt, r.endAt, day, hour),
-      );
+      const rental = pickRentalForCell(ctx.rentals, court.id, day, hour);
       const base = buildCell(hour, act, rental, ctx.membershipMap, undefined, false);
 
       let dropIn: AdminHourlyDropIn | null = null;

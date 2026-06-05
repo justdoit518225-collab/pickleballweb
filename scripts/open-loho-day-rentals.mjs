@@ -16,6 +16,23 @@ const dateArg = process.argv.find((a) => /^\d{4}-\d{2}-\d{2}$/.test(a));
 const HOUR_START = 9;
 const HOUR_END = 24;
 
+function nextTaipeiYmd(ymd) {
+  const [y, m, d] = ymd.split("-").map(Number);
+  const next = new Date(Date.UTC(y, m - 1, d + 1));
+  return next.toISOString().slice(0, 10);
+}
+
+function taipeiSlotRange(ymd, hour) {
+  const pad = (n) => String(n).padStart(2, "0");
+  const startAt = new Date(`${ymd}T${pad(hour)}:00:00+08:00`);
+  const endHour = hour + 1;
+  const endAt =
+    endHour >= 24
+      ? new Date(`${nextTaipeiYmd(ymd)}T00:00:00+08:00`)
+      : new Date(`${ymd}T${pad(endHour)}:00:00+08:00`);
+  return { startAt, endAt };
+}
+
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 
@@ -44,9 +61,9 @@ async function main() {
     process.exit(1);
   }
 
-  const day = dateArg ? new Date(`${dateArg}T12:00:00`) : new Date();
-  day.setHours(0, 0, 0, 0);
-  const dayLabel = day.toISOString().slice(0, 10);
+  const dayLabel = dateArg
+    ? dateArg
+    : new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Taipei" });
 
   const courts = sortCourts(tenant.venues.flatMap((v) => v.courts));
   if (courts.length === 0) {
@@ -58,10 +75,7 @@ async function main() {
 
   for (const court of courts) {
     for (let h = HOUR_START; h < HOUR_END; h++) {
-      const startAt = new Date(day);
-      startAt.setHours(h, 0, 0, 0);
-      const endAt = new Date(day);
-      endAt.setHours(h + 1, 0, 0, 0);
+      const { startAt, endAt } = taipeiSlotRange(dayLabel, h);
 
       const conflict = await prisma.rentalSlot.findFirst({
         where: {
