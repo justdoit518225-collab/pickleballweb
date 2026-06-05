@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { toTimeInputValue } from "@/lib/booking-display";
 import { formatBoardHourWindow } from "@/lib/venue-timezone";
 import type {
@@ -10,18 +10,16 @@ import type {
   HourlyCellKind,
   HourlyCourtColumn,
   HourlyDropIn,
-  HourlyRental,
 } from "@/lib/hourly-board";
 import { ROUTES } from "@/lib/constants";
 
 type ModalState =
-  | { mode: "choice"; cell: HourlyCell; courtName: string }
+  | { mode: "choice"; cell: HourlyCell; courtId: string; courtName: string }
   | { mode: "drop-in"; dropIn: HourlyDropIn; courtName: string }
-  | { mode: "rental"; rental: HourlyRental; courtName: string; startHour: number; endHour: number }
   | {
-      mode: "rental-range";
+      mode: "rental-confirm";
+      courtId: string;
       courtName: string;
-      slotIds: string[];
       startHour: number;
       endHour: number;
     }
@@ -41,6 +39,33 @@ function hoursInRange(a: number, b: number) {
   const out: number[] = [];
   for (let h = lo; h <= hi; h++) out.push(h);
   return out;
+}
+
+function hourLabel(h: number) {
+  return `${String(h).padStart(2, "0")}:00`;
+}
+
+function endHourLabel(endExclusive: number) {
+  return endExclusive >= 24 ? "24:00" : hourLabel(endExclusive);
+}
+
+function resolveRentalSlotIds(
+  col: HourlyCourtColumn,
+  startHour: number,
+  endHourInclusive: number,
+): { ok: true; slotIds: string[] } | { ok: false; message: string } {
+  if (endHourInclusive < startHour) {
+    return { ok: false, message: "結束時間需晚於開始時間" };
+  }
+  const slotIds: string[] = [];
+  for (const h of hoursInRange(startHour, endHourInclusive)) {
+    const cell = getCell(col, h);
+    if (!isRentalOpenCell(cell)) {
+      return { ok: false, message: `${hourLabel(h)} 無法租用，請縮短或調整時間` };
+    }
+    slotIds.push(cell.rental!.slotId);
+  }
+  return { ok: true, slotIds };
 }
 
 const kindStyles: Record<HourlyCellKind, string> = {
@@ -69,22 +94,21 @@ export function HourlyBoardClient({
   const [modal, setModal] = useState<ModalState>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectHours, setSelectHours] = useState<{
-    courtId: string;
-    hours: number[];
-  } | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const selectHoursRef = useRef<{ courtId: string; hours: number[] } | null>(null);
-  const dragRef = useRef<{
-    active: boolean;
-    courtId: string | null;
-    anchorHour: number | null;
-    moved: boolean;
-  }>({ active: false, courtId: null, anchorHour: null, moved: false });
 
-  function setDragSelection(next: { courtId: string; hours: number[] } | null) {
-    selectHoursRef.current = next;
-    setSelectHours(next);
+  function openRentalConfirm(
+    courtId: string,
+    courtName: string,
+    startHour: number,
+    endHour: number,
+  ) {
+    setError(null);
+    setModal({
+      mode: "rental-confirm",
+      courtId,
+      courtName,
+      startHour,
+      endHour,
+    });
   }
 
   async function callApi(path: string, body?: object) {
@@ -106,8 +130,9 @@ export function HourlyBoardClient({
     return true;
   }
 
-  function onCellClick(cell: HourlyCell, courtName: string) {
+  function onCellClick(cell: HourlyCell, col: HourlyCourtColumn) {
     setError(null);
+    const courtName = col.courtName;
     if (cell.kind === "empty") return;
     if (cell.kind === "course") return;
     if (cell.kind === "dupr") {
@@ -119,7 +144,7 @@ export function HourlyBoardClient({
     if (!loggedIn) return;
 
     if (cell.kind === "dual" && cell.dropIn && cell.rental) {
-      setModal({ mode: "choice", cell, courtName });
+      setModal({ mode: "choice", cell, courtId: col.courtId, courtName });
       return;
     }
 
@@ -139,133 +164,10 @@ export function HourlyBoardClient({
         return;
       }
       if (cell.rental.rentalOpen) {
-        setModal({
-          mode: "rental",
-          rental: cell.rental,
-          courtName,
-          startHour: cell.hour,
-          endHour: cell.hour,
-        });
+        openRentalConfirm(col.courtId, courtName, cell.hour, cell.hour);
       }
     }
   }
-
-  const finishDrag = useCallback(() => {
-    if (!dragRef.current.active) return;
-
-    const { courtId, anchorHour, moved } = dragRef.current;
-    dragRef.current = { active: false, courtId: null, anchorHour: null, moved: false };
-
-    setIsDragging(false);
-
-    const col = columns.find((c) => c.courtId === courtId);
-    const hours = selectHoursRef.current?.hours
-      ? [...selectHoursRef.current.hours].sort((a, b) => a - b)
-      : [];
-    setDragSelection(null);
-
-    if (!col || anchorHour === null || hours.length === 0) return;
-
-    const startHour = hours[0];
-    const endHour = hours[hours.length - 1];
-    const allOpen = hours.every((h) => isRentalOpenCell(getCell(col, h)));
-
-    if (moved && hours.length >= 1 && allOpen) {
-      const slotIds = hours.map((h) => getCell(col, h).rental!.slotId);
-      const first = getCell(col, hours[0]).rental!;
-      if (hours.length === 1) {
-        setModal({
-          mode: "rental",
-          rental: first,
-          courtName: col.courtName,
-          startHour,
-          endHour,
-        });
-      } else {
-        setModal({
-          mode: "rental-range",
-          courtName: col.courtName,
-          slotIds,
-          startHour,
-          endHour,
-        });
-      }
-      return;
-    }
-
-    if (!moved && hours.length === 1) {
-      onCellClick(getCell(col, hours[0]), col.courtName);
-    } else if (moved) {
-      setError("請拖曳選擇連續且可租的時段（中間不可有已滿或課程格）");
-    }
-  }, [columns]);
-
-  useEffect(() => {
-    const onUp = () => finishDrag();
-    window.addEventListener("pointerup", onUp);
-    window.addEventListener("pointercancel", onUp);
-    return () => {
-      window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("pointercancel", onUp);
-    };
-  }, [finishDrag]);
-
-  function onRentalPointerDown(
-    e: React.PointerEvent,
-    col: HourlyCourtColumn,
-    hour: number,
-    cell: HourlyCell,
-  ) {
-    if (!loggedIn || !isRentalOpenCell(cell)) return;
-    e.preventDefault();
-    dragRef.current = {
-      active: true,
-      courtId: col.courtId,
-      anchorHour: hour,
-      moved: false,
-    };
-    setIsDragging(true);
-    setDragSelection({ courtId: col.courtId, hours: [hour] });
-    setError(null);
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-  }
-
-  function onRentalPointerEnter(col: HourlyCourtColumn, hour: number) {
-    if (!dragRef.current.active || dragRef.current.courtId !== col.courtId) return;
-    if (dragRef.current.anchorHour === null) return;
-    if (hour !== dragRef.current.anchorHour) {
-      dragRef.current.moved = true;
-    }
-    setDragSelection({
-      courtId: col.courtId,
-      hours: hoursInRange(dragRef.current.anchorHour, hour),
-    });
-  }
-
-  function isHourSelected(courtId: string, hour: number) {
-    return selectHours?.courtId === courtId && selectHours.hours.includes(hour);
-  }
-
-  function isHourAnchor(courtId: string, hour: number) {
-    return (
-      isDragging &&
-      dragRef.current.courtId === courtId &&
-      dragRef.current.anchorHour === hour
-    );
-  }
-
-  const dragPreview =
-    isDragging && selectHours && selectHours.hours.length > 0
-      ? (() => {
-          const sorted = [...selectHours.hours].sort((a, b) => a - b);
-          const court = columns.find((c) => c.courtId === selectHours.courtId);
-          return {
-            courtName: court?.courtName ?? "",
-            count: sorted.length,
-            window: formatBoardHourWindow(sorted[0], sorted[sorted.length - 1]),
-          };
-        })()
-      : null;
 
   function cellClickable(cell: HourlyCell): boolean {
     if (cell.kind === "empty" || cell.kind === "course") return false;
@@ -287,8 +189,7 @@ export function HourlyBoardClient({
         <p className="text-sm text-slate-500">{dateLabel}</p>
         <h1 className="mt-1 text-2xl font-bold text-slate-900">今日球場</h1>
         <p className="mt-1 text-sm text-slate-600">
-          營業 09:00–24:00 · A → B → C。租場格可<strong>按住拖曳</strong>
-          連選多小時，放開後確認；臨打仍點格報名。
+          營業 09:00–24:00 · A → B → C。點租場格後可在確認畫面調整開始／結束時間；臨打仍點格報名。
         </p>
       </header>
 
@@ -317,34 +218,16 @@ export function HourlyBoardClient({
                 </td>
                 {columns.map((col) => {
                   const cell = col.cells.find((c) => c.hour === hour)!;
-                  const rentDrag = loggedIn && isRentalOpenCell(cell);
-                  const selected = isHourSelected(col.courtId, hour);
-                  const anchor = isHourAnchor(col.courtId, hour);
+                  const rentOpen = loggedIn && isRentalOpenCell(cell);
                   return (
                     <td key={col.courtId} className="p-1">
                       <button
                         type="button"
-                        disabled={!cellClickable(cell) && !rentDrag}
-                        onClick={
-                          rentDrag
-                            ? undefined
-                            : () => onCellClick(cell, col.courtName)
-                        }
-                        onPointerDown={
-                          rentDrag ? (e) => onRentalPointerDown(e, col, hour, cell) : undefined
-                        }
-                        onPointerEnter={
-                          rentDrag ? () => onRentalPointerEnter(col, hour) : undefined
-                        }
-                        className={`flex min-h-[56px] w-full flex-col items-stretch rounded-lg border-2 px-2 py-1.5 text-left transition select-none touch-none hover:ring-2 hover:ring-brand-teal/40 disabled:cursor-default disabled:hover:ring-0 ${kindStyles[cell.kind]} ${
-                          selected
-                            ? anchor
-                              ? "border-brand-navy bg-brand-teal/25 shadow-md ring-2 ring-brand-teal"
-                              : "border-emerald-600 bg-emerald-100 shadow-sm ring-2 ring-emerald-400"
-                            : "border-transparent"
-                        }`}
+                        disabled={!cellClickable(cell) && !rentOpen}
+                        onClick={() => onCellClick(cell, col)}
+                        className={`flex min-h-[56px] w-full flex-col items-stretch rounded-lg border px-2 py-1.5 text-left transition hover:ring-2 hover:ring-brand-teal/40 disabled:cursor-default disabled:hover:ring-0 ${kindStyles[cell.kind]}`}
                       >
-                        <CellContent cell={cell} loggedIn={loggedIn} rentDrag={rentDrag} />
+                        <CellContent cell={cell} loggedIn={loggedIn} rentOpen={rentOpen} />
                       </button>
                     </td>
                   );
@@ -354,19 +237,6 @@ export function HourlyBoardClient({
           </tbody>
         </table>
       </div>
-
-      {dragPreview && (
-        <div
-          className="pointer-events-none fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full border-2 border-brand-navy bg-white px-5 py-2.5 text-sm font-semibold text-brand-navy shadow-lg"
-          role="status"
-        >
-          {dragPreview.courtName} · {dragPreview.window}
-          <span className="ml-2 rounded-full bg-brand-teal px-2 py-0.5 text-xs text-white">
-            {dragPreview.count} 小時
-          </span>
-          <span className="ml-2 text-xs font-normal text-slate-500">放開以確認</span>
-        </div>
-      )}
 
       {!loggedIn && (
         <p className="text-center text-sm text-slate-600">
@@ -388,13 +258,12 @@ export function HourlyBoardClient({
             setModal({ mode: "drop-in", dropIn: modal.cell.dropIn!, courtName: modal.courtName })
           }
           onPickRental={() =>
-            setModal({
-              mode: "rental",
-              rental: modal.cell.rental!,
-              courtName: modal.courtName,
-              startHour: modal.cell.hour,
-              endHour: modal.cell.hour,
-            })
+            openRentalConfirm(
+              modal.courtId,
+              modal.courtName,
+              modal.cell.hour,
+              modal.cell.hour,
+            )
           }
         />
       )}
@@ -410,30 +279,23 @@ export function HourlyBoardClient({
           }
         />
       )}
-      {modal?.mode === "rental" && (
-        <RentalModal
-          rental={modal.rental}
-          courtName={modal.courtName}
-          windowLabel={formatBoardHourWindow(modal.startHour, modal.endHour)}
-          loading={loading}
-          error={error}
-          onClose={() => setModal(null)}
-          onSubmit={(body) => callApi(`/api/rentals/${modal.rental.slotId}/book`, body)}
-        />
-      )}
-      {modal?.mode === "rental-range" && (
-        <RentalRangeModal
-          courtName={modal.courtName}
-          windowLabel={formatBoardHourWindow(modal.startHour, modal.endHour)}
-          hourCount={modal.slotIds.length}
-          loading={loading}
-          error={error}
-          onClose={() => setModal(null)}
-          onSubmit={(body) =>
-            callApi("/api/rentals/book-range", { slotIds: modal.slotIds, ...body })
-          }
-        />
-      )}
+      {modal?.mode === "rental-confirm" && (() => {
+        const col = columns.find((c) => c.courtId === modal.courtId);
+        if (!col) return null;
+        return (
+          <RentalConfirmModal
+            courtName={modal.courtName}
+            column={col}
+            boardHours={hours.map((h) => h.hour)}
+            initialStartHour={modal.startHour}
+            initialEndHour={modal.endHour}
+            loading={loading}
+            error={error}
+            onClose={() => setModal(null)}
+            onSubmit={(body) => callApi("/api/rentals/book-range", body)}
+          />
+        );
+      })()}
     </div>
   );
 }
@@ -441,11 +303,11 @@ export function HourlyBoardClient({
 function CellContent({
   cell,
   loggedIn,
-  rentDrag,
+  rentOpen,
 }: {
   cell: HourlyCell;
   loggedIn: boolean;
-  rentDrag?: boolean;
+  rentOpen?: boolean;
 }) {
   if (cell.kind === "empty") {
     return <span className="text-xs text-slate-400">—</span>;
@@ -509,7 +371,7 @@ function CellContent({
         <span className="text-xs font-medium">{cell.rental.label}</span>
         {loggedIn && cell.rental.rentalOpen && (
           <span className="text-[10px] text-emerald-700">
-            {rentDrag ? "拖曳多時段或點擊租 1 小時" : "點擊租場"}
+            {rentOpen ? "點擊租場，確認頁可調時間" : "點擊租場"}
           </span>
         )}
         {loggedIn && cell.rental.isMineRental && (
@@ -749,85 +611,109 @@ function DropInModal({
   );
 }
 
-function RentalRangeModal({
+function RentalConfirmModal({
   courtName,
-  windowLabel,
-  hourCount,
+  column,
+  boardHours,
+  initialStartHour,
+  initialEndHour,
   loading,
   error,
   onClose,
   onSubmit,
 }: {
   courtName: string;
-  windowLabel: string;
-  hourCount: number;
+  column: HourlyCourtColumn;
+  boardHours: number[];
+  initialStartHour: number;
+  initialEndHour: number;
   loading: boolean;
   error: string | null;
   onClose: () => void;
-  onSubmit: (body: { racketRental: number }) => void;
+  onSubmit: (body: { slotIds: string[]; racketRental: number }) => void;
 }) {
+  const [startHour, setStartHour] = useState(initialStartHour);
+  const [endHour, setEndHour] = useState(initialEndHour);
   const [racketRental, setRacketRental] = useState(0);
+  const [localError, setLocalError] = useState<string | null>(null);
 
-  return (
-    <ModalShell
-      title="確認租場"
-      subtitle={`${courtName} · ${windowLabel}（${hourCount} 小時）`}
-      loading={loading}
-      error={error}
-      onClose={onClose}
-      submitLabel={`確認租場 ${hourCount} 小時`}
-      onSubmit={() => onSubmit({ racketRental })}
-    >
-      <p className="text-sm text-slate-600">
-        您選擇的時段為 <strong>{windowLabel}</strong>，共 {hourCount} 個小時。
-      </p>
-      <div>
-        <label className="block text-sm font-medium text-slate-700">租借球拍（支）</label>
-        <select
-          value={racketRental}
-          onChange={(e) => setRacketRental(Number(e.target.value))}
-          className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
-        >
-          <option value={0}>不需要</option>
-          {[1, 2, 3, 4].map((n) => (
-            <option key={n} value={n}>
-              {n} 支
-            </option>
-          ))}
-        </select>
-      </div>
-    </ModalShell>
-  );
-}
+  const boardEndHour = 24;
+  const maxStartHour = boardHours[boardHours.length - 1] ?? boardEndHour - 1;
+  const endExclusiveOptions: number[] = [];
+  for (let h = startHour + 1; h <= boardEndHour; h++) {
+    endExclusiveOptions.push(h);
+  }
 
-function RentalModal({
-  courtName,
-  windowLabel,
-  loading,
-  error,
-  onClose,
-  onSubmit,
-}: {
-  rental: HourlyRental;
-  courtName: string;
-  windowLabel: string;
-  loading: boolean;
-  error: string | null;
-  onClose: () => void;
-  onSubmit: (body: { racketRental: number }) => void;
-}) {
-  const [racketRental, setRacketRental] = useState(0);
+  const hourCount = Math.max(0, endHour - startHour + 1);
+  const windowLabel = formatBoardHourWindow(startHour, endHour);
+  const displayError = localError ?? error;
+
+  function handleStartChange(nextStart: number) {
+    setStartHour(nextStart);
+    if (endHour < nextStart) setEndHour(nextStart);
+    setLocalError(null);
+  }
+
+  function handleEndExclusiveChange(endExclusive: number) {
+    setEndHour(endExclusive - 1);
+    setLocalError(null);
+  }
+
+  function handleSubmit() {
+    const resolved = resolveRentalSlotIds(column, startHour, endHour);
+    if (!resolved.ok) {
+      setLocalError(resolved.message);
+      return;
+    }
+    onSubmit({ slotIds: resolved.slotIds, racketRental });
+  }
 
   return (
     <ModalShell
       title="確認租場"
       subtitle={`${courtName} · ${windowLabel}`}
       loading={loading}
-      error={error}
+      error={displayError}
       onClose={onClose}
-      submitLabel="確認租場"
-      onSubmit={() => onSubmit({ racketRental })}
+      submitLabel={hourCount > 1 ? `確認租場 ${hourCount} 小時` : "確認租場"}
+      onSubmit={handleSubmit}
     >
+      <p className="text-sm text-slate-600">
+        可調整租用時段（每小時一格）。目前為 <strong>{windowLabel}</strong>
+        {hourCount > 1 ? `，共 ${hourCount} 小時` : ""}。
+      </p>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-sm font-medium text-slate-700">開始時間</label>
+          <select
+            value={startHour}
+            onChange={(e) => handleStartChange(Number(e.target.value))}
+            className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
+          >
+            {boardHours
+              .filter((h) => h <= maxStartHour)
+              .map((h) => (
+                <option key={h} value={h}>
+                  {hourLabel(h)}
+                </option>
+              ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700">結束時間</label>
+          <select
+            value={endHour + 1}
+            onChange={(e) => handleEndExclusiveChange(Number(e.target.value))}
+            className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
+          >
+            {endExclusiveOptions.map((h) => (
+              <option key={h} value={h}>
+                {endHourLabel(h)}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
       <div>
         <label className="block text-sm font-medium text-slate-700">租借球拍（支）</label>
         <select
