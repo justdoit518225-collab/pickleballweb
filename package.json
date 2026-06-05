@@ -11,7 +11,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "db:import-reservations": "tsx scripts/import-reservations.mjs"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
