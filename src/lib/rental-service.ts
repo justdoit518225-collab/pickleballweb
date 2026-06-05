@@ -12,7 +12,15 @@ export function canCancelRental(
   return now < deadline;
 }
 
-export async function bookRentalSlot(slotId: string, userId: string) {
+export async function bookRentalSlot(
+  slotId: string,
+  userId: string,
+  options?: { racketRental?: number },
+) {
+  const racketRental = options?.racketRental ?? 0;
+  if (!Number.isInteger(racketRental) || racketRental < 0) {
+    throw new BookingError("球拍數量無效", "INVALID_RACKET");
+  }
   const slot = await prisma.rentalSlot.findUnique({
     where: { id: slotId },
     include: { rentalBooking: true },
@@ -54,12 +62,12 @@ export async function bookRentalSlot(slotId: string, userId: string) {
     if (existing) {
       return tx.rentalBooking.update({
         where: { id: existing.id },
-        data: { status: "CONFIRMED", cancelledAt: null, userId },
+        data: { status: "CONFIRMED", cancelledAt: null, userId, racketRental },
       });
     }
 
     return tx.rentalBooking.create({
-      data: { slotId, userId, status: "CONFIRMED" },
+      data: { slotId, userId, status: "CONFIRMED", racketRental },
     });
   });
 }

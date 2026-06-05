@@ -5,6 +5,8 @@ export type Participant = {
   displayName: string;
   avatarUrl: string | null;
   isSelf?: boolean;
+  /** 副標：時段、球拍等 */
+  meta?: string | null;
 };
 
 export function ParticipantList({
@@ -29,19 +31,25 @@ export function ParticipantList({
       {participants.length === 0 ? (
         <p className="text-sm text-slate-500">尚無人報名</p>
       ) : (
-        <ul className="space-y-2">
-          {participants.map((p) => (
-            <li key={p.userId} className="flex items-center gap-3">
-              <Avatar src={p.avatarUrl} name={p.displayName} size="sm" />
-              <span className="text-sm text-slate-700">
-                {p.displayName}
-                {p.isSelf && (
-                  <span className="ml-1 text-xs text-brand-teal">（我）</span>
-                )}
+        <ol className="space-y-3">
+          {participants.map((p, index) => (
+            <li key={p.userId} className="flex items-start gap-3">
+              <span className="mt-1 w-5 shrink-0 text-xs font-medium text-slate-400">
+                {index + 1}.
               </span>
+              <Avatar src={p.avatarUrl} name={p.displayName} size="sm" />
+              <div className="min-w-0">
+                <span className="text-sm font-medium text-slate-800">
+                  {p.displayName}
+                  {p.isSelf && (
+                    <span className="ml-1 text-xs font-normal text-brand-teal">（我）</span>
+                  )}
+                </span>
+                {p.meta && <p className="text-xs text-slate-500">{p.meta}</p>}
+              </div>
             </li>
           ))}
-        </ul>
+        </ol>
       )}
     </div>
   );

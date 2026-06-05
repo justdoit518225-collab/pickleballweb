@@ -33,6 +33,8 @@ export function RentalCalendar({
   const router = useRouter();
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pendingBookId, setPendingBookId] = useState<string | null>(null);
+  const [racketRental, setRacketRental] = useState(0);
 
   const courts = useMemo(() => {
     const map = new Map<string, { courtName: string; venueName: string }>();
@@ -50,16 +52,21 @@ export function RentalCalendar({
     return [...set].sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
   }, [slots]);
 
-  async function book(slotId: string) {
+  async function book(slotId: string, rackets: number) {
     if (!loggedIn) {
       router.push("/login");
       return;
     }
     setLoadingId(slotId);
     setError(null);
-    const res = await fetch(`/api/rentals/${slotId}/book`, { method: "POST" });
+    const res = await fetch(`/api/rentals/${slotId}/book`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ racketRental: rackets }),
+    });
     const data = (await res.json()) as { error?: string };
     setLoadingId(null);
+    setPendingBookId(null);
     if (!res.ok) {
       setError(data.error ?? "預約失敗");
       return;
@@ -133,22 +140,59 @@ export function RentalCalendar({
                               s.isMine
                                 ? "border border-blue-300 bg-blue-50"
                                 : s.status === "OPEN"
-                                  ? "border border-brand-teal-soft bg-brand-lime-soft/50 cursor-pointer hover:bg-brand-lime-soft"
+                                  ? "border border-brand-teal-soft bg-brand-lime-soft/50"
                                   : "bg-slate-100 text-slate-400"
                             }`}
                           >
                             <div>
                               {formatTime(s.startAt)}-{formatTime(s.endAt)}
                             </div>
-                            {s.status === "OPEN" && !s.isMine && (
+                            {s.status === "OPEN" && !s.isMine && pendingBookId !== s.id && (
                               <button
                                 type="button"
                                 disabled={loadingId === s.id}
-                                onClick={() => book(s.id)}
+                                onClick={() => {
+                                  setPendingBookId(s.id);
+                                  setRacketRental(0);
+                                }}
                                 className="mt-0.5 text-brand-navy underline"
                               >
                                 預約
                               </button>
+                            )}
+                            {s.status === "OPEN" && !s.isMine && pendingBookId === s.id && (
+                              <div className="mt-1 space-y-1 rounded border border-slate-200 bg-white p-1.5">
+                                <label className="block text-[10px] text-slate-600">球拍</label>
+                                <select
+                                  value={racketRental}
+                                  onChange={(e) => setRacketRental(Number(e.target.value))}
+                                  className="w-full rounded border border-slate-200 text-[10px]"
+                                >
+                                  <option value={0}>不要</option>
+                                  {[1, 2, 3, 4].map((n) => (
+                                    <option key={n} value={n}>
+                                      {n} 支
+                                    </option>
+                                  ))}
+                                </select>
+                                <div className="flex gap-1">
+                                  <button
+                                    type="button"
+                                    disabled={loadingId === s.id}
+                                    onClick={() => book(s.id, racketRental)}
+                                    className="flex-1 rounded bg-brand-navy px-1 py-0.5 text-[10px] text-white"
+                                  >
+                                    確認
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setPendingBookId(null)}
+                                    className="rounded border border-slate-200 px-1 py-0.5 text-[10px]"
+                                  >
+                                    取消
+                                  </button>
+                                </div>
+                              </div>
                             )}
                             {s.isMine && (
                               <button

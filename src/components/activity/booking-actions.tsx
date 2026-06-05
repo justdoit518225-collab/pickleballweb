@@ -1,7 +1,8 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { toTimeInputValue } from "@/lib/booking-display";
 
 type Props = {
   activityId: string;
@@ -10,10 +11,12 @@ type Props = {
   canCancel: boolean;
   onWaitlist: boolean;
   waitlistPosition?: number;
-  /** 球敘可選報名人數 */
   allowPartySize?: boolean;
   maxPartySize?: number;
   joinedPartySize?: number;
+  /** 活動整段時段（ISO），用於個人時段預設與驗證 */
+  activityStartAt: string;
+  activityEndAt: string;
 };
 
 export function BookingActions({
@@ -26,11 +29,19 @@ export function BookingActions({
   allowPartySize = false,
   maxPartySize = 1,
   joinedPartySize = 1,
+  activityStartAt,
+  activityEndAt,
 }: Props) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [partySize, setPartySize] = useState(1);
+  const [startTime, setStartTime] = useState(() => toTimeInputValue(activityStartAt));
+  const [endTime, setEndTime] = useState(() => toTimeInputValue(activityEndAt));
+  const [racketRental, setRacketRental] = useState(0);
+
+  const minTime = useMemo(() => toTimeInputValue(activityStartAt), [activityStartAt]);
+  const maxTime = useMemo(() => toTimeInputValue(activityEndAt), [activityEndAt]);
 
   async function callApi(path: string, body?: object) {
     setLoading(true);
@@ -47,6 +58,21 @@ export function BookingActions({
       return;
     }
     router.refresh();
+  }
+
+  function buildBookBody() {
+    const body: {
+      partySize?: number;
+      startTime: string;
+      endTime: string;
+      racketRental: number;
+    } = {
+      startTime,
+      endTime,
+      racketRental,
+    };
+    if (allowPartySize) body.partySize = partySize;
+    return body;
   }
 
   if (hasJoined) {
@@ -112,7 +138,41 @@ export function BookingActions({
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div>
+          <label htmlFor="personal-start" className="block text-sm font-medium text-slate-700">
+            您的開始時間
+          </label>
+          <input
+            id="personal-start"
+            type="time"
+            value={startTime}
+            min={minTime}
+            max={maxTime}
+            onChange={(e) => setStartTime(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+          />
+        </div>
+        <div>
+          <label htmlFor="personal-end" className="block text-sm font-medium text-slate-700">
+            您的結束時間
+          </label>
+          <input
+            id="personal-end"
+            type="time"
+            value={endTime}
+            min={minTime}
+            max={maxTime}
+            onChange={(e) => setEndTime(e.target.value)}
+            className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+          />
+        </div>
+      </div>
+      <p className="text-xs text-slate-500">
+        活動開放時段 {minTime}–{maxTime}，可依實際到場時間調整（顯示於名單）
+      </p>
+
       {allowPartySize && maxPartySize > 1 && (
         <div>
           <label htmlFor="party-size" className="block text-sm font-medium text-slate-700">
@@ -121,27 +181,52 @@ export function BookingActions({
           <select
             id="party-size"
             value={partySize}
-            onChange={(e) => setPartySize(Number(e.target.value))}
+            onChange={(e) => {
+              const n = Number(e.target.value);
+              setPartySize(n);
+              if (racketRental > n) setRacketRental(n);
+            }}
             className="mt-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
           >
             {Array.from({ length: maxPartySize }, (_, i) => i + 1).map((n) => (
               <option key={n} value={n}>
-                {n} 人
+                {n} 人{n > 1 ? `（您 +${n - 1}）` : ""}
               </option>
             ))}
           </select>
-          <p className="mt-1 text-xs text-slate-500">
-            同一帳號一次報名可佔 {partySize} 個名額（剩餘可選最多 {maxPartySize} 人）
-          </p>
         </div>
       )}
+
+      <div>
+        <label htmlFor="racket-rental" className="block text-sm font-medium text-slate-700">
+          租借球拍（支）
+        </label>
+        <select
+          id="racket-rental"
+          value={racketRental}
+          onChange={(e) => setRacketRental(Number(e.target.value))}
+          className="mt-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+        >
+          <option value={0}>不需要</option>
+          {Array.from({ length: allowPartySize ? partySize : 1 }, (_, i) => i + 1).map((n) => (
+            <option key={n} value={n}>
+              {n} 支
+            </option>
+          ))}
+        </select>
+      </div>
+
       <button
         type="button"
         disabled={loading}
-        onClick={() => callApi("book", allowPartySize ? { partySize } : undefined)}
+        onClick={() => callApi("book", buildBookBody())}
         className="w-fit rounded-lg bg-brand-navy px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
       >
-        {loading ? "預約中…" : allowPartySize && partySize > 1 ? `報名 ${partySize} 人` : "立即預約"}
+        {loading
+          ? "預約中…"
+          : allowPartySize && partySize > 1
+            ? `報名 ${partySize} 人`
+            : "立即預約"}
       </button>
       {error && <p className="text-sm text-red-600">{error}</p>}
     </div>

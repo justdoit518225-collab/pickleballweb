@@ -43,6 +43,12 @@ export default async function TenantHomePage({
         >
           課程
         </Link>
+        <Link
+          href={ROUTES.tenantBoard(tenantSlug)}
+          className="rounded-lg border border-brand-teal/40 bg-brand-lime-soft/40 px-4 py-2 text-sm font-medium text-brand-navy shadow-sm"
+        >
+          當日球敘看板
+        </Link>
         {rentalCount > 0 && (
           <Link
             href={ROUTES.tenantRentals(tenantSlug)}

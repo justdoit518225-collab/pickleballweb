@@ -3,6 +3,7 @@ import {
   getConfirmedHeadCount,
   MAX_PARTY_SIZE_PER_BOOKING,
 } from "@/lib/activity-capacity";
+import { combineActivityDateWithTime } from "@/lib/booking-display";
 import { ensureTenantMembership } from "@/lib/membership";
 import { prisma } from "@/lib/prisma";
 
@@ -39,10 +40,50 @@ function normalizePartySize(
   return partySize;
 }
 
+export type BookActivityOptions = {
+  partySize?: number;
+  startAt?: Date;
+  endAt?: Date;
+  /** HH:mm，與活動同日 */
+  startTime?: string;
+  endTime?: string;
+  racketRental?: number;
+};
+
+function resolveBookingWindow(
+  activity: { startAt: Date; endAt: Date },
+  opts?: Pick<BookActivityOptions, "startAt" | "endAt" | "startTime" | "endTime">,
+): { startAt: Date; endAt: Date } {
+  let startAt = opts?.startAt ?? activity.startAt;
+  let endAt = opts?.endAt ?? activity.endAt;
+  if (opts?.startTime && opts?.endTime) {
+    startAt = combineActivityDateWithTime(activity.startAt, opts.startTime);
+    endAt = combineActivityDateWithTime(activity.startAt, opts.endTime);
+  }
+  if (startAt >= endAt) {
+    throw new BookingError("結束時間需晚於開始時間", "INVALID_TIME");
+  }
+  if (startAt < activity.startAt || endAt > activity.endAt) {
+    throw new BookingError("個人時段需在活動時間範圍內", "INVALID_TIME");
+  }
+  return { startAt, endAt };
+}
+
+function normalizeRacketRental(raw: number | undefined, partySize: number): number {
+  const racketRental = raw ?? 0;
+  if (!Number.isInteger(racketRental) || racketRental < 0) {
+    throw new BookingError("球拍數量無效", "INVALID_RACKET");
+  }
+  if (racketRental > partySize) {
+    throw new BookingError("球拍數量不可超過報名人數", "INVALID_RACKET");
+  }
+  return racketRental;
+}
+
 export async function bookActivity(
   activityId: string,
   userId: string,
-  options?: { partySize?: number },
+  options?: BookActivityOptions,
 ) {
   const activity = await prisma.activity.findUnique({
     where: { id: activityId },
@@ -57,6 +98,8 @@ export async function bookActivity(
   }
 
   const partySize = normalizePartySize(options?.partySize, activity);
+  const { startAt, endAt } = resolveBookingWindow(activity, options);
+  const racketRental = normalizeRacketRental(options?.racketRental, partySize);
 
   const existing = await prisma.booking.findUnique({
     where: { activityId_userId: { activityId, userId } },
@@ -94,12 +137,27 @@ export async function bookActivity(
     if (existing) {
       return tx.booking.update({
         where: { id: existing.id },
-        data: { status: "CONFIRMED", cancelledAt: null, partySize },
+        data: {
+          status: "CONFIRMED",
+          cancelledAt: null,
+          partySize,
+          startAt,
+          endAt,
+          racketRental,
+        },
       });
     }
 
     return tx.booking.create({
-      data: { activityId, userId, status: "CONFIRMED", partySize },
+      data: {
+        activityId,
+        userId,
+        status: "CONFIRMED",
+        partySize,
+        startAt,
+        endAt,
+        racketRental,
+      },
     });
   });
 

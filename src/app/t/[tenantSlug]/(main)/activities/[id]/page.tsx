@@ -5,6 +5,10 @@ import { BookingActions } from "@/components/activity/booking-actions";
 import { Badge } from "@/components/ui/badge";
 import { ParticipantList } from "@/components/participant-list";
 import { maxSelectablePartySize, sumPartySize } from "@/lib/activity-capacity";
+import {
+  buildBookingListMeta,
+  formatPartyHeadLabel,
+} from "@/lib/booking-display";
 import { formatActivityDateTime, formatActivityTime } from "@/lib/format-datetime";
 import { canCancelBooking, formatCancelPolicy } from "@/lib/booking";
 import { resolveMemberDisplay } from "@/lib/member-display";
@@ -56,10 +60,10 @@ export default async function ActivityDetailPage({
 
   const participants = activity.bookings.map((b) => {
     const display = resolveMemberDisplay(b.user, membershipMap.get(b.userId));
-    const name = display.displayName;
     return {
       ...display,
-      displayName: b.partySize > 1 ? `${name}（${b.partySize} 人）` : name,
+      displayName: formatPartyHeadLabel(b.partySize, display.displayName),
+      meta: buildBookingListMeta(b),
       isSelf: session?.user?.id === b.userId,
     };
   });
@@ -155,19 +159,19 @@ export default async function ActivityDetailPage({
             allowPartySize={allowPartySize}
             maxPartySize={maxPartySize}
             joinedPartySize={userBooking?.partySize ?? 1}
+            activityStartAt={activity.startAt.toISOString()}
+            activityEndAt={activity.endAt.toISOString()}
           />
         )}
       </div>
 
-      {hasJoined && (
-        <div className="mt-8">
-          <ParticipantList
-            participants={participants}
-            capacity={activity.capacity}
-            headCount={confirmedHeads}
-          />
-        </div>
-      )}
+      <div className="mt-8">
+        <ParticipantList
+          participants={participants}
+          capacity={activity.capacity}
+          headCount={confirmedHeads}
+        />
+      </div>
     </div>
   );
 }

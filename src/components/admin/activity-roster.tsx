@@ -1,4 +1,8 @@
 import { sumPartySize } from "@/lib/activity-capacity";
+import {
+  buildBookingListMeta,
+  formatPartyHeadLabel,
+} from "@/lib/booking-display";
 import { resolveMemberDisplay } from "@/lib/member-display";
 import { prisma } from "@/lib/prisma";
 import { Avatar } from "@/components/ui/avatar";
@@ -40,13 +44,15 @@ export async function ActivityRoster({
         <ul className="mt-3 space-y-2">
           {bookings.map((b) => {
             const d = resolveMemberDisplay(b.user, map.get(b.userId));
+            const label = formatPartyHeadLabel(b.partySize, d.displayName);
+            const meta = buildBookingListMeta(b);
             return (
-              <li key={b.id} className="flex items-center gap-2 text-sm">
-                <Avatar src={d.avatarUrl} name={d.displayName} size="sm" />
-                {d.displayName}
-                {b.partySize > 1 && (
-                  <span className="text-xs text-slate-500">（{b.partySize} 人）</span>
-                )}
+              <li key={b.id} className="flex items-start gap-2 text-sm">
+                <Avatar src={d.avatarUrl} name={label} size="sm" />
+                <div>
+                  <span className="font-medium text-slate-800">{label}</span>
+                  {meta && <p className="text-xs text-slate-500">{meta}</p>}
+                </div>
               </li>
             );
           })}

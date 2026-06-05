@@ -15,16 +15,29 @@ export async function POST(
 
   const { id } = await params;
 
-  let partySize: number | undefined;
+  let options: {
+    partySize?: number;
+    startTime?: string;
+    endTime?: string;
+    racketRental?: number;
+  } = {};
   try {
-    const body = (await _request.json()) as { partySize?: number };
-    if (body.partySize != null) partySize = Number(body.partySize);
+    const body = (await _request.json()) as {
+      partySize?: number;
+      startTime?: string;
+      endTime?: string;
+      racketRental?: number;
+    };
+    if (body.partySize != null) options.partySize = Number(body.partySize);
+    if (body.startTime) options.startTime = body.startTime;
+    if (body.endTime) options.endTime = body.endTime;
+    if (body.racketRental != null) options.racketRental = Number(body.racketRental);
   } catch {
-    partySize = undefined;
+    options = {};
   }
 
   try {
-    const booking = await bookActivity(id, session.user.id, { partySize });
+    const booking = await bookActivity(id, session.user.id, options);
     const activity = await prisma.activity.findUnique({ where: { id } });
     if (activity) {
       const headNote =

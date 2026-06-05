@@ -211,6 +211,11 @@ model Booking {
   userId      String
   /// 同一帳號一次報名佔用的人數（球敘可 >1）
   partySize   Int           @default(1)
+  /// 個人實際到場時段（未填則視為整場活動時段）
+  startAt     DateTime?
+  endAt       DateTime?
+  /// 租借球拍支數（0 = 不租）
+  racketRental Int          @default(0)
   status      BookingStatus @default(CONFIRMED)
   createdAt   DateTime      @default(now())
   cancelledAt DateTime?
@@ -265,12 +270,14 @@ model RentalSlot {
 }
 
 model RentalBooking {
-  id          String        @id @default(cuid())
-  slotId      String        @unique
-  userId      String
-  status      BookingStatus @default(CONFIRMED)
-  createdAt   DateTime      @default(now())
-  cancelledAt DateTime?
+  id           String        @id @default(cuid())
+  slotId       String        @unique
+  userId       String
+  /// 租借球拍支數（0 = 不租）
+  racketRental Int           @default(0)
+  status       BookingStatus @default(CONFIRMED)
+  createdAt    DateTime      @default(now())
+  cancelledAt  DateTime?
 
   slot RentalSlot @relation(fields: [slotId], references: [id], onDelete: Cascade)
   user User       @relation(fields: [userId], references: [id], onDelete: Cascade)

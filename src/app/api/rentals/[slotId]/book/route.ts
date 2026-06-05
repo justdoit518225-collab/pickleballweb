@@ -16,8 +16,16 @@ export async function POST(
 
   const { slotId } = await params;
 
+  let racketRental: number | undefined;
   try {
-    await bookRentalSlot(slotId, session.user.id);
+    const body = (await _request.json()) as { racketRental?: number };
+    if (body.racketRental != null) racketRental = Number(body.racketRental);
+  } catch {
+    racketRental = undefined;
+  }
+
+  try {
+    await bookRentalSlot(slotId, session.user.id, { racketRental });
     const slot = await prisma.rentalSlot.findUnique({
       where: { id: slotId },
       include: { court: true, venue: true },

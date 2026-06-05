@@ -22,6 +22,10 @@ export const ROUTES = {
     type ? `/t/${slug}/activities?type=${type}` : `/t/${slug}/activities`,
   tenantActivity: (slug: string, id: string) => `/t/${slug}/activities/${id}`,
   tenantRentals: (slug: string) => `/t/${slug}/rentals`,
+  tenantBoard: (slug: string, date?: string) => {
+    const base = `/t/${slug}/board`;
+    return date ? `${base}?date=${date}` : base;
+  },
   tenantAdmin: (slug: string) => `/admin/${slug}`,
   tenantAdminRentals: (slug: string) => `/admin/${slug}/rentals`,
   tenantAdminVenues: (slug: string) => `/admin/${slug}/venues`,
