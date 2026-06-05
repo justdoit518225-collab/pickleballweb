@@ -79,10 +79,15 @@ function parseCsv(text) {
 }
 
 function parseDate(dateRaw) {
-  const m = dateRaw.match(/(\d{4})\/(\d{1,2})\/(\d{1,2})/);
-  if (!m) return null;
-  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12, 0, 0, 0);
-  return d;
+  const full = dateRaw.match(/(\d{4})\/(\d{1,2})\/(\d{1,2})/);
+  if (full) {
+    return new Date(Number(full[1]), Number(full[2]) - 1, Number(full[3]), 12, 0, 0, 0);
+  }
+  const short = dateRaw.match(/^(\d{1,2})\/(\d{1,2})$/);
+  if (short) {
+    return new Date(2026, Number(short[1]) - 1, Number(short[2]), 12, 0, 0, 0);
+  }
+  return null;
 }
 
 function parseTimePart(date, part) {
@@ -114,8 +119,10 @@ function parseTimeRange(date, timeRaw) {
 
 function classifyRow(name, typeRaw) {
   const type = typeRaw.trim();
+  if (/暫停/.test(name)) return "skip";
   if (/租/.test(type) || /^\d+面$/.test(type)) return "rental";
-  if (/班|DUPR|教練|體驗|課程|樂活/.test(name)) return "class";
+  if (/班|DUPR|教練|體驗|課程|樂活|揪團|教課|來賓/.test(name)) return "class";
+  if (/體驗|教課|來賓|課/.test(type)) return "class";
   if (/^\d+$/.test(type)) return "class";
   if (/租/.test(name)) return "rental";
   return "rental";
@@ -127,6 +134,8 @@ function parseRentalMeta(typeRaw) {
   let partySize = 1;
   const m1 = s.match(/租(\d+)面/);
   if (m1) courtCount = Number(m1[1]);
+  const m1b = s.match(/租(\d+)$/);
+  if (m1b) courtCount = Number(m1b[1]);
   const m2 = s.match(/^(\d+)面$/);
   if (m2) courtCount = Number(m2[1]);
   const m3 = s.match(/\/(\d+)/);
@@ -205,10 +214,28 @@ async function slotConflicts(courtId, startAt, endAt) {
   return Boolean(hit);
 }
 
+async function pickAvailableCourts(courts, courtCount, startAt, endAt) {
+  const picked = [];
+  for (const court of courts) {
+    if (picked.length >= courtCount) break;
+    if (!(await slotConflicts(court.id, startAt, endAt))) {
+      picked.push(court);
+    }
+  }
+  return picked;
+}
+
 async function importRental(tenant, courts, row, range, meta, note) {
-  const courtList = courts.slice(0, meta.courtCount);
+  const courtList = await pickAvailableCourts(
+    courts,
+    meta.courtCount,
+    range.startAt,
+    range.endAt,
+  );
   if (courtList.length < meta.courtCount) {
-    stats.errors.push(`${row.name} ${row.dateRaw}：球場不足 ${meta.courtCount} 面`);
+    stats.errors.push(
+      `${row.name} ${row.dateRaw} ${row.timeRaw}：可用球場不足（需 ${meta.courtCount} 面，僅 ${courtList.length} 面）`,
+    );
     stats.skipped++;
     return;
   }
@@ -216,18 +243,11 @@ async function importRental(tenant, courts, row, range, meta, note) {
   const user = await getImportUser(row.name);
   if (!user && dryRun) {
     console.log(`[dry-run] 租場 ${row.name} ${row.dateRaw} ${row.timeRaw} ×${meta.courtCount}面`);
-    stats.rental++;
+    stats.rental += meta.courtCount;
     return;
   }
 
   for (const court of courtList) {
-    if (await slotConflicts(court.id, range.startAt, range.endAt)) {
-      stats.errors.push(
-        `跳過重疊：${row.name} ${court.name} ${row.dateRaw} ${row.timeRaw}`,
-      );
-      stats.skipped++;
-      continue;
-    }
 
     const noteText = [note, meta.partySize > 1 ? `${meta.partySize}人` : null, `[匯入] ${row.typeRaw}`]
       .filter(Boolean)
@@ -342,6 +362,17 @@ async function main() {
 
     const mode = classifyRow(row.name, row.typeRaw);
     const note = row.extra ? `試算表備註：${row.extra}` : "";
+
+    if (mode === "skip") {
+      stats.skipped++;
+      continue;
+    }
+
+    if (!row.timeRaw?.trim()) {
+      stats.errors.push(`缺少時段：${row.name} ${row.dateRaw}`);
+      stats.skipped++;
+      continue;
+    }
 
     try {
       if (mode === "rental") {

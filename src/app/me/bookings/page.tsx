@@ -1,24 +1,27 @@
 import { auth } from "@/auth";
 import { Badge } from "@/components/ui/badge";
+import { CancelButton } from "@/components/me/cancel-button";
 import { formatActivityDateTime } from "@/lib/format-datetime";
+import { buildBookingListMeta } from "@/lib/booking-display";
 import { withPrisma } from "@/lib/prisma";
 
 export default async function MeBookingsPage() {
   const session = await auth();
   const userId = session!.user!.id;
+  const now = new Date();
 
   const { bookings, rentals, waitlists } = await withPrisma(async (db) => {
     const bookings = await db.booking.findMany({
-      where: { userId },
-      include: { activity: { include: { tenant: true, venue: true } } },
+      where: { userId, status: "CONFIRMED" },
+      include: { activity: { include: { tenant: true, venue: true, court: true } } },
       orderBy: { createdAt: "desc" },
-      take: 30,
+      take: 50,
     });
     const rentals = await db.rentalBooking.findMany({
       where: { userId, status: "CONFIRMED" },
       include: { slot: { include: { court: true, venue: true, tenant: true } } },
       orderBy: { createdAt: "desc" },
-      take: 30,
+      take: 50,
     });
     const waitlists = await db.waitlistEntry.findMany({
       where: { userId, status: "WAITING" },
@@ -32,31 +35,47 @@ export default async function MeBookingsPage() {
     <div className="space-y-8">
       <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
         <h2 className="border-b border-slate-100 px-5 py-4 font-semibold text-slate-800">
-          活動預約
+          臨打 / 活動報名
         </h2>
         {bookings.length === 0 ? (
-          <p className="px-5 py-8 text-sm text-slate-500">尚無活動預約</p>
+          <p className="px-5 py-8 text-sm text-slate-500">尚無活動報名</p>
         ) : (
           <ul className="divide-y divide-slate-100">
-            {bookings.map((b) => (
-              <li
-                key={b.id}
-                className="flex flex-wrap items-center justify-between gap-2 px-5 py-4"
-              >
-                <div>
-                  <p className="font-medium text-slate-800">{b.activity.title}</p>
-                  <p className="text-sm text-slate-500">
-                    {b.activity.tenant.displayName} · {b.activity.venue.name}
-                  </p>
-                  <p className="text-sm text-slate-500">
-                    {formatActivityDateTime(b.activity.startAt)}
-                  </p>
-                </div>
-                <Badge variant={b.status === "CONFIRMED" ? "success" : "default"}>
-                  {b.status === "CONFIRMED" ? "已報名" : "已取消"}
-                </Badge>
-              </li>
-            ))}
+            {bookings.map((b) => {
+              const meta = buildBookingListMeta(b);
+              const upcoming = b.activity.startAt > now;
+              return (
+                <li
+                  key={b.id}
+                  className="flex flex-wrap items-center justify-between gap-2 px-5 py-4"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-slate-800">{b.activity.title}</p>
+                      {b.partySize > 1 && (
+                        <Badge variant="default">{b.partySize} 人</Badge>
+                      )}
+                      {!upcoming && <Badge variant="default">已結束</Badge>}
+                    </div>
+                    <p className="text-sm text-slate-500">
+                      {b.activity.tenant.displayName} · {b.activity.venue.name}
+                      {b.activity.court ? ` · ${b.activity.court.name}` : ""}
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      {formatActivityDateTime(b.activity.startAt)}
+                      {meta ? ` · ${meta}` : ""}
+                    </p>
+                  </div>
+                  {upcoming && (
+                    <CancelButton
+                      path={`/api/activities/${b.activityId}/cancel`}
+                      label="取消報名"
+                      confirmText={`確定取消「${b.activity.title}」的報名？`}
+                    />
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
@@ -69,16 +88,40 @@ export default async function MeBookingsPage() {
           <p className="px-5 py-8 text-sm text-slate-500">尚無租借紀錄</p>
         ) : (
           <ul className="divide-y divide-slate-100">
-            {rentals.map((r) => (
-              <li key={r.id} className="px-5 py-4">
-                <p className="font-medium text-slate-800">
-                  {r.slot.venue.name} · {r.slot.court.name}
-                </p>
-                <p className="text-sm text-slate-500">
-                  {r.slot.startAt.toLocaleString("zh-TW")}
-                </p>
-              </li>
-            ))}
+            {rentals.map((r) => {
+              const upcoming = r.slot.startAt > now;
+              return (
+                <li
+                  key={r.id}
+                  className="flex flex-wrap items-center justify-between gap-2 px-5 py-4"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-slate-800">
+                        {r.slot.venue.name} · {r.slot.court.name}
+                      </p>
+                      {r.racketRental > 0 && (
+                        <Badge variant="default">球拍×{r.racketRental}</Badge>
+                      )}
+                      {!upcoming && <Badge variant="default">已結束</Badge>}
+                    </div>
+                    <p className="text-sm text-slate-500">
+                      {r.slot.tenant.displayName}
+                    </p>
+                    <p className="text-sm text-slate-500">
+                      {r.slot.startAt.toLocaleString("zh-TW")}
+                    </p>
+                  </div>
+                  {upcoming && (
+                    <CancelButton
+                      path={`/api/rentals/${r.slotId}/cancel`}
+                      label="取消租借"
+                      confirmText="確定取消此場地租借？"
+                    />
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

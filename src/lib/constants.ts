@@ -27,6 +27,7 @@ export const ROUTES = {
     return date ? `${base}?date=${date}` : base;
   },
   tenantAdmin: (slug: string) => `/admin/${slug}`,
+  tenantAdminBoard: (slug: string) => `/admin/${slug}/board`,
   tenantAdminRentals: (slug: string) => `/admin/${slug}/rentals`,
   tenantAdminVenues: (slug: string) => `/admin/${slug}/venues`,
   tenantAdminMembers: (

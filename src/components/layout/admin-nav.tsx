@@ -3,6 +3,7 @@ import { ROUTES } from "@/lib/constants";
 
 const links = (slug: string) => [
   { href: ROUTES.tenantAdmin(slug), label: "總覽" },
+  { href: ROUTES.tenantAdminBoard(slug), label: "當日看板" },
   { href: ROUTES.tenantAdminRentals(slug), label: "場地租借" },
   { href: ROUTES.tenantAdminVenues(slug), label: "場館/球場" },
   { href: ROUTES.tenantAdminMembers(slug), label: "會員" },

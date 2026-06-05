@@ -29,6 +29,12 @@ export type BoardDropInBlock = {
   headCount: number;
   entries: BoardDropInEntry[];
   activityHref: string;
+  startAt: string;
+  endAt: string;
+  isFull: boolean;
+  requiresDupr: boolean;
+  hasJoined: boolean;
+  joinedPartySize: number;
 };
 
 export type BoardRentalBlock = {
@@ -38,6 +44,9 @@ export type BoardRentalBlock = {
   renterName: string | null;
   racketLabel: string | null;
   status: "OPEN" | "BOOKED";
+  startAt: string;
+  endAt: string;
+  isMine: boolean;
 };
 
 export type BoardCourtSection = {
@@ -51,6 +60,7 @@ export async function getDayBoard(
   tenantId: string,
   tenantSlug: string,
   day: Date,
+  viewerId?: string,
 ): Promise<{ courts: BoardCourtSection[]; dateLabel: string }> {
   const { start: dayStart, end: dayEnd } = dayBounds(day);
 
@@ -132,6 +142,10 @@ export async function getDayBoard(
       };
     });
 
+    const myBooking = viewerId
+      ? act.bookings.find((b) => b.userId === viewerId)
+      : undefined;
+
     courtMap.get(courtId)!.blocks.push({
       kind: "drop-in",
       id: act.id,
@@ -141,6 +155,12 @@ export async function getDayBoard(
       headCount,
       entries,
       activityHref: `/t/${tenantSlug}/activities/${act.id}`,
+      startAt: act.startAt.toISOString(),
+      endAt: act.endAt.toISOString(),
+      isFull: headCount >= act.capacity,
+      requiresDupr: act.requiresDupr,
+      hasJoined: Boolean(myBooking),
+      joinedPartySize: myBooking?.partySize ?? 0,
     });
   }
 
@@ -167,6 +187,11 @@ export async function getDayBoard(
       renterName: renter,
       racketLabel: booking ? formatRacketLabel(booking.racketRental) : null,
       status: slot.status === "BOOKED" ? "BOOKED" : "OPEN",
+      startAt: slot.startAt.toISOString(),
+      endAt: slot.endAt.toISOString(),
+      isMine: Boolean(
+        viewerId && slot.status === "BOOKED" && slot.bookedById === viewerId,
+      ),
     });
   }
 
