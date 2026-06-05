@@ -249,7 +249,9 @@ export function HourlyBoardClient({
         <p className="text-sm text-slate-500">{dateLabel}</p>
         <h1 className="mt-1 text-2xl font-bold text-slate-900">今日球場</h1>
         <p className="mt-1 text-sm text-slate-600">
-          營業 09:00–24:00 · A → B → C。點格子後在確認畫面選擇臨打或租場，並可調整時間。
+          營業 09:00–24:00 · A → B → C。
+          <span className="text-brand-teal">臨打</span>格可報名並查看名單；
+          <span className="text-slate-700">租場</span>格可包場；兩者皆有時確認頁可切換。
         </p>
       </header>
 
@@ -334,6 +336,44 @@ export function HourlyBoardClient({
   );
 }
 
+function DropInRoster({
+  dropIn,
+  compact = false,
+  maxItems,
+}: {
+  dropIn: HourlyDropIn;
+  compact?: boolean;
+  maxItems?: number;
+}) {
+  const limit = maxItems ?? (compact ? 2 : dropIn.entries.length);
+  const shown = dropIn.entries.slice(0, limit);
+  const rest = dropIn.entries.length - shown.length;
+
+  return (
+    <div className={compact ? "mt-0.5" : "mt-2"}>
+      <p
+        className={`font-medium text-brand-navy ${compact ? "text-[10px]" : "text-xs"}`}
+      >
+        臨打名單 {dropIn.headCount}/{dropIn.capacity} 人
+        {dropIn.isFull ? " · 已滿" : ""}
+      </p>
+      {shown.length === 0 ? (
+        <p className={`text-slate-400 ${compact ? "text-[10px]" : "text-xs"}`}>尚無報名</p>
+      ) : (
+        <ul className={`mt-0.5 space-y-0.5 ${compact ? "text-[10px]" : "text-xs"} text-slate-600`}>
+          {shown.map((entry, i) => (
+            <li key={`${entry.displayName}-${i}`} className="truncate">
+              {entry.displayName}
+              {entry.meta ? <span className="text-slate-400"> · {entry.meta}</span> : null}
+            </li>
+          ))}
+          {rest > 0 && <li className="text-slate-400">還有 {rest} 人…</li>}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 function CellContent({
   cell,
   loggedIn,
@@ -370,10 +410,8 @@ function CellContent({
     return (
       <>
         <span className="text-[10px] font-semibold text-violet-700">臨打＋租場</span>
-        <span className="text-xs font-medium text-brand-navy">
-          臨打 {cell.dropIn.detail ?? cell.dropIn.label}
-        </span>
-        <span className="text-xs text-slate-600">
+        <DropInRoster dropIn={cell.dropIn} compact maxItems={2} />
+        <span className="mt-0.5 text-xs text-slate-600">
           租場 {cell.rental.isBooked ? cell.rental.label : "可租"}
         </span>
         {loggedIn && bookable && (
@@ -388,14 +426,12 @@ function CellContent({
       <>
         <span className="text-[10px] font-semibold text-brand-teal">臨打</span>
         <span className="text-xs font-medium">{cell.dropIn.label}</span>
-        {cell.dropIn.detail && (
-          <span className="text-[10px] opacity-80">{cell.dropIn.detail}</span>
-        )}
+        <DropInRoster dropIn={cell.dropIn} compact maxItems={3} />
         {loggedIn && cell.dropIn.hasJoined && (
           <span className="text-[10px] text-brand-teal">已報名·點取消</span>
         )}
         {loggedIn && !cell.dropIn.hasJoined && bookable && (
-          <span className="text-[10px] text-emerald-700">點擊報名，確認頁可調時間</span>
+          <span className="text-[10px] text-emerald-700">點擊報名 →</span>
         )}
       </>
     );
@@ -406,6 +442,7 @@ function CellContent({
       <>
         <span className="text-[10px] font-semibold text-slate-600">租場</span>
         <span className="text-xs font-medium">{cell.rental.label}</span>
+        <span className="text-[10px] text-slate-400">此格僅開放租場</span>
         {loggedIn && cell.rental.rentalOpen && (
           <span className="text-[10px] text-emerald-700">
             {bookable ? "點擊租場，確認頁可調時間" : "點擊租場"}
@@ -667,12 +704,21 @@ function BookingConfirmModal({
           </button>
         </div>
       ) : activeKind === "drop-in" && dropIn ? (
-        <p className="rounded-lg bg-brand-lime-soft/40 px-3 py-2 text-sm text-brand-navy">
-          臨打 · {dropIn.label}
-          {dropIn.detail ? ` · ${dropIn.detail}` : ""}
-        </p>
+        <div className="space-y-2">
+          <p className="rounded-lg bg-brand-lime-soft/40 px-3 py-2 text-sm text-brand-navy">
+            臨打 · {dropIn.label}
+          </p>
+          <DropInRoster dropIn={dropIn} />
+        </div>
       ) : activeKind === "rental" ? (
-        <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">租場 · 整面球場預約</p>
+        <div className="space-y-2">
+          <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">租場 · 整面球場預約</p>
+          {!canDropIn && (
+            <p className="text-xs text-slate-500">
+              此時段目前僅開放租場。臨打需館方在後台開放，或聯繫櫃台。
+            </p>
+          )}
+        </div>
       ) : (
         <p className="text-sm text-amber-700">此時段目前無法預約，請調整開始或結束時間。</p>
       )}

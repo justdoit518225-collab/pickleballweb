@@ -1,4 +1,8 @@
 import { sumPartySize } from "@/lib/activity-capacity";
+import {
+  buildBookingListMeta,
+  formatPartyHeadLabel,
+} from "@/lib/booking-display";
 import { resolveMemberDisplay } from "@/lib/member-display";
 import { prisma } from "@/lib/prisma";
 import { dayBounds } from "@/lib/day-board";
@@ -14,10 +18,17 @@ export const LOHO_BOARD_HOUR_END = 24;
 
 export type HourlyCellKind = "empty" | "drop-in" | "rental" | "dual" | "course" | "dupr";
 
+export type HourlyDropInEntry = {
+  displayName: string;
+  partySize: number;
+  meta: string | null;
+};
+
 export type HourlyDropIn = {
   activityId: string;
   label: string;
   detail: string | null;
+  entries: HourlyDropInEntry[];
   startAt: string;
   endAt: string;
   capacity: number;
@@ -181,12 +192,26 @@ function buildDropIn(
     .map((b) => resolveMemberDisplay(b.user, membershipMap.get(b.userId)).displayName)
     .join("、");
 
+  const entries: HourlyDropInEntry[] = act.bookings.map((b) => {
+    const d = resolveMemberDisplay(b.user, membershipMap.get(b.userId));
+    return {
+      displayName: formatPartyHeadLabel(b.partySize, d.displayName),
+      partySize: b.partySize,
+      meta: buildBookingListMeta({
+        startAt: b.startAt ?? act.startAt,
+        endAt: b.endAt ?? act.endAt,
+        racketRental: b.racketRental,
+      }),
+    };
+  });
+
   return {
     activityId: act.id,
     label: act.title.replace(/^\[匯入\]\s*/, ""),
     detail: bookable
       ? `${headCount}/${act.capacity} 人${names ? ` · ${names}` : ""}`
       : null,
+    entries,
     startAt: act.startAt.toISOString(),
     endAt: act.endAt.toISOString(),
     capacity: act.capacity,
