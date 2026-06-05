@@ -164,6 +164,23 @@ export async function bookActivity(
   return booking;
 }
 
+/** 連續報名多個臨打活動（每格一場球敘，各自使用該場開放時段） */
+export async function bookActivityRange(
+  activityIds: string[],
+  userId: string,
+  options?: Pick<BookActivityOptions, "partySize" | "racketRental">,
+) {
+  if (!activityIds.length) {
+    throw new BookingError("請選擇時段", "INVALID_RANGE");
+  }
+
+  const results = [];
+  for (const activityId of activityIds) {
+    results.push(await bookActivity(activityId, userId, options));
+  }
+  return results;
+}
+
 export async function cancelBooking(activityId: string, userId: string) {
   const booking = await prisma.booking.findUnique({
     where: { activityId_userId: { activityId, userId } },

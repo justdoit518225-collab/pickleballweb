@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { toTimeInputValue } from "@/lib/booking-display";
 import { formatBoardHourWindow } from "@/lib/venue-timezone";
 import type {
   HourlyCell,
   HourlyCellKind,
   HourlyCourtColumn,
   HourlyDropIn,
+  HourlyRental,
 } from "@/lib/hourly-board";
 import { ROUTES } from "@/lib/constants";
 
@@ -75,47 +75,45 @@ function isDropInBookableCell(cell: HourlyCell) {
   );
 }
 
-function getBookingOptions(
+function resolveDropInActivities(
   col: HourlyCourtColumn,
   startHour: number,
   endHourInclusive: number,
-) {
+):
+  | {
+      ok: true;
+      activityIds: string[];
+      dropIn: HourlyDropIn;
+      minRemaining: number;
+      hourCount: number;
+    }
+  | { ok: false; message: string } {
   if (endHourInclusive < startHour) {
-    return { canDropIn: false, dropIn: null as HourlyDropIn | null, canRent: false };
+    return { ok: false, message: "結束時間需晚於開始時間" };
   }
 
+  const activityIds: string[] = [];
   let dropIn: HourlyDropIn | null = null;
-  let canDropIn = true;
-  let canRent = true;
+  let minRemaining = Number.POSITIVE_INFINITY;
 
   for (const h of hoursInRange(startHour, endHourInclusive)) {
     const cell = getCell(col, h);
-    if (isDropInBookableCell(cell)) {
-      if (!dropIn) {
-        dropIn = cell.dropIn!;
-      } else if (dropIn.activityId !== cell.dropIn!.activityId) {
-        canDropIn = false;
-      }
-    } else {
-      canDropIn = false;
+    if (!isDropInBookableCell(cell)) {
+      return { ok: false, message: `${hourLabel(h)} 無法報名臨打，請縮短或調整時間` };
     }
-    if (!isRentalOpenCell(cell)) {
-      canRent = false;
-    }
+    const d = cell.dropIn!;
+    activityIds.push(d.activityId);
+    if (!dropIn) dropIn = d;
+    minRemaining = Math.min(minRemaining, d.capacity - d.headCount);
   }
 
-  return { canDropIn, dropIn, canRent };
-}
-
-function pickDefaultKind(
-  options: ReturnType<typeof getBookingOptions>,
-  preferred?: BookingKind,
-): BookingKind | null {
-  if (preferred === "drop-in" && options.canDropIn) return "drop-in";
-  if (preferred === "rental" && options.canRent) return "rental";
-  if (options.canDropIn) return "drop-in";
-  if (options.canRent) return "rental";
-  return null;
+  return {
+    ok: true,
+    activityIds,
+    dropIn: dropIn!,
+    minRemaining,
+    hourCount: activityIds.length,
+  };
 }
 
 const kindStyles: Record<HourlyCellKind, string> = {
@@ -182,65 +180,32 @@ export function HourlyBoardClient({
     return true;
   }
 
-  function onCellClick(cell: HourlyCell, col: HourlyCourtColumn) {
+  function onDropInClick(cell: HourlyCell, col: HourlyCourtColumn) {
+    if (!loggedIn || !cell.dropIn) return;
     setError(null);
-    const courtName = col.courtName;
-    if (cell.kind === "empty") return;
-    if (cell.kind === "course") return;
-    if (cell.kind === "dupr") {
-      if (cell.dropIn?.activityId) {
-        window.location.href = ROUTES.tenantActivity(tenantSlug, cell.dropIn.activityId);
-      }
+    if (cell.dropIn.hasJoined) {
+      void callApi(`/api/activities/${cell.dropIn.activityId}/cancel`);
       return;
     }
-    if (!loggedIn) return;
-
-    if (cell.kind === "dual" && cell.dropIn && cell.rental) {
-      if (cell.dropIn.hasJoined) {
-        void callApi(`/api/activities/${cell.dropIn.activityId}/cancel`);
-        return;
-      }
-      if (cell.rental.isMineRental) {
-        void callApi(`/api/rentals/${cell.rental.slotId}/cancel`);
-        return;
-      }
-      openBookingConfirm(col.courtId, courtName, cell.hour, cell.hour);
-      return;
-    }
-
-    if (cell.kind === "drop-in" && cell.dropIn) {
-      if (cell.dropIn.hasJoined) {
-        void callApi(`/api/activities/${cell.dropIn.activityId}/cancel`);
-        return;
-      }
-      if (cell.dropIn.isFull) return;
-      openBookingConfirm(col.courtId, courtName, cell.hour, cell.hour, "drop-in");
-      return;
-    }
-
-    if (cell.kind === "rental" && cell.rental) {
-      if (cell.rental.isMineRental) {
-        void callApi(`/api/rentals/${cell.rental.slotId}/cancel`);
-        return;
-      }
-      if (cell.rental.rentalOpen) {
-        openBookingConfirm(col.courtId, courtName, cell.hour, cell.hour, "rental");
-      }
-    }
+    if (!cell.dropIn.bookable || cell.dropIn.isFull) return;
+    openBookingConfirm(col.courtId, col.courtName, cell.hour, cell.hour, "drop-in");
   }
 
-  function cellClickable(cell: HourlyCell): boolean {
-    if (cell.kind === "empty" || cell.kind === "course") return false;
-    if (cell.kind === "dupr") return true;
-    if (!loggedIn) return false;
-    if (cell.kind === "dual") return Boolean(cell.dropIn?.bookable || cell.rental?.rentalOpen || cell.rental?.isMineRental);
-    if (cell.kind === "drop-in" && cell.dropIn) {
-      return cell.dropIn.hasJoined || !cell.dropIn.isFull;
+  function onRentalClick(cell: HourlyCell, col: HourlyCourtColumn) {
+    if (!loggedIn || !cell.rental) return;
+    setError(null);
+    if (cell.rental.isMineRental) {
+      void callApi(`/api/rentals/${cell.rental.slotId}/cancel`);
+      return;
     }
-    if (cell.kind === "rental" && cell.rental) {
-      return cell.rental.rentalOpen || cell.rental.isMineRental;
+    if (!cell.rental.rentalOpen) return;
+    openBookingConfirm(col.courtId, col.courtName, cell.hour, cell.hour, "rental");
+  }
+
+  function onSpecialCellClick(cell: HourlyCell) {
+    if (cell.kind === "dupr" && cell.dropIn?.activityId) {
+      window.location.href = ROUTES.tenantActivity(tenantSlug, cell.dropIn.activityId);
     }
-    return false;
   }
 
   return (
@@ -249,9 +214,9 @@ export function HourlyBoardClient({
         <p className="text-sm text-slate-500">{dateLabel}</p>
         <h1 className="mt-1 text-2xl font-bold text-slate-900">今日球場</h1>
         <p className="mt-1 text-sm text-slate-600">
-          營業 09:00–24:00 · A → B → C。
-          <span className="text-brand-teal">臨打</span>格可報名並查看名單；
-          <span className="text-slate-700">租場</span>格可包場；兩者皆有時確認頁可切換。
+          營業 09:00–24:00 · A → B → C。每格左側為
+          <span className="text-brand-teal">臨打</span>、右側為
+          <span className="text-slate-700">租場</span>；確認頁可調整多小時。
         </p>
       </header>
 
@@ -265,7 +230,7 @@ export function HourlyBoardClient({
               {columns.map((c) => (
                 <th
                   key={c.courtId}
-                  className="min-w-[148px] px-2 py-2 text-center text-sm font-bold text-brand-navy"
+                  className="min-w-[220px] px-2 py-2 text-center text-sm font-bold text-brand-navy"
                 >
                   {c.courtName}
                 </th>
@@ -280,19 +245,15 @@ export function HourlyBoardClient({
                 </td>
                 {columns.map((col) => {
                   const cell = col.cells.find((c) => c.hour === hour)!;
-                  const bookable =
-                    loggedIn &&
-                    (isRentalOpenCell(cell) || isDropInBookableCell(cell));
                   return (
                     <td key={col.courtId} className="p-1">
-                      <button
-                        type="button"
-                        disabled={!cellClickable(cell) && !bookable}
-                        onClick={() => onCellClick(cell, col)}
-                        className={`flex min-h-[56px] w-full flex-col items-stretch rounded-lg border px-2 py-1.5 text-left transition hover:ring-2 hover:ring-brand-teal/40 disabled:cursor-default disabled:hover:ring-0 ${kindStyles[cell.kind]}`}
-                      >
-                        <CellContent cell={cell} loggedIn={loggedIn} bookable={bookable} />
-                      </button>
+                      <CourtCell
+                        cell={cell}
+                        loggedIn={loggedIn}
+                        onDropInClick={() => onDropInClick(cell, col)}
+                        onRentalClick={() => onRentalClick(cell, col)}
+                        onSpecialClick={() => onSpecialCellClick(cell)}
+                      />
                     </td>
                   );
                 })}
@@ -325,9 +286,7 @@ export function HourlyBoardClient({
             loading={loading}
             error={error}
             onClose={() => setModal(null)}
-            onDropInSubmit={(activityId, body) =>
-              callApi(`/api/activities/${activityId}/book`, body)
-            }
+            onDropInSubmit={(body) => callApi("/api/activities/book-range", body)}
             onRentalSubmit={(body) => callApi("/api/rentals/book-range", body)}
           />
         );
@@ -374,88 +333,161 @@ function DropInRoster({
   );
 }
 
-function CellContent({
+function CourtCell({
   cell,
   loggedIn,
-  bookable,
+  onDropInClick,
+  onRentalClick,
+  onSpecialClick,
 }: {
   cell: HourlyCell;
   loggedIn: boolean;
-  bookable?: boolean;
+  onDropInClick: () => void;
+  onRentalClick: () => void;
+  onSpecialClick: () => void;
 }) {
   if (cell.kind === "empty") {
-    return <span className="text-xs text-slate-400">—</span>;
+    return (
+      <div className="flex min-h-[80px] items-center justify-center rounded-lg border border-slate-100 bg-slate-50/80 px-2 text-xs text-slate-400">
+        —
+      </div>
+    );
   }
 
   if (cell.kind === "course" && cell.dropIn) {
     return (
-      <>
+      <div className={`min-h-[80px] rounded-lg border px-2 py-1.5 ${kindStyles.course}`}>
         <span className="text-[10px] font-semibold text-blue-700">課程</span>
-        <span className="text-xs font-medium">{cell.dropIn.label}</span>
+        <span className="block text-xs font-medium">{cell.dropIn.label}</span>
         <span className="text-[10px] text-blue-600/80">僅供查看</span>
-      </>
+      </div>
     );
   }
 
   if (cell.kind === "dupr" && cell.dropIn) {
     return (
-      <>
+      <button
+        type="button"
+        onClick={onSpecialClick}
+        className={`min-h-[80px] w-full rounded-lg border px-2 py-1.5 text-left transition hover:ring-2 hover:ring-indigo-300 ${kindStyles.dupr}`}
+      >
         <span className="text-[10px] font-semibold text-indigo-700">DUPR</span>
-        <span className="text-xs font-medium">{cell.dropIn.label}</span>
-      </>
+        <span className="block text-xs font-medium">{cell.dropIn.label}</span>
+      </button>
     );
   }
 
-  if (cell.kind === "dual" && cell.dropIn && cell.rental) {
+  const showDropIn = Boolean(cell.dropIn);
+  const showRental = Boolean(cell.rental);
+
+  return (
+    <div
+      className={`flex min-h-[80px] w-full divide-x overflow-hidden rounded-lg border ${kindStyles[cell.kind]}`}
+    >
+      <DropInHalf
+        dropIn={showDropIn ? cell.dropIn : null}
+        loggedIn={loggedIn}
+        onClick={onDropInClick}
+      />
+      <RentalHalf
+        rental={showRental ? cell.rental : null}
+        loggedIn={loggedIn}
+        onClick={onRentalClick}
+      />
+    </div>
+  );
+}
+
+function DropInHalf({
+  dropIn,
+  loggedIn,
+  onClick,
+}: {
+  dropIn: HourlyDropIn | null;
+  loggedIn: boolean;
+  onClick: () => void;
+}) {
+  const canBook = Boolean(dropIn?.bookable && !dropIn.isFull && !dropIn.hasJoined);
+  const canCancel = Boolean(loggedIn && dropIn?.hasJoined);
+  const interactive = canBook || canCancel;
+
+  if (!dropIn) {
     return (
-      <>
-        <span className="text-[10px] font-semibold text-violet-700">臨打＋租場</span>
-        <DropInRoster dropIn={cell.dropIn} compact maxItems={2} />
-        <span className="mt-0.5 text-xs text-slate-600">
-          租場 {cell.rental.isBooked ? cell.rental.label : "可租"}
-        </span>
-        {loggedIn && bookable && (
-          <span className="mt-1 text-[10px] font-medium text-violet-700">點擊預約 →</span>
-        )}
-      </>
+      <div className="flex min-w-0 flex-1 flex-col justify-center bg-slate-50/50 px-1.5 py-1 text-[10px] text-slate-300">
+        臨打
+        <span className="mt-0.5">—</span>
+      </div>
     );
   }
 
-  if (cell.kind === "drop-in" && cell.dropIn) {
+  return (
+    <button
+      type="button"
+      disabled={!interactive && !loggedIn}
+      onClick={interactive ? onClick : undefined}
+      className={`flex min-w-0 flex-1 flex-col items-stretch px-1.5 py-1 text-left transition ${
+        interactive ? "cursor-pointer bg-brand-lime-soft/25 hover:bg-brand-lime-soft/45" : "bg-brand-lime-soft/15"
+      } disabled:cursor-default`}
+    >
+      <span className="text-[10px] font-semibold text-brand-teal">臨打</span>
+      <DropInRoster dropIn={dropIn} compact maxItems={2} />
+      {loggedIn && dropIn.hasJoined && (
+        <span className="mt-auto text-[10px] font-medium text-brand-teal">已報名·點取消</span>
+      )}
+      {loggedIn && canBook && (
+        <span className="mt-auto text-[10px] text-emerald-700">點擊報名 →</span>
+      )}
+      {dropIn.isFull && !dropIn.hasJoined && (
+        <span className="mt-auto text-[10px] text-amber-700">已滿</span>
+      )}
+    </button>
+  );
+}
+
+function RentalHalf({
+  rental,
+  loggedIn,
+  onClick,
+}: {
+  rental: HourlyRental | null;
+  loggedIn: boolean;
+  onClick: () => void;
+}) {
+  const canBook = Boolean(rental?.rentalOpen);
+  const canCancel = Boolean(loggedIn && rental?.isMineRental);
+  const interactive = canBook || canCancel;
+
+  if (!rental) {
     return (
-      <>
-        <span className="text-[10px] font-semibold text-brand-teal">臨打</span>
-        <span className="text-xs font-medium">{cell.dropIn.label}</span>
-        <DropInRoster dropIn={cell.dropIn} compact maxItems={3} />
-        {loggedIn && cell.dropIn.hasJoined && (
-          <span className="text-[10px] text-brand-teal">已報名·點取消</span>
-        )}
-        {loggedIn && !cell.dropIn.hasJoined && bookable && (
-          <span className="text-[10px] text-emerald-700">點擊報名 →</span>
-        )}
-      </>
+      <div className="flex min-w-0 flex-1 flex-col justify-center bg-slate-50/50 px-1.5 py-1 text-[10px] text-slate-300">
+        租場
+        <span className="mt-0.5">—</span>
+      </div>
     );
   }
 
-  if (cell.kind === "rental" && cell.rental) {
-    return (
-      <>
-        <span className="text-[10px] font-semibold text-slate-600">租場</span>
-        <span className="text-xs font-medium">{cell.rental.label}</span>
-        <span className="text-[10px] text-slate-400">此格僅開放租場</span>
-        {loggedIn && cell.rental.rentalOpen && (
-          <span className="text-[10px] text-emerald-700">
-            {bookable ? "點擊租場，確認頁可調時間" : "點擊租場"}
-          </span>
-        )}
-        {loggedIn && cell.rental.isMineRental && (
-          <span className="text-[10px] text-slate-500">點擊取消</span>
-        )}
-      </>
-    );
-  }
-
-  return null;
+  return (
+    <button
+      type="button"
+      disabled={!interactive && !loggedIn}
+      onClick={interactive ? onClick : undefined}
+      className={`flex min-w-0 flex-1 flex-col items-stretch px-1.5 py-1 text-left transition ${
+        interactive ? "cursor-pointer bg-white hover:bg-slate-50" : "bg-white/80"
+      } disabled:cursor-default`}
+    >
+      <span className="text-[10px] font-semibold text-slate-600">租場</span>
+      <span className="text-xs font-medium">{rental.label}</span>
+      {rental.isBooked && !rental.isMineRental && (
+        <span className="text-[10px] text-slate-500">已被預約</span>
+      )}
+      {loggedIn && canBook && (
+        <span className="mt-auto text-[10px] text-emerald-700">點擊租場 →</span>
+      )}
+      {loggedIn && canCancel && (
+        <span className="mt-auto text-[10px] text-slate-500">點擊取消</span>
+      )}
+    </button>
+  );
 }
 
 function ModalShell({
@@ -539,29 +571,26 @@ function BookingConfirmModal({
   loading: boolean;
   error: string | null;
   onClose: () => void;
-  onDropInSubmit: (
-    activityId: string,
-    body: {
-      partySize: number;
-      startTime: string;
-      endTime: string;
-      racketRental: number;
-    },
-  ) => void;
+  onDropInSubmit: (body: {
+    activityIds: string[];
+    partySize: number;
+    racketRental: number;
+  }) => void;
   onRentalSubmit: (body: { slotIds: string[]; racketRental: number }) => void;
 }) {
   const [startHour, setStartHour] = useState(initialStartHour);
   const [endHour, setEndHour] = useState(initialEndHour);
-  const [kind, setKind] = useState<BookingKind>(() => {
-    const opts = getBookingOptions(column, initialStartHour, initialEndHour);
-    return pickDefaultKind(opts, initialKind) ?? "rental";
-  });
+  const [kind, setKind] = useState<BookingKind>(initialKind ?? "drop-in");
   const [partySize, setPartySize] = useState(1);
   const [racketRental, setRacketRental] = useState(0);
   const [localError, setLocalError] = useState<string | null>(null);
 
-  const options = getBookingOptions(column, startHour, endHour);
-  const { canDropIn, dropIn, canRent } = options;
+  const dropInResult = resolveDropInActivities(column, startHour, endHour);
+  const rentalResult = resolveRentalSlotIds(column, startHour, endHour);
+  const canDropIn = dropInResult.ok;
+  const canRent = rentalResult.ok;
+  const dropIn = dropInResult.ok ? dropInResult.dropIn : null;
+  const dropInHourCount = dropInResult.ok ? dropInResult.hourCount : 0;
 
   const boardEndHour = 24;
   const maxStartHour = boardHours[boardHours.length - 1] ?? boardEndHour - 1;
@@ -573,23 +602,15 @@ function BookingConfirmModal({
   const hourCount = Math.max(0, endHour - startHour + 1);
   const windowLabel = formatBoardHourWindow(startHour, endHour);
   const displayError = localError ?? error;
-  const remaining = dropIn ? Math.max(1, dropIn.capacity - dropIn.headCount) : 1;
+  const remaining = dropInResult.ok
+    ? Math.max(1, dropInResult.minRemaining)
+    : 1;
   const activeKind =
     kind === "drop-in" && canDropIn
       ? "drop-in"
       : kind === "rental" && canRent
         ? "rental"
-        : canDropIn
-          ? "drop-in"
-          : canRent
-            ? "rental"
-            : null;
-
-  useEffect(() => {
-    if (activeKind && activeKind !== kind) {
-      setKind(activeKind);
-    }
-  }, [activeKind, kind]);
+        : null;
 
   useEffect(() => {
     if (partySize > remaining) {
@@ -615,33 +636,22 @@ function BookingConfirmModal({
     }
 
     if (activeKind === "rental") {
-      const resolved = resolveRentalSlotIds(column, startHour, endHour);
-      if (!resolved.ok) {
-        setLocalError(resolved.message);
+      if (!rentalResult.ok) {
+        setLocalError(rentalResult.message);
         return;
       }
-      onRentalSubmit({ slotIds: resolved.slotIds, racketRental });
+      onRentalSubmit({ slotIds: rentalResult.slotIds, racketRental });
       return;
     }
 
-    if (!dropIn) {
-      setLocalError("找不到臨打活動，請調整時間");
+    if (!dropInResult.ok) {
+      setLocalError(dropInResult.message);
       return;
     }
 
-    const startTime = hourLabel(startHour);
-    const endTime = endHourLabel(endHour + 1);
-    const minTime = toTimeInputValue(dropIn.startAt);
-    const maxTime = toTimeInputValue(dropIn.endAt);
-    if (startTime < minTime || endTime > maxTime) {
-      setLocalError(`臨打開放時段為 ${minTime}–${maxTime}，請調整時間`);
-      return;
-    }
-
-    onDropInSubmit(dropIn.activityId, {
+    onDropInSubmit({
+      activityIds: dropInResult.activityIds,
       partySize,
-      startTime,
-      endTime,
       racketRental,
     });
   }
@@ -649,8 +659,12 @@ function BookingConfirmModal({
   const submitLabel =
     activeKind === "drop-in"
       ? partySize > 1
-        ? `確認報名 ${partySize} 人`
-        : "確認報名臨打"
+        ? dropInHourCount > 1
+          ? `確認報名 ${partySize} 人 · ${dropInHourCount} 小時`
+          : `確認報名 ${partySize} 人`
+        : dropInHourCount > 1
+          ? `確認報名臨打 ${dropInHourCount} 小時`
+          : "確認報名臨打"
       : hourCount > 1
         ? `確認租場 ${hourCount} 小時`
         : "確認租場";
@@ -681,11 +695,13 @@ function BookingConfirmModal({
             }`}
           >
             臨打
-            {dropIn?.detail ? (
+            {canDropIn ? (
               <span className="mt-0.5 block text-[10px] font-normal opacity-90">
-                {dropIn.detail}
+                {dropInHourCount > 1 ? `可連續 ${dropInHourCount} 小時` : "可報名"}
               </span>
-            ) : null}
+            ) : (
+              <span className="mt-0.5 block text-[10px] font-normal opacity-90">此範圍不可報名</span>
+            )}
           </button>
           <button
             type="button"
@@ -700,25 +716,32 @@ function BookingConfirmModal({
             }`}
           >
             租場
-            <span className="mt-0.5 block text-[10px] font-normal opacity-90">整面球場</span>
+            <span className="mt-0.5 block text-[10px] font-normal opacity-90">
+              {canRent ? (hourCount > 1 ? `可連續 ${hourCount} 小時` : "整面球場") : "此範圍不可租"}
+            </span>
           </button>
         </div>
       ) : activeKind === "drop-in" && dropIn ? (
         <div className="space-y-2">
           <p className="rounded-lg bg-brand-lime-soft/40 px-3 py-2 text-sm text-brand-navy">
             臨打 · {dropIn.label}
+            {dropInHourCount > 1 ? `（${dropInHourCount} 個時段）` : ""}
           </p>
           <DropInRoster dropIn={dropIn} />
         </div>
       ) : activeKind === "rental" ? (
-        <div className="space-y-2">
-          <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">租場 · 整面球場預約</p>
-          {!canDropIn && (
-            <p className="text-xs text-slate-500">
-              此時段目前僅開放租場。臨打需館方在後台開放，或聯繫櫃台。
-            </p>
-          )}
-        </div>
+        <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">
+          租場 · 整面球場預約
+          {hourCount > 1 ? `（${hourCount} 小時）` : ""}
+        </p>
+      ) : kind === "drop-in" && !canDropIn ? (
+        <p className="text-sm text-amber-700">
+          所選時段中有無法報名臨打的格子，請縮短範圍或改選租場。
+        </p>
+      ) : kind === "rental" && !canRent ? (
+        <p className="text-sm text-amber-700">
+          所選時段中有無法租用的格子，請縮短範圍或改選臨打。
+        </p>
       ) : (
         <p className="text-sm text-amber-700">此時段目前無法預約，請調整開始或結束時間。</p>
       )}
