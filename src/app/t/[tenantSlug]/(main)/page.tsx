@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  BoardPageBody,
-  parseDayParam,
-} from "@/components/tenant/board-page-body";
+import { parseDayParam } from "@/components/tenant/board-page-body";
+import { LohoBoardBody } from "@/components/tenant/loho-board-body";
+import { TenantClassicHome } from "@/components/tenant/tenant-classic-home";
 import { getTenantBySlug } from "@/lib/tenant";
-import { ROUTES } from "@/lib/constants";
+import { ROUTES, usesHourlyBoardHome } from "@/lib/constants";
 
 export default async function TenantHomePage({
   params,
@@ -19,11 +18,15 @@ export default async function TenantHomePage({
   const tenant = await getTenantBySlug(tenantSlug);
   if (!tenant) notFound();
 
+  if (!usesHourlyBoardHome(tenantSlug)) {
+    return <TenantClassicHome tenant={tenant} />;
+  }
+
   const day = parseDayParam(dateParam);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <header className="flex flex-wrap items-start justify-between gap-3">
+    <div className="mx-auto max-w-6xl px-4 py-8">
+      <header className="mb-6 flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-800">{tenant.displayName}</h1>
           {tenant.description && (
@@ -52,14 +55,12 @@ export default async function TenantHomePage({
         </nav>
       </header>
 
-      <div className="mt-6">
-        <BoardPageBody
-          tenantId={tenant.id}
-          tenantSlug={tenantSlug}
-          day={day}
-          basePath={ROUTES.tenant(tenantSlug)}
-        />
-      </div>
+      <LohoBoardBody
+        tenantId={tenant.id}
+        tenantSlug={tenantSlug}
+        day={day}
+        basePath={ROUTES.tenant(tenantSlug)}
+      />
     </div>
   );
 }

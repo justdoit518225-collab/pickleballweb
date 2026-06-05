@@ -5,6 +5,13 @@ export const APP_TAGLINE = "匹克球多場館預約平台";
 export const DEFAULT_TENANT_SLUG = "active-pickleball";
 export const DEFAULT_TENANT_NAME = "Active Pickleball Club";
 
+/** 樂活板橋：使用「今日 × 球場 × 每小時」看板為首頁 */
+export const LOHO_TENANT_SLUG = "loho2";
+
+export function usesHourlyBoardHome(slug: string) {
+  return slug === LOHO_TENANT_SLUG;
+}
+
 export const ROUTES = {
   home: "/",
   me: "/me",
