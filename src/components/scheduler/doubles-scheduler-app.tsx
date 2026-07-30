@@ -55,6 +55,9 @@ export function DoublesSchedulerApp() {
     {},
   );
 
+  const [saveHint, setSaveHint] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+
   const players = useMemo(
     () => names.map((n) => n.trim()).filter(Boolean),
     [names],
@@ -103,10 +106,37 @@ export function DoublesSchedulerApp() {
     setNames(fillSlotsFromNames(parsed));
   }
 
-  function goToSchedule() {
-    if (!canStart) return;
+  async function goToSchedule() {
+    if (!canStart || generating) return;
+    setGenerating(true);
+    setSaveHint(null);
     ensureScores(playerCount, templates.length);
-    setStep("schedule");
+
+    try {
+      const res = await fetch("/api/doubles-scheduler/save-roster", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ names: players }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        saved?: boolean;
+        message?: string;
+        error?: string;
+        timestamp?: string;
+      };
+      if (!res.ok) {
+        setSaveHint(data.error ?? "報名清單寫入 Google 文件失敗（賽程仍可使用）");
+      } else if (data.saved) {
+        setSaveHint(`報名清單已存到 Google 文件（${data.timestamp ?? ""}）`);
+      } else if (data.message) {
+        setSaveHint(data.message);
+      }
+    } catch {
+      setSaveHint("報名清單寫入 Google 文件失敗（賽程仍可使用）");
+    } finally {
+      setGenerating(false);
+      setStep("schedule");
+    }
   }
 
   function updateScore(matchIndex: number, side: "scoreA" | "scoreB", value: string) {
@@ -140,13 +170,15 @@ export function DoublesSchedulerApp() {
           onClear={clearNames}
           onSample={fillSample}
           onApplyParsedNames={applyParsedNames}
-          onStart={goToSchedule}
+          onStart={() => void goToSchedule()}
+          generating={generating}
         />
       ) : (
         <ScheduleStep
           players={players}
           templates={templates}
           scores={scores}
+          saveHint={saveHint}
           onBack={() => setStep("register")}
           onScoreChange={updateScore}
           onToggleLock={toggleLock}
@@ -165,6 +197,7 @@ function RegisterStep({
   onSample,
   onApplyParsedNames,
   onStart,
+  generating,
 }: {
   names: string[];
   playerCount: number;
@@ -174,6 +207,7 @@ function RegisterStep({
   onSample: () => void;
   onApplyParsedNames: (parsed: string[]) => void;
   onStart: () => void;
+  generating: boolean;
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [ocrBusy, setOcrBusy] = useState(false);
@@ -327,11 +361,11 @@ function RegisterStep({
         )}
         <button
           type="button"
-          disabled={!canStart}
+          disabled={!canStart || generating}
           onClick={onStart}
           className="w-full rounded-2xl bg-emerald-600 px-4 py-3.5 text-base font-semibold text-white shadow-lg shadow-emerald-600/25 transition enabled:hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
         >
-          產生賽程
+          {generating ? "處理中…" : "產生賽程"}
         </button>
       </div>
     </div>
@@ -342,6 +376,7 @@ function ScheduleStep({
   players,
   templates,
   scores,
+  saveHint,
   onBack,
   onScoreChange,
   onToggleLock,
@@ -349,6 +384,7 @@ function ScheduleStep({
   players: string[];
   templates: MatchTemplate[];
   scores: MatchScore[];
+  saveHint: string | null;
   onBack: () => void;
   onScoreChange: (matchIndex: number, side: "scoreA" | "scoreB", value: string) => void;
   onToggleLock: (matchIndex: number) => void;
@@ -369,6 +405,17 @@ function ScheduleStep({
           <p className="mt-1 text-sm text-slate-600">
             總人數：{players.length} 人 / 共 {templates.length} 場賽事
           </p>
+          {saveHint && (
+            <p
+              className={`mt-2 text-xs ${
+                saveHint.includes("失敗") || saveHint.includes("略過")
+                  ? "text-amber-700"
+                  : "text-emerald-700"
+              }`}
+            >
+              {saveHint}
+            </p>
+          )}
         </div>
       </header>
 
