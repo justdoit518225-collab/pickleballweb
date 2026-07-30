@@ -5,6 +5,7 @@ import {
   ArrowLeft,
   CheckCircle2,
   ClipboardList,
+  Coffee,
   Eraser,
   ImagePlus,
   Loader2,
@@ -474,18 +475,29 @@ function MatchCard({
       </div>
 
       <div className="space-y-3 border-t border-slate-100 px-4 py-3">
-        <p className="text-sm text-slate-500">
-          {restingNames.length === 0 ? (
-            <span className="rounded-full bg-slate-100 px-2 py-1 font-medium text-slate-600">
-              全體上場
-            </span>
-          ) : (
-            <>
-              <span className="font-medium text-slate-600">輪休球員：</span>
-              {restingNames.join("、")}
-            </>
-          )}
-        </p>
+        {restingNames.length === 0 ? (
+          <div className="flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2.5 text-sm font-medium text-emerald-800">
+            <Users className="h-4 w-4 shrink-0" />
+            全體上場
+          </div>
+        ) : (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
+            <div className="mb-2 flex items-center gap-1.5 text-sm font-bold text-amber-900">
+              <Coffee className="h-4 w-4 shrink-0" />
+              輪休球員
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {restingNames.map((name) => (
+                <span
+                  key={name}
+                  className="inline-flex items-center rounded-full bg-white px-2.5 py-1 text-sm font-semibold text-amber-950 shadow-sm ring-1 ring-amber-200"
+                >
+                  {name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         <label className="flex cursor-pointer items-center gap-2 rounded-xl bg-slate-50 px-3 py-2.5 text-sm text-slate-700">
           <input
