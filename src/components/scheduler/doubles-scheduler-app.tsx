@@ -1,11 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   CheckCircle2,
   ClipboardList,
   Eraser,
+  ImagePlus,
+  Loader2,
   Lock,
   Sparkles,
   Unlock,
@@ -16,6 +18,7 @@ import {
   getScheduleTemplates,
   type MatchTemplate,
 } from "@/lib/doubles-schedule";
+import { parseLineQueueText } from "@/lib/parse-line-queue";
 
 const SLOT_COUNT = 8;
 
@@ -33,6 +36,14 @@ function emptyScores(count: number): MatchScore[] {
     scoreB: "",
     locked: false,
   }));
+}
+
+function fillSlotsFromNames(parsed: string[]): string[] {
+  const next = Array(SLOT_COUNT).fill("");
+  parsed.slice(0, SLOT_COUNT).forEach((name, i) => {
+    next[i] = name;
+  });
+  return next;
 }
 
 export function DoublesSchedulerApp() {
@@ -86,6 +97,10 @@ export function DoublesSchedulerApp() {
     setNames([...SAMPLE_NAMES]);
   }
 
+  function applyParsedNames(parsed: string[]) {
+    setNames(fillSlotsFromNames(parsed));
+  }
+
   function goToSchedule() {
     if (!canStart) return;
     ensureScores(playerCount, templates.length);
@@ -122,6 +137,7 @@ export function DoublesSchedulerApp() {
           onNameChange={updateName}
           onClear={clearNames}
           onSample={fillSample}
+          onApplyParsedNames={applyParsedNames}
           onStart={goToSchedule}
         />
       ) : (
@@ -145,6 +161,7 @@ function RegisterStep({
   onNameChange,
   onClear,
   onSample,
+  onApplyParsedNames,
   onStart,
 }: {
   names: string[];
@@ -153,8 +170,53 @@ function RegisterStep({
   onNameChange: (index: number, value: string) => void;
   onClear: () => void;
   onSample: () => void;
+  onApplyParsedNames: (parsed: string[]) => void;
   onStart: () => void;
 }) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [ocrBusy, setOcrBusy] = useState(false);
+  const [ocrProgress, setOcrProgress] = useState(0);
+  const [ocrMessage, setOcrMessage] = useState<string | null>(null);
+
+  async function handlePhotoSelected(file: File | null) {
+    if (!file) return;
+    setOcrBusy(true);
+    setOcrProgress(0);
+    setOcrMessage("正在辨識 Line 接龍…（首次可能需下載字型）");
+
+    try {
+      const { createWorker } = await import("tesseract.js");
+      const worker = await createWorker("chi_tra+eng", 1, {
+        logger: (m) => {
+          if (m.status === "recognizing text" && typeof m.progress === "number") {
+            setOcrProgress(Math.round(m.progress * 100));
+          }
+        },
+      });
+
+      const {
+        data: { text },
+      } = await worker.recognize(file);
+      await worker.terminate();
+
+      const parsed = parseLineQueueText(text, SLOT_COUNT);
+      if (parsed.length === 0) {
+        setOcrMessage("辨識不到編號名單（例如 1. 建伸）。請換較清楚的截圖，或手動填寫。");
+        return;
+      }
+
+      onApplyParsedNames(parsed);
+      setOcrMessage(`已填入 ${parsed.length} 位球員，可再手動微調後按「產生賽程」。`);
+    } catch (e) {
+      console.error(e);
+      setOcrMessage("相片辨識失敗，請再試一次或改手動輸入。");
+    } finally {
+      setOcrBusy(false);
+      setOcrProgress(0);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
+
   return (
     <div className="space-y-6">
       <header className="space-y-2">
@@ -166,9 +228,51 @@ function RegisterStep({
           匹克球動態雙打賽程產生器
         </h1>
         <p className="text-sm text-slate-600">
-          輸入 4～8 位球員，自動產生輪替雙打賽程，並在手機上直接計分。
+          輸入 4～8 位球員，或上傳 Line 接龍截圖自動填入名單。
         </p>
       </header>
+
+      <div className="rounded-2xl border border-dashed border-emerald-300 bg-emerald-50/50 p-4">
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => void handlePhotoSelected(e.target.files?.[0] ?? null)}
+        />
+        <button
+          type="button"
+          disabled={ocrBusy}
+          onClick={() => fileRef.current?.click()}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-3.5 text-sm font-semibold text-emerald-800 shadow-sm ring-1 ring-emerald-200 transition hover:bg-emerald-50 disabled:cursor-wait disabled:opacity-70"
+        >
+          {ocrBusy ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              辨識中 {ocrProgress > 0 ? `${ocrProgress}%` : "…"}
+            </>
+          ) : (
+            <>
+              <ImagePlus className="h-4 w-4" />
+              選相片讀取 Line 接龍
+            </>
+          )}
+        </button>
+        <p className="mt-2 text-center text-xs text-slate-500">
+          請截取含「1. 姓名、2. 姓名…」的接龍畫面
+        </p>
+        {ocrMessage && (
+          <p
+            className={`mt-2 text-center text-xs ${
+              ocrMessage.includes("失敗") || ocrMessage.includes("不到")
+                ? "text-amber-700"
+                : "text-emerald-700"
+            }`}
+          >
+            {ocrMessage}
+          </p>
+        )}
+      </div>
 
       <div className="flex items-center justify-between rounded-2xl border border-emerald-100 bg-gradient-to-r from-emerald-50 to-lime-50 px-4 py-3">
         <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
@@ -370,7 +474,7 @@ function MatchCard({
       </div>
 
       <div className="space-y-3 border-t border-slate-100 px-4 py-3">
-        <p className="text-xs text-slate-500">
+        <p className="text-sm text-slate-500">
           {restingNames.length === 0 ? (
             <span className="rounded-full bg-slate-100 px-2 py-1 font-medium text-slate-600">
               全體上場
