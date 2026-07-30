@@ -55,7 +55,6 @@ export function DoublesSchedulerApp() {
     {},
   );
 
-  const [saveHint, setSaveHint] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
 
   const players = useMemo(
@@ -109,30 +108,16 @@ export function DoublesSchedulerApp() {
   async function goToSchedule() {
     if (!canStart || generating) return;
     setGenerating(true);
-    setSaveHint(null);
     ensureScores(playerCount, templates.length);
 
     try {
-      const res = await fetch("/api/doubles-scheduler/save-roster", {
+      await fetch("/api/doubles-scheduler/save-roster", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ names: players }),
       });
-      const data = (await res.json().catch(() => ({}))) as {
-        saved?: boolean;
-        message?: string;
-        error?: string;
-        timestamp?: string;
-      };
-      if (!res.ok) {
-        setSaveHint(data.error ?? "報名清單寫入 Google 文件失敗（賽程仍可使用）");
-      } else if (data.saved) {
-        setSaveHint(`報名清單已存到 Google 文件（${data.timestamp ?? ""}）`);
-      } else if (data.message) {
-        setSaveHint(data.message);
-      }
     } catch {
-      setSaveHint("報名清單寫入 Google 文件失敗（賽程仍可使用）");
+      // 背景存檔失敗不影響進入賽程
     } finally {
       setGenerating(false);
       setStep("schedule");
@@ -178,7 +163,6 @@ export function DoublesSchedulerApp() {
           players={players}
           templates={templates}
           scores={scores}
-          saveHint={saveHint}
           onBack={() => setStep("register")}
           onScoreChange={updateScore}
           onToggleLock={toggleLock}
@@ -376,7 +360,6 @@ function ScheduleStep({
   players,
   templates,
   scores,
-  saveHint,
   onBack,
   onScoreChange,
   onToggleLock,
@@ -384,7 +367,6 @@ function ScheduleStep({
   players: string[];
   templates: MatchTemplate[];
   scores: MatchScore[];
-  saveHint: string | null;
   onBack: () => void;
   onScoreChange: (matchIndex: number, side: "scoreA" | "scoreB", value: string) => void;
   onToggleLock: (matchIndex: number) => void;
@@ -405,17 +387,6 @@ function ScheduleStep({
           <p className="mt-1 text-sm text-slate-600">
             總人數：{players.length} 人 / 共 {templates.length} 場賽事
           </p>
-          {saveHint && (
-            <p
-              className={`mt-2 text-xs ${
-                saveHint.includes("失敗") || saveHint.includes("略過")
-                  ? "text-amber-700"
-                  : "text-emerald-700"
-              }`}
-            >
-              {saveHint}
-            </p>
-          )}
         </div>
       </header>
 
