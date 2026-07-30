@@ -17,7 +17,13 @@ export async function SiteHeader() {
     <header className="border-b border-slate-200/80 bg-white/90 backdrop-blur-sm">
       <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4">
         <Logo href={ROUTES.home} variant="horizontal" iconSize={44} nameSize="md" />
-        <nav className="flex items-center gap-4 text-sm">
+        <nav className="flex items-center gap-3 text-sm sm:gap-4">
+          <Link
+            href={ROUTES.doublesScheduler}
+            className="text-slate-600 hover:text-brand-navy"
+          >
+            雙打賽程
+          </Link>
           <Link href={`${ROUTES.home}#clubs`} className="text-slate-600 hover:text-brand-navy">
             探索俱樂部
           </Link>
