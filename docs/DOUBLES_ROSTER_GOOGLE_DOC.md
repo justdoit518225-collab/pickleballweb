@@ -22,12 +22,43 @@ ID 是 `/d/` 與 `/edit` 中間**整段**（含前面的 `1_`）：
 ## 2. Apps Script（貼到試算表）
 
 1. 打開該試算表 → **擴充功能 → Apps Script**
-2. 貼上以下程式並修改 `SPREADSHEET_ID`、`SECRET`：
+2. 貼上以下程式（確認 `SPREADSHEET_ID`、`SECRET`）：
 
 ```javascript
 const SPREADSHEET_ID = "1_VOEp_YwG8iD6P4jde5FpdKTaCXNQANZnjHVoIiuPQI";
 const SECRET = "playplay-roster-2026"; // 與 Vercel 環境變數相同
-const SHEET_NAME = ""; // 空白 = 使用第一個工作表；或填「工作表1」
+const SHEET_NAME = ""; // 空白 = 第一個工作表
+const MAX_PLAYERS = 8; // 橫向展開欄位數量（D~K = #1~#8）
+
+function getTargetSheet_() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  if (SHEET_NAME) {
+    const named = ss.getSheetByName(SHEET_NAME);
+    if (!named) throw new Error("sheet not found: " + SHEET_NAME);
+    return named;
+  }
+  return ss.getSheets()[0];
+}
+
+function headerRow_() {
+  const headers = ["時間", "人數", "名單"];
+  for (var i = 1; i <= MAX_PLAYERS; i++) {
+    headers.push("#" + i);
+  }
+  return headers;
+}
+
+function ensureHeader_(sheet) {
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow(headerRow_());
+    return;
+  }
+  // 若已有舊表頭（只有 3 欄），補上 #1~#8
+  const lastCol = Math.max(sheet.getLastColumn(), 1);
+  if (lastCol < 3 + MAX_PLAYERS) {
+    sheet.getRange(1, 1, 1, 3 + MAX_PLAYERS).setValues([headerRow_()]);
+  }
+}
 
 function doPost(e) {
   try {
@@ -41,29 +72,19 @@ function doPost(e) {
       return json_({ ok: false, error: "empty names" });
     }
 
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const sheet = SHEET_NAME
-      ? ss.getSheetByName(SHEET_NAME)
-      : ss.getSheets()[0];
-    if (!sheet) {
-      return json_({ ok: false, error: "sheet not found" });
-    }
-
-    // 若第一列是空的，寫入表頭
-    if (sheet.getLastRow() === 0) {
-      sheet.appendRow(["時間", "人數", "名單"]);
-    }
+    const sheet = getTargetSheet_();
+    ensureHeader_(sheet);
 
     const ts =
       data.timestamp ||
       Utilities.formatDate(new Date(), "Asia/Taipei", "yyyy/MM/dd HH:mm:ss");
-    const roster = names
-      .map(function (name, i) {
-        return i + 1 + ". " + name;
-      })
-      .join("\n");
 
-    sheet.appendRow([ts, names.length, roster]);
+    // A 時間 / B 人數 / C 名單（空白，改展開到 D 起）/ D=#1 / E=#2 ...
+    const row = [ts, names.length, ""];
+    for (var i = 0; i < MAX_PLAYERS; i++) {
+      row.push(names[i] || "");
+    }
+    sheet.appendRow(row);
 
     return json_({ ok: true, count: names.length });
   } catch (err) {
@@ -77,60 +98,81 @@ function json_(obj) {
   );
 }
 
-// 瀏覽器直接打開 Web App URL 應看到 {"ok":true,"service":"sheets-roster"}
 function doGet() {
   return json_({ ok: true, service: "sheets-roster" });
 }
-```
 
-3. **部署 → 新增部署作業 → 網頁應用程式**
-   - 執行身分：我
-   - 具有存取權的使用者：**所有人**
-4. 複製 **網頁應用程式** URL（不是部署作業 ID、不是資料庫 URL）
-
-若之後有改 Script：  
-**部署 → 管理部署作業 → 編輯 → 版本選「新版本」→ 部署**（URL 通常不變）
-
-### 快速自測 Script（不經網站）
-
-在 Apps Script 編輯器新增暫存函式，按執行：
-
-```javascript
-function testAppend() {
-  const e = {
-    postData: {
-      contents: JSON.stringify({
-        secret: SECRET,
-        timestamp: "手動測試",
-        names: ["測試A", "測試B"],
-      }),
-    },
-  };
-  Logger.log(doPost(e).getContent());
+/** 在編輯器按「執行」一次，完成試算表授權 */
+function authorizeOnce() {
+  const name = SpreadsheetApp.openById(SPREADSHEET_ID).getName();
+  Logger.log("OK: " + name);
 }
 ```
 
-若執行後試算表有新增列，代表 Script 本身沒問題，問題在 Vercel URL／SECRET／是否 Redeploy。
+3. **先授權（重要）**
+   - 函式選 `authorizeOnce` → **執行** → 允許存取試算表
+4. **部署 → 管理部署作業 → 編輯 → 版本選「新版本」→ 部署**
+   - 執行身分：我；存取權：**所有人**
+5. 網頁應用程式 URL 通常不變，Vercel 不用改
+
+### 若仍出現 spreadsheets 權限錯誤
+
+專案設定 → 顯示 `appsscript.json`，加入：
+
+```json
+{
+  "timeZone": "Asia/Taipei",
+  "dependencies": {},
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/spreadsheets"
+  ]
+}
+```
+
+再執行 `authorizeOnce`，並部署**新版本**。
 
 ## 3. Vercel 環境變數
 
 ```env
 GOOGLE_DOCS_ROSTER_WEBHOOK_URL="https://script.google.com/macros/s/xxxx/exec"
 GOOGLE_DOCS_ROSTER_SECRET="playplay-roster-2026"
+GOOGLE_DOCS_ROSTER_ALERT_EMAIL="justdoit518225@gmail.com"
+
+# Gmail SMTP（失敗通知信必填；密碼請用「應用程式密碼」）
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT="587"
+SMTP_USER="justdoit518225@gmail.com"
+SMTP_PASS="你的16碼應用程式密碼"
+SMTP_FROM="PlayPlayPlay <justdoit518225@gmail.com>"
 ```
+
+寫入失敗**不會**顯示在網站介面；會寄到 `justdoit518225@gmail.com`。
+
+### Gmail 應用程式密碼
+
+1. Google 帳戶開啟 [兩步驟驗證](https://myaccount.google.com/signinoptions/two-step-verification)  
+2. 到 [應用程式密碼](https://myaccount.google.com/apppasswords) 建立一組（應用程式選「郵件」）  
+3. 把 16 碼貼到 Vercel 的 `SMTP_PASS`（不要用一般 Gmail 登入密碼）
 
 設完後 **Redeploy**。
 
 ## 4. 寫入格式（每一列一筆）
 
-| 時間 | 人數 | 名單 |
-|------|------|------|
-| 2026/07/30 10:12:00 | 7 | 1. 建伸<br>2. Lester<br>... |
+| 時間 | 人數 | 名單 | #1 | #2 | #3 | … |
+|------|------|------|----|----|----|---|
+| 2026/07/30 10:12:00 | 7 | （空白） | 建伸 | Lester | Ruby | … |
+
+- **A** 時間、**B** 人數  
+- **C** 保留「名單」欄但內容空白（不再塞整段名單）  
+- **D 起** 橫向展開：`#1`、`#2`…最多 8 人  
 
 ## 常見問題
 
 1. **用錯 ID**：一定要含 `1_` 的完整 ID  
-2. **用 DocumentApp 寫試算表**：一定會失敗，請用上面的 `SpreadsheetApp`  
-3. **SECRET 不一致**：會回 `unauthorized`，文件／表格不會新增  
-4. **沒發新版本**：改完 Script 忘記部署新版本，網站仍打到舊程式  
-5. **HTTP 405**：網站對 Apps Script 的 302 轉址誤用 POST 會出現；後端應對 Location 發 **GET** 取回傳內容（第一次 POST 已寫入）
+2. **用 DocumentApp 寫試算表**：一定會失敗，請用 `SpreadsheetApp`  
+3. **SECRET 不一致**：會回 `unauthorized`  
+4. **沒發新版本**：改完 Script 忘記部署新版本  
+5. **HTTP 405**：後端應對 302 Location 發 GET 取回傳內容  
+6. **權限錯誤**：執行 `authorizeOnce` 並部署新版本；Web App 請用 `openById`（不要對 `getActiveSpreadsheet` 傳字串）

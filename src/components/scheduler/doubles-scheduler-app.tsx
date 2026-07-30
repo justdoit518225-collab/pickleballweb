@@ -56,7 +56,6 @@ export function DoublesSchedulerApp() {
   );
 
   const [generating, setGenerating] = useState(false);
-  const [rosterSaveNote, setRosterSaveNote] = useState<string | null>(null);
 
   const players = useMemo(
     () => names.map((n) => n.trim()).filter(Boolean),
@@ -109,28 +108,17 @@ export function DoublesSchedulerApp() {
   async function goToSchedule() {
     if (!canStart || generating) return;
     setGenerating(true);
-    setRosterSaveNote(null);
     ensureScores(playerCount, templates.length);
 
     try {
-      const res = await fetch("/api/doubles-scheduler/save-roster", {
+      // 背景存檔；失敗不顯示於介面（後端會寄信通知管理員）
+      await fetch("/api/doubles-scheduler/save-roster", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ names: players }),
       });
-      const data = (await res.json().catch(() => ({}))) as {
-        ok?: boolean;
-        saved?: boolean;
-        message?: string;
-        error?: string;
-      };
-      if (!res.ok) {
-        setRosterSaveNote(data.error ?? `存檔失敗（HTTP ${res.status}）`);
-      } else if (data.saved === false) {
-        setRosterSaveNote(data.message ?? "尚未寫入 Google 試算表（已略過）");
-      }
     } catch {
-      setRosterSaveNote("無法連線存檔 API，Google 試算表未更新");
+      // ignore
     } finally {
       setGenerating(false);
       setStep("schedule");
@@ -176,7 +164,6 @@ export function DoublesSchedulerApp() {
           players={players}
           templates={templates}
           scores={scores}
-          rosterSaveNote={rosterSaveNote}
           onBack={() => setStep("register")}
           onScoreChange={updateScore}
           onToggleLock={toggleLock}
@@ -374,7 +361,6 @@ function ScheduleStep({
   players,
   templates,
   scores,
-  rosterSaveNote,
   onBack,
   onScoreChange,
   onToggleLock,
@@ -382,7 +368,6 @@ function ScheduleStep({
   players: string[];
   templates: MatchTemplate[];
   scores: MatchScore[];
-  rosterSaveNote: string | null;
   onBack: () => void;
   onScoreChange: (matchIndex: number, side: "scoreA" | "scoreB", value: string) => void;
   onToggleLock: (matchIndex: number) => void;
@@ -398,11 +383,6 @@ function ScheduleStep({
           <ArrowLeft className="h-4 w-4" />
           返回修改名單
         </button>
-        {rosterSaveNote && (
-          <div className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            Google 名單未寫入：{rosterSaveNote}
-          </div>
-        )}
         <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
           <p className="text-sm font-semibold text-slate-900">賽程表</p>
           <p className="mt-1 text-sm text-slate-600">
