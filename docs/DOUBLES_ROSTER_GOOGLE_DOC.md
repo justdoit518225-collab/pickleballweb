@@ -80,4 +80,14 @@ GOOGLE_DOCS_ROSTER_SECRET="與 Script 內 SECRET 相同"
 ...
 ```
 
-每次按「產生賽程」會再追加一筆。
+## 常見問題：網站按了但文件沒資料
+
+多數是 **Apps Script 302 轉址** 造成 POST 內容遺失，或 Script 回傳 HTML 卻被當成成功。
+
+請確認：
+1. 部署類型是 **網頁應用程式**，存取權 **所有人**
+2. 程式有 `doPost(e)`，且改過程式後有發佈 **新版本**
+3. Vercel 環境變數 `GOOGLE_DOCS_ROSTER_SECRET` 與 Script 的 `SECRET` 一致
+4. 打開的是 Script 裡 `DOCUMENT_ID` 那份文件（不要開錯檔）
+
+伺服器會驗證 Script 回傳的 JSON 必須含 `"ok": true` 才算成功。
