@@ -1,17 +1,29 @@
 /**
- * 雙打賽程：把報名名單追加到 Google 文件（透過 Apps Script Webhook）
+ * 雙打賽程：把報名名單追加到 Google 試算表／文件（透過 Apps Script Webhook）
  *
  * 環境變數：
  * - GOOGLE_DOCS_ROSTER_WEBHOOK_URL：Apps Script 部署的 Web App URL
  * - GOOGLE_DOCS_ROSTER_SECRET：選填，與 Script 內 SECRET 一致
  *
- * 注意：Apps Script 常回 302，若自動 follow 會把 POST 變 GET、body 遺失。
- * 因此改為 manual redirect，並對 Location 再發一次 POST。
+ * 若目標是 Google 試算表，請在 Apps Script 使用 SpreadsheetApp（見 docs/DOUBLES_ROSTER_GOOGLE_DOC.md）
+ *
+ * 注意：Apps Script ContentService 會先處理 POST，再 302 到
+ * script.googleusercontent.com；轉址網址只接受 GET（用來取回傳內容）。
+ * 對 Location 再 POST 會得到 HTTP 405。
  */
 export async function appendRosterToGoogleDoc(names: string[]) {
   const webhookUrl = process.env.GOOGLE_DOCS_ROSTER_WEBHOOK_URL?.trim();
   if (!webhookUrl) {
     return { ok: false as const, skipped: true as const, error: "未設定 GOOGLE_DOCS_ROSTER_WEBHOOK_URL" };
+  }
+
+  if (!isAppsScriptWebAppUrl(webhookUrl)) {
+    return {
+      ok: false as const,
+      skipped: false as const,
+      error:
+        "GOOGLE_DOCS_ROSTER_WEBHOOK_URL 格式不對，請貼「網頁應用程式」URL（script.google.com/macros/s/.../exec）",
+    };
   }
 
   const cleaned = names.map((n) => n.trim()).filter(Boolean);
@@ -70,9 +82,23 @@ export async function appendRosterToGoogleDoc(names: string[]) {
   }
 }
 
+function isAppsScriptWebAppUrl(url: string) {
+  try {
+    const u = new URL(url);
+    return (
+      u.hostname === "script.google.com" &&
+      u.pathname.includes("/macros/s/") &&
+      u.pathname.endsWith("/exec")
+    );
+  } catch {
+    return false;
+  }
+}
+
 async function postToAppsScript(url: string, payload: object): Promise<string> {
   const body = JSON.stringify(payload);
-  const headers = { "Content-Type": "application/json" };
+  // text/plain：Apps Script 仍可從 e.postData.contents 讀 JSON 字串
+  const headers = { "Content-Type": "text/plain;charset=utf-8" };
 
   let res = await fetch(url, {
     method: "POST",
@@ -81,23 +107,25 @@ async function postToAppsScript(url: string, payload: object): Promise<string> {
     redirect: "manual",
   });
 
-  // Apps Script：script.google.com → script.googleusercontent.com
+  // 第一次 POST 已執行 doPost；302 的 Location 只用 GET 取回傳內容
   if (res.status >= 300 && res.status < 400) {
     const location = res.headers.get("location");
     if (!location) {
       throw new Error(`Apps Script 轉址但沒有 Location（${res.status}）`);
     }
     res = await fetch(location, {
-      method: "POST",
-      headers,
-      body,
+      method: "GET",
       redirect: "follow",
     });
   }
 
   const text = await res.text();
   if (!res.ok) {
-    throw new Error(`Apps Script HTTP ${res.status}: ${text.slice(0, 200)}`);
+    const hint =
+      res.status === 405
+        ? "（常見原因：Webhook URL 不是 /exec，或對轉址誤用 POST）"
+        : "";
+    throw new Error(`Apps Script HTTP ${res.status}${hint}: ${text.slice(0, 120)}`);
   }
   return text;
 }
