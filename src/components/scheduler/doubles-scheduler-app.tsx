@@ -11,6 +11,7 @@ import {
   Loader2,
   Lock,
   Sparkles,
+  Swords,
   Unlock,
   Users,
 } from "lucide-react";
@@ -425,58 +426,64 @@ function MatchCard({
         )}
       </div>
 
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 px-3 py-4 sm:gap-3 sm:px-4">
-        <div className="min-w-0 text-center">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-sky-600">
-            隊伍 A
-          </p>
-          <p className="mt-1 break-words text-sm font-semibold leading-snug text-slate-900">
-            {teamA}
-          </p>
-        </div>
+      <div className="space-y-3 px-3 py-3 sm:px-4">
+        <div className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-3">
+          <div className="mb-2.5 flex items-center gap-1.5 text-sm font-bold text-sky-900">
+            <Swords className="h-4 w-4 shrink-0" />
+            上場對戰
+          </div>
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3">
+            <div className="min-w-0 rounded-lg bg-white px-2 py-2 text-center shadow-sm ring-1 ring-sky-100">
+              <p className="text-[10px] font-semibold tracking-wide text-sky-600">
+                隊伍 A
+              </p>
+              <p className="mt-1 break-words text-sm font-semibold leading-snug text-slate-900">
+                {teamA}
+              </p>
+            </div>
 
-        <div className="flex shrink-0 flex-col items-center gap-1.5">
-          <span className="text-[11px] font-bold tracking-wider text-slate-400">VS</span>
-          <div className="flex items-center gap-1.5">
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={score.scoreA}
-              disabled={score.locked}
-              onChange={(e) => onScoreChange(index, "scoreA", e.target.value)}
-              placeholder="-"
-              className="h-11 w-11 rounded-xl border border-slate-200 bg-slate-50 text-center text-lg font-bold tabular-nums text-slate-900 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 disabled:bg-slate-100 disabled:text-slate-500"
-              aria-label={`場次 ${index + 1} 隊伍 A 分數`}
-            />
-            <span className="text-sm font-semibold text-slate-400">:</span>
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={score.scoreB}
-              disabled={score.locked}
-              onChange={(e) => onScoreChange(index, "scoreB", e.target.value)}
-              placeholder="-"
-              className="h-11 w-11 rounded-xl border border-slate-200 bg-slate-50 text-center text-lg font-bold tabular-nums text-slate-900 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 disabled:bg-slate-100 disabled:text-slate-500"
-              aria-label={`場次 ${index + 1} 隊伍 B 分數`}
-            />
+            <div className="flex shrink-0 flex-col items-center gap-1.5">
+              <span className="text-[11px] font-bold tracking-wider text-sky-700">VS</span>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={score.scoreA}
+                  disabled={score.locked}
+                  onChange={(e) => onScoreChange(index, "scoreA", e.target.value)}
+                  placeholder="-"
+                  className="h-11 w-11 rounded-xl border border-sky-200 bg-white text-center text-lg font-bold tabular-nums text-slate-900 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 disabled:bg-slate-100 disabled:text-slate-500"
+                  aria-label={`場次 ${index + 1} 隊伍 A 分數`}
+                />
+                <span className="text-sm font-semibold text-slate-400">:</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={score.scoreB}
+                  disabled={score.locked}
+                  onChange={(e) => onScoreChange(index, "scoreB", e.target.value)}
+                  placeholder="-"
+                  className="h-11 w-11 rounded-xl border border-orange-200 bg-white text-center text-lg font-bold tabular-nums text-slate-900 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 disabled:bg-slate-100 disabled:text-slate-500"
+                  aria-label={`場次 ${index + 1} 隊伍 B 分數`}
+                />
+              </div>
+            </div>
+
+            <div className="min-w-0 rounded-lg bg-white px-2 py-2 text-center shadow-sm ring-1 ring-orange-100">
+              <p className="text-[10px] font-semibold tracking-wide text-orange-600">
+                隊伍 B
+              </p>
+              <p className="mt-1 break-words text-sm font-semibold leading-snug text-slate-900">
+                {teamB}
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="min-w-0 text-center">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-orange-600">
-            隊伍 B
-          </p>
-          <p className="mt-1 break-words text-sm font-semibold leading-snug text-slate-900">
-            {teamB}
-          </p>
-        </div>
-      </div>
-
-      <div className="space-y-3 border-t border-slate-100 px-4 py-3">
         {restingNames.length === 0 ? (
-          <div className="flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2.5 text-sm font-medium text-emerald-800">
+          <div className="flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2.5 text-sm font-medium text-emerald-800 ring-1 ring-emerald-100">
             <Users className="h-4 w-4 shrink-0" />
             全體上場
           </div>
