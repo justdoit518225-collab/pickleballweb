@@ -83,7 +83,9 @@ export default async function PaddleDetailPage({
 
           <section className="space-y-2">
             <h2 className="text-sm font-semibold text-slate-900">詳細介紹</h2>
-            <p className="text-sm leading-relaxed text-slate-600">{paddle.description}</p>
+            <p className="whitespace-pre-line text-sm leading-relaxed text-slate-600">
+              {paddle.description}
+            </p>
           </section>
 
           {paddle.highlights.length > 0 ? (

@@ -61,13 +61,16 @@ export default async function PlatformPaddleEditPage({
             <label className="block text-sm font-medium text-slate-700" htmlFor="description">
               詳細介紹
             </label>
+            <p className="mt-1 text-xs text-slate-500">
+              直接按 Enter 換行即可，前台會保留你的換行。空一行可分段。
+            </p>
             <textarea
               id="description"
               name="description"
               required
-              rows={6}
+              rows={12}
               defaultValue={paddle.description}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 font-sans text-sm leading-relaxed"
             />
           </div>
           <div className="sm:col-span-2">
