@@ -15,6 +15,8 @@ export function usesHourlyBoardHome(slug: string) {
 export const ROUTES = {
   home: "/",
   doublesScheduler: "/doubles-scheduler",
+  paddles: "/paddles",
+  paddle: (id: string) => `/paddles/${id}`,
   me: "/me",
   meBookings: "/me/bookings",
   meInbox: "/me/inbox",
