@@ -243,6 +243,47 @@ async function main() {
     console.log(`已清除 ${removedRentals.count} 筆租借時段（請至管理後台新增）`);
   }
 
+  // 匹克球拍目錄（已存在的 brand / slug 略過）
+  const { SEED_PADDLES } = await import("./paddle-seed-data");
+  const brandNames = [...new Set(SEED_PADDLES.map((p) => p.brand))].sort((a, b) =>
+    a.localeCompare(b, "en", { sensitivity: "base" }),
+  );
+  const brandIdByName = new Map<string, string>();
+  for (let i = 0; i < brandNames.length; i++) {
+    const name = brandNames[i]!;
+    const brand = await prisma.paddleBrand.upsert({
+      where: { name },
+      update: {},
+      create: { name, sortOrder: i },
+    });
+    brandIdByName.set(name, brand.id);
+  }
+  let paddlesCreated = 0;
+  for (let i = 0; i < SEED_PADDLES.length; i++) {
+    const p = SEED_PADDLES[i]!;
+    const brandId = brandIdByName.get(p.brand);
+    if (!brandId) continue;
+    const existing = await prisma.paddle.findUnique({ where: { slug: p.slug } });
+    if (existing) continue;
+    await prisma.paddle.create({
+      data: {
+        brandId,
+        slug: p.slug,
+        series: p.series,
+        variant: p.variant,
+        nameZh: p.nameZh,
+        nameEn: p.nameEn,
+        description: p.description,
+        highlights: [...p.highlights],
+        sortOrder: i,
+      },
+    });
+    paddlesCreated += 1;
+  }
+  console.log(
+    `匹克球拍：品牌 ${brandNames.length}、新增球拍 ${paddlesCreated}（既有 slug 已略過）`,
+  );
+
   console.log("Seed 完成：Active Pickleball Club 租戶與示範活動已建立（場地租借請於管理後台新增）");
 }
 

@@ -68,9 +68,14 @@ export default async function MeOverviewPage() {
             → 登入方式（連結 Google / LINE）
           </Link>
           {session!.user!.platformRole === "SUPER_ADMIN" && (
-            <Link href={ROUTES.platformAdmin} className="font-medium text-brand-teal">
-              → 平台管理（建立租戶）
-            </Link>
+            <>
+              <Link href={ROUTES.platformAdmin} className="font-medium text-brand-teal">
+                → 平台管理（租戶）
+              </Link>
+              <Link href={ROUTES.platformPaddles} className="font-medium text-brand-teal">
+                → 匹克球拍管理
+              </Link>
+            </>
           )}
           {adminTenants.map((t) => (
             <Link

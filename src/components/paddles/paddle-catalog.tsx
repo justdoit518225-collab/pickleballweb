@@ -1,9 +1,8 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { getPaddleBrands, getPaddlesByBrand, type Paddle } from "@/lib/paddles";
+import type { PaddleListItem } from "@/lib/paddles";
 import { ROUTES } from "@/lib/constants";
 
 function PaddleGlyph({ className }: { className?: string }) {
@@ -25,23 +24,35 @@ function PaddleGlyph({ className }: { className?: string }) {
   );
 }
 
-export function PaddleCatalog() {
-  const brands = useMemo(() => getPaddleBrands(), []);
+export function PaddleCatalog({
+  brands,
+  paddlesByBrand,
+}: {
+  brands: string[];
+  paddlesByBrand: Record<string, PaddleListItem[]>;
+}) {
   const [brand, setBrand] = useState(brands[0] ?? "");
   const paddles = useMemo(
-    () => (brand ? getPaddlesByBrand(brand) : []),
-    [brand],
+    () => (brand ? (paddlesByBrand[brand] ?? []) : []),
+    [brand, paddlesByBrand],
   );
+
+  if (brands.length === 0) {
+    return (
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:py-10">
+        <h1 className="text-2xl font-bold text-brand-navy sm:text-3xl">匹克球拍</h1>
+        <p className="mt-3 text-sm text-slate-600">目前尚無球拍資料。</p>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:py-10">
       <header className="mb-6 space-y-1">
         <h1 className="text-2xl font-bold text-brand-navy sm:text-3xl">匹克球拍</h1>
-        <p className="text-sm text-slate-600">選擇左側品牌，瀏覽款式縮圖</p>
       </header>
 
       <div className="flex flex-col gap-6 md:flex-row md:items-start md:gap-8">
-        {/* 左側品牌清單 */}
         <aside className="w-full shrink-0 md:w-52 lg:w-56">
           <p className="mb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
             Brand
@@ -71,7 +82,6 @@ export function PaddleCatalog() {
           </nav>
         </aside>
 
-        {/* 右側球拍網格 */}
         <section className="min-w-0 flex-1">
           <div className="mb-4 flex items-baseline justify-between gap-3">
             <h2 className="text-lg font-semibold text-slate-900">{brand}</h2>
@@ -91,7 +101,7 @@ export function PaddleCatalog() {
   );
 }
 
-function PaddleCard({ paddle }: { paddle: Paddle }) {
+function PaddleCard({ paddle }: { paddle: PaddleListItem }) {
   const isLuzz = paddle.brand === "LUZZ";
   const title = isLuzz ? paddle.nameEn : paddle.nameZh;
   const subtitle = isLuzz
@@ -101,7 +111,7 @@ function PaddleCard({ paddle }: { paddle: Paddle }) {
       : paddle.series;
 
   return (
-    <Link href={ROUTES.paddle(paddle.id)} className="group block">
+    <Link href={ROUTES.paddle(paddle.slug)} className="group block">
       <div className="overflow-hidden rounded-lg bg-[#ececec] transition group-hover:bg-[#e4e4e4]">
         <PaddleThumb paddle={paddle} />
       </div>
@@ -110,7 +120,6 @@ function PaddleCard({ paddle }: { paddle: Paddle }) {
           {title}
         </h3>
         <p className="text-xs text-slate-500">{subtitle}</p>
-        {/* 價格先隱藏 */}
       </div>
     </Link>
   );
@@ -118,29 +127,22 @@ function PaddleCard({ paddle }: { paddle: Paddle }) {
 
 export function PaddleThumb({
   paddle,
-  priority = false,
   large = false,
 }: {
-  paddle: Paddle;
-  priority?: boolean;
+  paddle: Pick<PaddleListItem, "brand" | "nameZh" | "imageDataUrl">;
   large?: boolean;
 }) {
   const box = large ? "aspect-[4/3] w-full" : "aspect-square w-full";
 
-  if (paddle.imageSrc) {
+  if (paddle.imageDataUrl) {
     return (
       <div className={`relative overflow-hidden ${box}`}>
-        <Image
-          src={paddle.imageSrc}
+        {/* data URL 不走 next/image */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={paddle.imageDataUrl}
           alt={paddle.nameZh}
-          fill
-          priority={priority}
-          className="object-contain p-3 transition group-hover:scale-[1.03]"
-          sizes={
-            large
-              ? "(max-width: 768px) 100vw, 640px"
-              : "(max-width: 640px) 50vw, 25vw"
-          }
+          className="h-full w-full object-contain p-3 transition group-hover:scale-[1.03]"
         />
       </div>
     );

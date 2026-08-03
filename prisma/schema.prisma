@@ -378,6 +378,36 @@ model TenantReview {
   @@unique([tenantId, userId])
 }
 
+// ─── 匹克球拍目錄（平台超管維護）────────────────────────────────────────────
+
+model PaddleBrand {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  paddles   Paddle[]
+}
+
+model Paddle {
+  id           String      @id @default(cuid())
+  brandId      String
+  brand        PaddleBrand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  slug         String      @unique
+  series       String
+  variant      String      @default("-")
+  nameZh       String
+  nameEn       String
+  description  String      @db.Text
+  highlights   String[]
+  imageDataUrl String?     @db.Text
+  sortOrder    Int         @default(0)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@index([brandId, sortOrder])
+}
+
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 enum PlatformRole {

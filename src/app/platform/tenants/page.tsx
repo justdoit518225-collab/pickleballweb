@@ -25,8 +25,8 @@ export default async function PlatformTenantsPage({
   const editing = editId ? tenants.find((t) => t.id === editId) : undefined;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <h1 className="text-2xl font-bold text-slate-800">平台管理 · 租戶</h1>
+    <>
+      <h1 className="text-2xl font-bold text-slate-800">租戶</h1>
 
       {saved && (
         <p className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
@@ -189,6 +189,6 @@ export default async function PlatformTenantsPage({
           </table>
         </div>
       </section>
-    </div>
+    </>
   );
 }

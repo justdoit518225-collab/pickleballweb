@@ -4,10 +4,15 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { PaddleThumb } from "@/components/paddles/paddle-catalog";
 import { ROUTES } from "@/lib/constants";
-import { getPaddleById, PADDLES } from "@/lib/paddles";
+import { getAllPaddleSlugs, getPaddleBySlug } from "@/lib/paddles";
 
-export function generateStaticParams() {
-  return PADDLES.map((p) => ({ id: p.id }));
+export async function generateStaticParams() {
+  try {
+    const slugs = await getAllPaddleSlugs();
+    return slugs.map((id) => ({ id }));
+  } catch {
+    return [];
+  }
 }
 
 export async function generateMetadata({
@@ -16,7 +21,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const paddle = getPaddleById(id);
+  const paddle = await getPaddleBySlug(id);
   if (!paddle) return { title: "球拍介紹" };
   return {
     title: paddle.brand === "LUZZ" ? paddle.nameEn : paddle.nameZh,
@@ -30,7 +35,7 @@ export default async function PaddleDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const paddle = getPaddleById(id);
+  const paddle = await getPaddleBySlug(id);
   if (!paddle) notFound();
 
   return (
@@ -44,7 +49,7 @@ export default async function PaddleDetailPage({
       </Link>
 
       <article className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <PaddleThumb paddle={paddle} large priority />
+        <PaddleThumb paddle={paddle} large />
 
         <div className="space-y-5 px-5 py-6 sm:px-7">
           <header className="space-y-2">
@@ -78,12 +83,10 @@ export default async function PaddleDetailPage({
 
           <section className="space-y-2">
             <h2 className="text-sm font-semibold text-slate-900">詳細介紹</h2>
-            <p className="text-sm leading-relaxed text-slate-600">
-              {paddle.description}
-            </p>
+            <p className="text-sm leading-relaxed text-slate-600">{paddle.description}</p>
           </section>
 
-          {paddle.highlights && paddle.highlights.length > 0 ? (
+          {paddle.highlights.length > 0 ? (
             <section className="space-y-2">
               <h2 className="text-sm font-semibold text-slate-900">特點</h2>
               <ul className="flex flex-wrap gap-2">

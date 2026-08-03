@@ -25,6 +25,10 @@ export const ROUTES = {
   meAccounts: "/me/accounts",
   meNotifications: "/me/notifications",
   platformAdmin: "/platform/tenants",
+  platformPaddles: "/platform/paddles",
+  platformPaddleBrand: (brandId: string) => `/platform/paddles/${brandId}`,
+  platformPaddleEdit: (brandId: string, paddleId: string) =>
+    `/platform/paddles/${brandId}/${paddleId}`,
   tenant: (slug: string) => `/t/${slug}`,
   tenantAccess: (slug: string) => `/t/${slug}/access`,
   tenantAbout: (slug: string) => `/t/${slug}/about`,
