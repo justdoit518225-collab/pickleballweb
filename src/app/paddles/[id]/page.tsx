@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { PaddleDescriptionView } from "@/components/paddles/paddle-description-view";
 import { PaddleThumb } from "@/components/paddles/paddle-catalog";
 import { ROUTES } from "@/lib/constants";
 import { getAllPaddleSlugs, getPaddleBySlug } from "@/lib/paddles";
@@ -83,9 +84,7 @@ export default async function PaddleDetailPage({
 
           <section className="space-y-2">
             <h2 className="text-sm font-semibold text-slate-900">詳細介紹</h2>
-            <p className="whitespace-pre-line text-sm leading-relaxed text-slate-600">
-              {paddle.description}
-            </p>
+            <PaddleDescriptionView content={paddle.description} />
           </section>
 
           {paddle.highlights.length > 0 ? (

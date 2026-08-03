@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createPaddle, deletePaddle } from "@/app/platform/paddles/actions";
 import { ConfirmSubmitButton } from "@/components/platform/confirm-submit-button";
+import { PaddleRichEditor } from "@/components/paddles/paddle-rich-editor";
 import { ROUTES } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
@@ -68,19 +69,13 @@ export default async function PlatformPaddleBrandPage({
             className="sm:col-span-2"
           />
           <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-slate-700" htmlFor="description">
+            <label className="block text-sm font-medium text-slate-700">
               詳細介紹
             </label>
             <p className="mt-1 text-xs text-slate-500">
-              直接按 Enter 換行即可，前台會保留你的換行。
+              可用工具列設定粗體、標題與列表。
             </p>
-            <textarea
-              id="description"
-              name="description"
-              required
-              rows={6}
-              className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm leading-relaxed"
-            />
+            <PaddleRichEditor name="description" required />
           </div>
           <div className="sm:col-span-2">
             <label className="block text-sm font-medium text-slate-700" htmlFor="highlights">

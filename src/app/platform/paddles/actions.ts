@@ -6,6 +6,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { ROUTES } from "@/lib/constants";
 import { readPaddleImageDataUrl } from "@/lib/paddle-image-upload";
+import { paddleDescriptionPlainLength, sanitizePaddleHtml } from "@/lib/paddle-description";
 import { slugifyPaddle } from "@/lib/paddles";
 import { prisma } from "@/lib/prisma";
 
@@ -72,9 +73,16 @@ const paddleSchema = z.object({
   variant: z.string().trim().max(120).optional(),
   nameZh: z.string().trim().min(1).max(160),
   nameEn: z.string().trim().min(1).max(160),
-  description: z.string().trim().min(1).max(8000),
+  description: z.string().trim().min(1).max(20000),
   slug: z.string().trim().max(80).optional(),
 });
+
+function normalizeDescription(raw: string, errorRedirect: string): string {
+  if (paddleDescriptionPlainLength(raw) < 1) {
+    redirect(`${errorRedirect}?error=${encodeURIComponent("請填寫詳細介紹")}`);
+  }
+  return sanitizePaddleHtml(raw);
+}
 
 export async function createPaddle(brandId: string, formData: FormData) {
   await requirePlatformAdmin();
@@ -93,6 +101,11 @@ export async function createPaddle(brandId: string, formData: FormData) {
       `${ROUTES.platformPaddleBrand(brandId)}?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "驗證失敗")}`,
     );
   }
+
+  const description = normalizeDescription(
+    parsed.data.description,
+    ROUTES.platformPaddleBrand(brandId),
+  );
 
   const brand = await prisma.paddleBrand.findUnique({ where: { id: brandId } });
   if (!brand) {
@@ -136,7 +149,7 @@ export async function createPaddle(brandId: string, formData: FormData) {
       variant: parsed.data.variant?.trim() || "-",
       nameZh: parsed.data.nameZh,
       nameEn: parsed.data.nameEn,
-      description: parsed.data.description,
+      description,
       highlights: parseHighlights(formData.get("highlights")),
       imageDataUrl,
       sortOrder: (maxSort._max.sortOrder ?? -1) + 1,
@@ -165,6 +178,11 @@ export async function updatePaddle(brandId: string, paddleId: string, formData: 
       `${ROUTES.platformPaddleEdit(brandId, paddleId)}?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "驗證失敗")}`,
     );
   }
+
+  const description = normalizeDescription(
+    parsed.data.description,
+    ROUTES.platformPaddleEdit(brandId, paddleId),
+  );
 
   const paddle = await prisma.paddle.findFirst({
     where: { id: paddleId, brandId },
@@ -210,7 +228,7 @@ export async function updatePaddle(brandId: string, paddleId: string, formData: 
       variant: parsed.data.variant?.trim() || "-",
       nameZh: parsed.data.nameZh,
       nameEn: parsed.data.nameEn,
-      description: parsed.data.description,
+      description,
       highlights: parseHighlights(formData.get("highlights")),
       ...(imageDataUrl !== undefined ? { imageDataUrl } : {}),
     },
