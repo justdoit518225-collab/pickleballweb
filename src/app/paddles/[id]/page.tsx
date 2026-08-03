@@ -40,7 +40,7 @@ export default async function PaddleDetailPage({
         className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-brand-navy"
       >
         <ArrowLeft className="h-4 w-4" />
-        返回球拍清單
+        返回匹克球拍
       </Link>
 
       <article className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">

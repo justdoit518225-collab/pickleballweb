@@ -25,7 +25,7 @@ export async function SiteHeader() {
             雙打賽程
           </Link>
           <Link href={ROUTES.paddles} className="text-slate-600 hover:text-brand-navy">
-            球拍清單
+            匹克球拍
           </Link>
           <Link href={`${ROUTES.home}#clubs`} className="text-slate-600 hover:text-brand-navy">
             探索俱樂部
