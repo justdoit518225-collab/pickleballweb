@@ -4,7 +4,11 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { PaddleDescriptionView } from "@/components/paddles/paddle-description-view";
 import { PaddleThumb } from "@/components/paddles/paddle-catalog";
-import { ROUTES } from "@/lib/constants";
+import {
+  CONTACT_LINE_ID,
+  CONTACT_LINE_URL,
+  ROUTES,
+} from "@/lib/constants";
 import { getAllPaddleSlugs, getPaddleBySlug } from "@/lib/paddles";
 
 export async function generateStaticParams() {
@@ -121,6 +125,18 @@ export default async function PaddleDetailPage({
               <dd className="mt-0.5 font-medium text-slate-900">{paddle.nameEn}</dd>
             </div>
           </dl>
+
+          <p className="rounded-xl border border-brand-teal/20 bg-brand-teal/5 px-4 py-3 text-sm text-slate-700">
+            想詢問／試打歡迎加 LINE{" "}
+            <a
+              href={CONTACT_LINE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-brand-teal underline-offset-2 hover:underline"
+            >
+              {CONTACT_LINE_ID}
+            </a>
+          </p>
         </div>
       </article>
     </div>

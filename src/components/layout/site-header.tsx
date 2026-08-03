@@ -22,7 +22,7 @@ export async function SiteHeader() {
             href={ROUTES.doublesScheduler}
             className="text-slate-600 hover:text-brand-navy"
           >
-            雙打賽程
+            賽程產生器
           </Link>
           <Link href={ROUTES.paddles} className="text-slate-600 hover:text-brand-navy">
             匹克球拍
