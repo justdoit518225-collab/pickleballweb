@@ -92,8 +92,11 @@ export function PaddleCatalog() {
 }
 
 function PaddleCard({ paddle }: { paddle: Paddle }) {
-  const styleLabel =
-    paddle.variant !== "-"
+  const isLuzz = paddle.brand === "LUZZ";
+  const title = isLuzz ? paddle.nameEn : paddle.nameZh;
+  const subtitle = isLuzz
+    ? paddle.nameZh
+    : paddle.variant !== "-"
       ? `${paddle.series} ${paddle.variant}`
       : paddle.series;
 
@@ -104,9 +107,9 @@ function PaddleCard({ paddle }: { paddle: Paddle }) {
       </div>
       <div className="mt-2.5 space-y-0.5 px-0.5">
         <h3 className="text-sm font-semibold leading-snug text-slate-900 group-hover:text-brand-navy">
-          {paddle.nameZh}
+          {title}
         </h3>
-        <p className="text-xs text-slate-500">{styleLabel}</p>
+        <p className="text-xs text-slate-500">{subtitle}</p>
         {/* 價格先隱藏 */}
       </div>
     </Link>

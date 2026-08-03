@@ -19,7 +19,7 @@ export async function generateMetadata({
   const paddle = getPaddleById(id);
   if (!paddle) return { title: "球拍介紹" };
   return {
-    title: paddle.nameZh,
+    title: paddle.brand === "LUZZ" ? paddle.nameEn : paddle.nameZh,
     description: paddle.description,
   };
 }
@@ -59,10 +59,21 @@ export default async function PaddleDetailPage({
                 </>
               ) : null}
             </p>
-            <h1 className="text-2xl font-bold text-brand-navy sm:text-3xl">
-              {paddle.nameZh}
-            </h1>
-            <p className="text-sm text-slate-500">{paddle.nameEn}</p>
+            {paddle.brand === "LUZZ" ? (
+              <>
+                <h1 className="text-2xl font-bold text-brand-navy sm:text-3xl">
+                  {paddle.nameEn}
+                </h1>
+                <p className="text-sm text-slate-500">{paddle.nameZh}</p>
+              </>
+            ) : (
+              <>
+                <h1 className="text-2xl font-bold text-brand-navy sm:text-3xl">
+                  {paddle.nameZh}
+                </h1>
+                <p className="text-sm text-slate-500">{paddle.nameEn}</p>
+              </>
+            )}
           </header>
 
           <section className="space-y-2">
