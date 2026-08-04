@@ -12,6 +12,7 @@ const ALLOWED_TAGS = new Set([
   "ol",
   "li",
   "a",
+  "img",
 ]);
 
 /** 舊純文字轉成簡易 HTML，保留換行 */
@@ -55,6 +56,13 @@ export function sanitizePaddleHtml(html: string): string {
       return `<a href="${safeHref}" target="_blank" rel="noopener noreferrer">`;
     }
 
+    if (tag === "img") {
+      const src = pickAttr(rawAttrs, "src");
+      if (!src || !isSafeImgSrc(src)) return "";
+      const alt = pickAttr(rawAttrs, "alt") ?? "";
+      return `<img src="${escapeAttr(src)}" alt="${escapeAttr(alt)}" loading="lazy" />`;
+    }
+
     // 其他允許標籤：不帶屬性
     return `<${tag}>`;
   });
@@ -84,6 +92,16 @@ function isSafeHref(href: string) {
     v.startsWith("http://") ||
     v.startsWith("/") ||
     v.startsWith("#")
+  );
+}
+
+function isSafeImgSrc(src: string) {
+  const v = src.trim().toLowerCase();
+  return (
+    v.startsWith("/") ||
+    v.startsWith("https://") ||
+    v.startsWith("http://") ||
+    v.startsWith("data:image/")
   );
 }
 
