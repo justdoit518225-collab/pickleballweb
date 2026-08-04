@@ -1,5 +1,5 @@
 /**
- * 將 J2CR Crystal Blue 能力值雷達圖插到內文最前面（保留原內容）
+ * 確保 J2CR 內文開頭有雷達圖（若已刪除則補回，不重複插入）
  * 用法：npx tsx scripts/prepend-j2cr-radar.ts
  */
 import "dotenv/config";
@@ -27,7 +27,8 @@ async function main() {
     return;
   }
   if (p.description.includes(MARKER)) {
-    console.log("已含雷達圖，略過重複寫入");
+    console.log("已含雷達圖，略過");
+    console.log("desc start:", p.description.slice(0, 180));
     return;
   }
   const next = `${PREPEND}${p.description}`;
@@ -35,7 +36,7 @@ async function main() {
     where: { id: p.id },
     data: { description: next },
   });
-  console.log("已更新，新長度", next.length);
+  console.log("已補回雷達圖，新長度", next.length);
 }
 
 main()

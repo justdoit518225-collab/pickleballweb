@@ -78,6 +78,12 @@ export function paddleDescriptionPlainLength(htmlOrText: string): number {
     .trim().length;
 }
 
+/** 有文字或有圖片都算有內容 */
+export function paddleDescriptionHasContent(htmlOrText: string): boolean {
+  if (paddleDescriptionPlainLength(htmlOrText) >= 1) return true;
+  return /<img\b/i.test(htmlOrText);
+}
+
 function pickAttr(attrs: string, name: string): string | null {
   const re = new RegExp(`${name}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s>]+))`, "i");
   const m = attrs.match(re);

@@ -6,7 +6,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { ROUTES } from "@/lib/constants";
 import { readPaddleImageDataUrl } from "@/lib/paddle-image-upload";
-import { paddleDescriptionPlainLength, sanitizePaddleHtml } from "@/lib/paddle-description";
+import { paddleDescriptionHasContent, sanitizePaddleHtml } from "@/lib/paddle-description";
 import { slugifyPaddle } from "@/lib/paddles";
 import { prisma } from "@/lib/prisma";
 
@@ -73,12 +73,12 @@ const paddleSchema = z.object({
   variant: z.string().trim().max(120).optional(),
   nameZh: z.string().trim().min(1).max(160),
   nameEn: z.string().trim().min(1).max(160),
-  description: z.string().trim().min(1).max(20000),
+  description: z.string().trim().min(1).max(800_000),
   slug: z.string().trim().max(80).optional(),
 });
 
 function normalizeDescription(raw: string, errorRedirect: string): string {
-  if (paddleDescriptionPlainLength(raw) < 1) {
+  if (!paddleDescriptionHasContent(raw)) {
     redirect(`${errorRedirect}?error=${encodeURIComponent("請填寫詳細介紹")}`);
   }
   return sanitizePaddleHtml(raw);
