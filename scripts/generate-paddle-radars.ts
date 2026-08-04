@@ -292,6 +292,36 @@ const SPECS: RadarSpec[] = [
   ),
 ];
 
+const TEMPLATE = path.join(
+  OUT_DIR,
+  "honolulu-j2cr-crystal-blue-radar.jpg",
+);
+
+/** J2CR 模板幾何（1200×800）— 只覆蓋分數／多邊形／標題，外框完全沿用原圖 */
+const GEO = {
+  W: 1200,
+  H: 800,
+  cx: 600,
+  cy: 348,
+  maxR: 228,
+  /** 分數數字覆蓋區（蓋住原圖藍色分數） */
+  scoreBoxes: [
+    // SPIN
+    { x: 555, y: 95, w: 90, h: 40 },
+    // FORGIVENESS
+    { x: 850, y: 195, w: 95, h: 42 },
+    // CONTROL
+    { x: 850, y: 490, w: 95, h: 42 },
+    // POP
+    { x: 555, y: 575, w: 90, h: 40 },
+    // MANEUVERABILITY
+    { x: 250, y: 490, w: 100, h: 42 },
+    // POWER
+    { x: 250, y: 195, w: 95, h: 42 },
+  ] as { x: number; y: number; w: number; h: number }[],
+  titleCover: { x: 100, y: 630, w: 1000, h: 100 },
+};
+
 function polar(cx: number, cy: number, r: number, angleDeg: number) {
   const a = ((angleDeg - 90) * Math.PI) / 180;
   return { x: cx + r * Math.cos(a), y: cy + r * Math.sin(a) };
@@ -312,122 +342,80 @@ function dataPolygon(cx: number, cy: number, maxR: number, scores: Scores) {
   }).join(" ");
 }
 
-function buildSvg(spec: RadarSpec): string {
-  // Match J2CR reference asset: 1200×800 (3:2) so on-page size matches.
-  const W = 1200;
-  const H = 800;
-  const cx = 600;
-  const cy = 340;
-  const maxR = 215;
-  const labelR = 262;
-  const markerR = 252;
+/** 透明底 SVG：疊在 J2CR 原圖上，只改能力值區域與標題 */
+function buildOverlaySvg(spec: RadarSpec): string {
+  const { W, H, cx, cy, maxR, scoreBoxes, titleCover } = GEO;
+  const dataPts = dataPolygon(cx, cy, maxR, spec.scores);
+  const eraseR = maxR + 18;
+  const bg = "#f5f2f2";
 
   const rings = [2, 4, 6, 8, 10]
     .map((n) => {
       const r = (n / 10) * maxR;
-      return `<polygon points="${hexPoints(cx, cy, r)}" fill="none" stroke="#b8c9dd" stroke-width="${n === 10 ? 2 : 1.2}"/>
-      <text x="${cx + 9}" y="${(cy - r + 4).toFixed(1)}" fill="#67809e" font-size="13" font-weight="700" font-family="Segoe UI, Helvetica, Arial, sans-serif">${n}</text>`;
+      return `<polygon points="${hexPoints(cx, cy, r)}" fill="none" stroke="#d0dbe8" stroke-width="${n === 10 ? 1.8 : 1.1}" opacity="0.95"/>
+      <text x="${cx + 8}" y="${(cy - r + 4).toFixed(1)}" fill="#7a8ea8" font-size="12" font-weight="700" font-family="Segoe UI, Helvetica, Arial, sans-serif">${n}</text>`;
     })
     .join("\n");
 
   const spokes = AXES.map((_, i) => {
     const p = polar(cx, cy, maxR, i * 60);
-    return `<line x1="${cx}" y1="${cy}" x2="${p.x.toFixed(2)}" y2="${p.y.toFixed(2)}" stroke="#aec2da" stroke-width="1.2"/>`;
+    return `<line x1="${cx}" y1="${cy}" x2="${p.x.toFixed(2)}" y2="${p.y.toFixed(2)}" stroke="#c8d5e4" stroke-width="1.1"/>`;
   }).join("\n");
 
-  const labels = AXES.map((axis, i) => {
-    const p = polar(cx, cy, labelR, i * 60);
+  const scoreTexts = AXES.map((axis, i) => {
+    const box = scoreBoxes[i];
     const score = spec.scores[axis.key];
-    const anchor =
-      i === 0 || i === 3 ? "middle" : i === 1 || i === 2 ? "start" : "end";
-    const dx = i === 1 || i === 2 ? 6 : i === 4 || i === 5 ? -6 : 0;
-    const dy = i === 0 ? -2 : i === 3 ? 12 : 3;
-    const labelSize = axis.label.length > 12 ? 15 : 17;
+    const tx = box.x + box.w / 2;
+    const ty = box.y + box.h / 2 + 9;
     return `
-      <text x="${(p.x + dx).toFixed(2)}" y="${(p.y + dy - 11).toFixed(2)}" text-anchor="${anchor}" fill="#0a1a2e" font-size="${labelSize}" font-weight="800" font-family="Segoe UI, Helvetica, Arial, sans-serif" letter-spacing="0.6">${axis.label}</text>
-      <text x="${(p.x + dx).toFixed(2)}" y="${(p.y + dy + 13).toFixed(2)}" text-anchor="${anchor}" fill="#167ce4" font-size="24" font-weight="800" font-family="Segoe UI, Helvetica, Arial, sans-serif">${fmt(score)}</text>
-      <polygon points="${triangleAt(cx, cy, markerR, i)}" fill="#2b7de9"/>`;
+      <rect x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" rx="4" fill="${bg}"/>
+      <text x="${tx}" y="${ty}" text-anchor="middle" fill="#1a6fd4" font-size="28" font-weight="800" font-family="Segoe UI, Helvetica, Arial, sans-serif">${fmt(score)}</text>`;
   }).join("\n");
 
-  const dataPts = dataPolygon(cx, cy, maxR, spec.scores);
-
-  // Chamfered tech frame for 1200×800
-  const frameOuter =
-    "M22 88 L88 22 H1112 L1178 88 V712 L1112 778 H88 L22 712Z";
-  const frameInner =
-    "M48 100 L100 48 H1100 L1152 100 V700 L1100 752 H100 L48 700Z";
+  const vertices = AXES.map((axis, i) => {
+    const v = spec.scores[axis.key];
+    const p = polar(cx, cy, (Math.min(10, Math.max(0, v)) / 10) * maxR, i * 60);
+    return `<circle cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="6" fill="#ffffff" stroke="#7adfff" stroke-width="3"/>
+    <circle cx="${(p.x - 1.5).toFixed(2)}" cy="${(p.y - 1.5).toFixed(2)}" r="1.6" fill="#fff" opacity="0.9"/>`;
+  }).join("\n");
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <defs>
-    <pattern id="dotGrid" width="24" height="24" patternUnits="userSpaceOnUse">
-      <circle cx="1.5" cy="1.5" r="1.1" fill="#8aa1bc"/>
-    </pattern>
     <linearGradient id="fillGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#43bcff" stop-opacity="0.72"/>
-      <stop offset="48%" stop-color="#497df4" stop-opacity="0.56"/>
-      <stop offset="100%" stop-color="#a354dd" stop-opacity="0.48"/>
+      <stop offset="0%" stop-color="#5ec8ff" stop-opacity="0.82"/>
+      <stop offset="45%" stop-color="#5b7ef5" stop-opacity="0.65"/>
+      <stop offset="100%" stop-color="#c24ee0" stop-opacity="0.58"/>
     </linearGradient>
-    <linearGradient id="strokeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#d9f9ff"/>
-      <stop offset="45%" stop-color="#5ec8ff"/>
-      <stop offset="100%" stop-color="#78c7ff"/>
+    <linearGradient id="strokeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="35%" stop-color="#9aecff"/>
+      <stop offset="100%" stop-color="#6ad4ff"/>
     </linearGradient>
-    <filter id="cyanGlow" x="-30%" y="-30%" width="160%" height="160%">
+    <filter id="crystalGlow" x="-40%" y="-40%" width="180%" height="180%">
       <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="wide"/>
-      <feFlood flood-color="#4ec8ff" flood-opacity="0.65" result="glowColor"/>
-      <feComposite in="glowColor" in2="wide" operator="in" result="outerGlow"/>
-      <feGaussianBlur in="SourceGraphic" stdDeviation="2.2" result="tight"/>
-      <feMerge><feMergeNode in="outerGlow"/><feMergeNode in="tight"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-    <filter id="ledGlow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="4" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+      <feFlood flood-color="#6ad4ff" flood-opacity="0.85" result="c"/>
+      <feComposite in="c" in2="wide" operator="in" result="g"/>
+      <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
-  <rect width="${W}" height="${H}" fill="#fbfcff"/>
-  <rect x="55" y="55" width="${W - 110}" height="${H - 110}" fill="url(#dotGrid)" opacity="0.22"/>
-  <path d="${frameOuter} ${frameInner}" fill="#0a1a2e" fill-rule="evenodd"/>
-  <path d="M48 100 L100 48 H1100 L1152 100 M48 700 L100 752 H1100 L1152 700" fill="none" stroke="#234567" stroke-width="2.5"/>
-  <g fill="none" stroke="#5ec8ff" stroke-linecap="square" filter="url(#ledGlow)">
-    <path d="M46 150 V88 L88 46 H150" stroke-width="6"/>
-    <path d="M1050 46 H1112 L1154 88 V150" stroke-width="6"/>
-    <path d="M46 650 V712 L88 754 H150" stroke-width="6"/>
-    <path d="M1050 754 H1112 L1154 712 V650" stroke-width="6"/>
-  </g>
+  <!-- 擦除原多邊形＋格線，保留四角外框與軸名稱 -->
+  <polygon points="${hexPoints(cx, cy, eraseR)}" fill="${bg}"/>
   ${rings}
   ${spokes}
-  <polygon points="${dataPts}" fill="url(#fillGrad)" stroke="#4ec8ff" stroke-width="9" opacity="0.75" filter="url(#cyanGlow)"/>
-  <polygon points="${dataPts}" fill="url(#fillGrad)" stroke="url(#strokeGrad)" stroke-width="4.5"/>
-  <polygon points="${dataPts}" fill="none" stroke="#ffffff" stroke-width="1.5" stroke-opacity="0.95" stroke-dasharray="20 30" stroke-linecap="round"/>
-  ${AXES.map((axis, i) => {
-    const v = spec.scores[axis.key];
-    const p = polar(cx, cy, (Math.min(10, Math.max(0, v)) / 10) * maxR, i * 60);
-    return `<circle cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="6.5" fill="#eefdff" stroke="#4ec8ff" stroke-width="3"/><circle cx="${(p.x - 1.6).toFixed(2)}" cy="${(p.y - 1.6).toFixed(2)}" r="1.8" fill="#fff"/>`;
-  }).join("\n")}
-  ${labels}
-  <text x="${cx}" y="668" text-anchor="middle" fill="#0a1a2e" font-size="20" font-weight="800" font-family="Segoe UI, Helvetica, Arial, sans-serif" letter-spacing="1.1">${escapeXml(spec.title)}</text>
-  <line x1="220" y1="690" x2="${W - 220}" y2="690" stroke="#b8c9dd" stroke-width="1.4"/>
-  <text x="${cx}" y="716" text-anchor="middle" fill="#526b88" font-size="15" font-family="Segoe UI, Helvetica, Arial, sans-serif">${escapeXml(spec.footerCredit)}</text>
+  <text x="${cx + 8}" y="${(cy + 4).toFixed(1)}" fill="#7a8ea8" font-size="12" font-weight="700" font-family="Segoe UI, Helvetica, Arial, sans-serif">0</text>
+  <!-- 新能力值（水晶邊近似） -->
+  <polygon points="${dataPts}" fill="none" stroke="#7adfff" stroke-width="16" opacity="0.45" filter="url(#crystalGlow)"/>
+  <polygon points="${dataPts}" fill="url(#fillGrad)" stroke="url(#strokeGrad)" stroke-width="7"/>
+  <polygon points="${dataPts}" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-opacity="0.9"/>
+  ${vertices}
+  ${scoreTexts}
+  <!-- 標題區 -->
+  <rect x="${titleCover.x}" y="${titleCover.y}" width="${titleCover.w}" height="${titleCover.h}" fill="${bg}"/>
+  <text x="${cx}" y="${titleCover.y + 36}" text-anchor="middle" fill="#0a1a2e" font-size="20" font-weight="800" font-family="Segoe UI, Helvetica, Arial, sans-serif" letter-spacing="1">${escapeXml(spec.title)}</text>
+  <line x1="240" y1="${titleCover.y + 52}" x2="${W - 240}" y2="${titleCover.y + 52}" stroke="#c5d0e0" stroke-width="1.3"/>
+  <text x="${cx}" y="${titleCover.y + 76}" text-anchor="middle" fill="#5a6a80" font-size="14" font-family="Segoe UI, Helvetica, Arial, sans-serif">${escapeXml(spec.footerCredit)}</text>
 </svg>`;
-}
-
-function triangleAt(cx: number, cy: number, r: number, i: number) {
-  const inward = polar(cx, cy, r, i * 60);
-  const ox = inward.x;
-  const oy = inward.y;
-  const ang = ((i * 60 - 90) * Math.PI) / 180;
-  const s = 7;
-  const p1 = { x: ox, y: oy };
-  const p2 = {
-    x: ox - Math.cos(ang + 2.4) * s,
-    y: oy - Math.sin(ang + 2.4) * s,
-  };
-  const p3 = {
-    x: ox - Math.cos(ang - 2.4) * s,
-    y: oy - Math.sin(ang - 2.4) * s,
-  };
-  return `${p1.x.toFixed(1)},${p1.y.toFixed(1)} ${p2.x.toFixed(1)},${p2.y.toFixed(1)} ${p3.x.toFixed(1)},${p3.y.toFixed(1)}`;
 }
 
 function escapeXml(s: string) {
@@ -439,10 +427,15 @@ function escapeXml(s: string) {
 }
 
 async function writeJpg(spec: RadarSpec) {
-  const svg = buildSvg(spec);
+  if (!fs.existsSync(TEMPLATE)) {
+    throw new Error(`缺少 J2CR 模板圖：${TEMPLATE}`);
+  }
+  const overlay = Buffer.from(buildOverlaySvg(spec));
+  const overlayPng = await sharp(overlay).png().toBuffer();
   const file = path.join(OUT_DIR, `${spec.slug}-radar.jpg`);
-  await sharp(Buffer.from(svg))
-    .jpeg({ quality: 90, mozjpeg: true })
+  await sharp(TEMPLATE)
+    .composite([{ input: overlayPng, top: 0, left: 0 }])
+    .jpeg({ quality: 92, mozjpeg: true })
     .toFile(file);
   return `/paddles/${spec.slug}-radar.jpg`;
 }
