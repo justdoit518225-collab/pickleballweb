@@ -92,7 +92,7 @@ export function PaddleRichEditor({
     editorProps: {
       attributes: {
         class:
-          "min-h-[220px] px-3 py-2 text-sm leading-relaxed text-slate-800 outline-none [&_h2]:mb-2 [&_h2]:mt-3 [&_h2]:text-base [&_h2]:font-bold [&_h3]:mb-1.5 [&_h3]:mt-2 [&_h3]:text-sm [&_h3]:font-semibold [&_p]:mb-2 [&_ul]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mb-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5 [&_strong]:font-bold [&_img.paddle-editor-img]:mx-auto [&_img.paddle-editor-img]:my-3 [&_img.paddle-editor-img]:block [&_img.paddle-editor-img]:h-auto [&_img.paddle-editor-img]:max-w-[min(100%,14rem)] [&_img.paddle-editor-img]:rounded-xl [&_img.paddle-editor-img]:border [&_img.paddle-editor-img]:border-slate-200",
+          "min-h-[220px] px-3 py-2 text-sm leading-relaxed text-slate-800 outline-none [&_h2]:mb-2 [&_h2]:mt-3 [&_h2]:text-base [&_h2]:font-bold [&_h3]:mb-1.5 [&_h3]:mt-2 [&_h3]:text-sm [&_h3]:font-semibold [&_p]:mb-2 [&_ul]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mb-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5 [&_strong]:font-bold [&_img.paddle-editor-img]:mx-auto [&_img.paddle-editor-img]:my-3 [&_img.paddle-editor-img]:block [&_img.paddle-editor-img]:h-auto [&_img.paddle-editor-img]:max-w-[min(100%,42rem)] [&_img.paddle-editor-img]:rounded-xl [&_img.paddle-editor-img]:border [&_img.paddle-editor-img]:border-slate-200",
       },
     },
   });
