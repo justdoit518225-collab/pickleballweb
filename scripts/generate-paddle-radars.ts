@@ -41,7 +41,7 @@ const AXES: { key: keyof Scores; label: string }[] = [
 const OUT_DIR = path.join(process.cwd(), "public", "paddles");
 
 function fmt(n: number) {
-  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+  return n.toFixed(1);
 }
 
 function scoreLine(s: Scores) {
@@ -313,24 +313,26 @@ function dataPolygon(cx: number, cy: number, maxR: number, scores: Scores) {
 }
 
 function buildSvg(spec: RadarSpec): string {
+  // Match J2CR reference asset: 1200×800 (3:2) so on-page size matches.
   const W = 1200;
-  const H = 1200;
+  const H = 800;
   const cx = 600;
-  const cy = 520;
-  const maxR = 320;
-  const labelR = 390;
+  const cy = 340;
+  const maxR = 215;
+  const labelR = 262;
+  const markerR = 252;
 
   const rings = [2, 4, 6, 8, 10]
     .map((n) => {
       const r = (n / 10) * maxR;
-      return `<polygon points="${hexPoints(cx, cy, r)}" fill="none" stroke="#c5d0e0" stroke-width="1.5"/>
-      <text x="${cx + 8}" y="${(cy - r).toFixed(1)}" fill="#8a96a8" font-size="14" font-family="Segoe UI, Helvetica, Arial, sans-serif">${n}</text>`;
+      return `<polygon points="${hexPoints(cx, cy, r)}" fill="none" stroke="#b8c9dd" stroke-width="${n === 10 ? 2 : 1.2}"/>
+      <text x="${cx + 9}" y="${(cy - r + 4).toFixed(1)}" fill="#67809e" font-size="13" font-weight="700" font-family="Segoe UI, Helvetica, Arial, sans-serif">${n}</text>`;
     })
     .join("\n");
 
   const spokes = AXES.map((_, i) => {
     const p = polar(cx, cy, maxR, i * 60);
-    return `<line x1="${cx}" y1="${cy}" x2="${p.x.toFixed(2)}" y2="${p.y.toFixed(2)}" stroke="#d0dae8" stroke-width="1"/>`;
+    return `<line x1="${cx}" y1="${cy}" x2="${p.x.toFixed(2)}" y2="${p.y.toFixed(2)}" stroke="#aec2da" stroke-width="1.2"/>`;
   }).join("\n");
 
   const labels = AXES.map((axis, i) => {
@@ -338,69 +340,84 @@ function buildSvg(spec: RadarSpec): string {
     const score = spec.scores[axis.key];
     const anchor =
       i === 0 || i === 3 ? "middle" : i === 1 || i === 2 ? "start" : "end";
-    const dx = i === 1 || i === 2 ? 8 : i === 4 || i === 5 ? -8 : 0;
-    const dy = i === 0 ? -6 : i === 3 ? 18 : 6;
+    const dx = i === 1 || i === 2 ? 6 : i === 4 || i === 5 ? -6 : 0;
+    const dy = i === 0 ? -2 : i === 3 ? 12 : 3;
+    const labelSize = axis.label.length > 12 ? 15 : 17;
     return `
-      <text x="${(p.x + dx).toFixed(2)}" y="${(p.y + dy - 14).toFixed(2)}" text-anchor="${anchor}" fill="#0b1f3a" font-size="22" font-weight="700" font-family="Segoe UI, Helvetica, Arial, sans-serif" letter-spacing="1">${axis.label}</text>
-      <text x="${(p.x + dx).toFixed(2)}" y="${(p.y + dy + 14).toFixed(2)}" text-anchor="${anchor}" fill="#1a6fd4" font-size="28" font-weight="800" font-family="Segoe UI, Helvetica, Arial, sans-serif">${fmt(score)}</text>
-      <polygon points="${triangleAt(p.x, p.y, i)}" fill="#2b7de9"/>`;
+      <text x="${(p.x + dx).toFixed(2)}" y="${(p.y + dy - 11).toFixed(2)}" text-anchor="${anchor}" fill="#0a1a2e" font-size="${labelSize}" font-weight="800" font-family="Segoe UI, Helvetica, Arial, sans-serif" letter-spacing="0.6">${axis.label}</text>
+      <text x="${(p.x + dx).toFixed(2)}" y="${(p.y + dy + 13).toFixed(2)}" text-anchor="${anchor}" fill="#167ce4" font-size="24" font-weight="800" font-family="Segoe UI, Helvetica, Arial, sans-serif">${fmt(score)}</text>
+      <polygon points="${triangleAt(cx, cy, markerR, i)}" fill="#2b7de9"/>`;
   }).join("\n");
 
   const dataPts = dataPolygon(cx, cy, maxR, spec.scores);
 
+  // Chamfered tech frame for 1200×800
+  const frameOuter =
+    "M22 88 L88 22 H1112 L1178 88 V712 L1112 778 H88 L22 712Z";
+  const frameInner =
+    "M48 100 L100 48 H1100 L1152 100 V700 L1100 752 H100 L48 700Z";
+
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <defs>
+    <pattern id="dotGrid" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="1.5" cy="1.5" r="1.1" fill="#8aa1bc"/>
+    </pattern>
     <linearGradient id="fillGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#4db7ff" stop-opacity="0.55"/>
-      <stop offset="100%" stop-color="#8b6cff" stop-opacity="0.35"/>
+      <stop offset="0%" stop-color="#43bcff" stop-opacity="0.72"/>
+      <stop offset="48%" stop-color="#497df4" stop-opacity="0.56"/>
+      <stop offset="100%" stop-color="#a354dd" stop-opacity="0.48"/>
     </linearGradient>
-    <linearGradient id="strokeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#5ec8ff"/>
-      <stop offset="100%" stop-color="#7a8cff"/>
+    <linearGradient id="strokeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#d9f9ff"/>
+      <stop offset="45%" stop-color="#5ec8ff"/>
+      <stop offset="100%" stop-color="#78c7ff"/>
     </linearGradient>
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="3" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    <filter id="cyanGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="wide"/>
+      <feFlood flood-color="#4ec8ff" flood-opacity="0.65" result="glowColor"/>
+      <feComposite in="glowColor" in2="wide" operator="in" result="outerGlow"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2.2" result="tight"/>
+      <feMerge><feMergeNode in="outerGlow"/><feMergeNode in="tight"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="ledGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
-  <rect width="${W}" height="${H}" fill="#f7f9fc"/>
-  <!-- tech frame -->
-  <rect x="28" y="28" width="${W - 56}" height="${H - 56}" fill="none" stroke="#0b1f3a" stroke-width="18"/>
-  <rect x="48" y="48" width="${W - 96}" height="${H - 96}" fill="none" stroke="#2b7de9" stroke-width="3"/>
-  <path d="M48 120 L48 48 L120 48" fill="none" stroke="#5ec8ff" stroke-width="6"/>
-  <path d="M${W - 48} 120 L${W - 48} 48 L${W - 120} 48" fill="none" stroke="#5ec8ff" stroke-width="6"/>
-  <path d="M48 ${H - 120} L48 ${H - 48} L120 ${H - 48}" fill="none" stroke="#5ec8ff" stroke-width="6"/>
-  <path d="M${W - 48} ${H - 120} L${W - 48} ${H - 48} L${W - 120} ${H - 48}" fill="none" stroke="#5ec8ff" stroke-width="6"/>
-  <!-- faint grid -->
-  <g opacity="0.25" stroke="#9aa8bc" stroke-width="0.8">
-    ${Array.from({ length: 12 }, (_, i) => {
-      const x = 100 + i * 90;
-      return `<line x1="${x}" y1="90" x2="${x}" y2="${H - 200}"/>`;
-    }).join("")}
+  <rect width="${W}" height="${H}" fill="#fbfcff"/>
+  <rect x="55" y="55" width="${W - 110}" height="${H - 110}" fill="url(#dotGrid)" opacity="0.22"/>
+  <path d="${frameOuter} ${frameInner}" fill="#0a1a2e" fill-rule="evenodd"/>
+  <path d="M48 100 L100 48 H1100 L1152 100 M48 700 L100 752 H1100 L1152 700" fill="none" stroke="#234567" stroke-width="2.5"/>
+  <g fill="none" stroke="#5ec8ff" stroke-linecap="square" filter="url(#ledGlow)">
+    <path d="M46 150 V88 L88 46 H150" stroke-width="6"/>
+    <path d="M1050 46 H1112 L1154 88 V150" stroke-width="6"/>
+    <path d="M46 650 V712 L88 754 H150" stroke-width="6"/>
+    <path d="M1050 754 H1112 L1154 712 V650" stroke-width="6"/>
   </g>
   ${rings}
   ${spokes}
-  <polygon points="${dataPts}" fill="url(#fillGrad)" stroke="url(#strokeGrad)" stroke-width="4" filter="url(#glow)"/>
+  <polygon points="${dataPts}" fill="url(#fillGrad)" stroke="#4ec8ff" stroke-width="9" opacity="0.75" filter="url(#cyanGlow)"/>
+  <polygon points="${dataPts}" fill="url(#fillGrad)" stroke="url(#strokeGrad)" stroke-width="4.5"/>
+  <polygon points="${dataPts}" fill="none" stroke="#ffffff" stroke-width="1.5" stroke-opacity="0.95" stroke-dasharray="20 30" stroke-linecap="round"/>
   ${AXES.map((axis, i) => {
     const v = spec.scores[axis.key];
     const p = polar(cx, cy, (Math.min(10, Math.max(0, v)) / 10) * maxR, i * 60);
-    return `<circle cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="7" fill="#fff" stroke="#2b7de9" stroke-width="3"/>`;
+    return `<circle cx="${p.x.toFixed(2)}" cy="${p.y.toFixed(2)}" r="6.5" fill="#eefdff" stroke="#4ec8ff" stroke-width="3"/><circle cx="${(p.x - 1.6).toFixed(2)}" cy="${(p.y - 1.6).toFixed(2)}" r="1.8" fill="#fff"/>`;
   }).join("\n")}
   ${labels}
-  <line x1="180" y1="${H - 145}" x2="${W - 180}" y2="${H - 145}" stroke="#c5d0e0" stroke-width="2"/>
-  <text x="${cx}" y="${H - 100}" text-anchor="middle" fill="#0b1f3a" font-size="26" font-weight="800" font-family="Segoe UI, Helvetica, Arial, sans-serif" letter-spacing="1.5">${escapeXml(spec.title)}</text>
-  <text x="${cx}" y="${H - 62}" text-anchor="middle" fill="#5a6a80" font-size="18" font-family="Segoe UI, Helvetica, Arial, sans-serif">${escapeXml(spec.footerCredit)}</text>
+  <text x="${cx}" y="668" text-anchor="middle" fill="#0a1a2e" font-size="20" font-weight="800" font-family="Segoe UI, Helvetica, Arial, sans-serif" letter-spacing="1.1">${escapeXml(spec.title)}</text>
+  <line x1="220" y1="690" x2="${W - 220}" y2="690" stroke="#b8c9dd" stroke-width="1.4"/>
+  <text x="${cx}" y="716" text-anchor="middle" fill="#526b88" font-size="15" font-family="Segoe UI, Helvetica, Arial, sans-serif">${escapeXml(spec.footerCredit)}</text>
 </svg>`;
 }
 
-function triangleAt(x: number, y: number, i: number) {
-  // small inward-pointing marker near label
-  const inward = polar(600, 520, 355, i * 60);
+function triangleAt(cx: number, cy: number, r: number, i: number) {
+  const inward = polar(cx, cy, r, i * 60);
   const ox = inward.x;
   const oy = inward.y;
   const ang = ((i * 60 - 90) * Math.PI) / 180;
-  const s = 9;
+  const s = 7;
   const p1 = { x: ox, y: oy };
   const p2 = {
     x: ox - Math.cos(ang + 2.4) * s,
@@ -442,6 +459,15 @@ const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 
 async function main() {
   fs.mkdirSync(OUT_DIR, { recursive: true });
+  if (process.argv.includes("--images-only")) {
+    for (const spec of SPECS) {
+      const imgSrc = await writeJpg(spec);
+      console.log("WROTE", spec.slug, "→", imgSrc);
+    }
+    console.log(`\nDone. regenerated=${SPECS.length}`);
+    return;
+  }
+
   const bySlug = new Map(SPECS.map((s) => [s.slug, s]));
 
   const paddles = await prisma.paddle.findMany({
