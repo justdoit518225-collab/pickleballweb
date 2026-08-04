@@ -178,7 +178,7 @@ function PaddleCard({
 
   return (
     <Link href={ROUTES.paddle(paddle.slug)} className="group block">
-      <div className="overflow-hidden rounded-lg bg-black transition">
+      <div className="overflow-hidden rounded-lg bg-[#ececec] transition group-hover:bg-[#e4e4e4]">
         <PaddleThumb paddle={paddle} />
       </div>
       <div className="mt-2.5 space-y-0.5 px-0.5">
@@ -203,7 +203,9 @@ export function PaddleThumb({
   paddle: Pick<PaddleListItem, "brand" | "nameZh" | "imageDataUrl">;
   large?: boolean;
 }) {
-  const box = large ? "aspect-[4/3] w-full bg-black" : "aspect-square w-full bg-black";
+  const box = large
+    ? "aspect-[4/3] w-full bg-[#ececec]"
+    : "aspect-square w-full bg-[#ececec]";
 
   if (paddle.imageDataUrl) {
     return (
@@ -213,7 +215,7 @@ export function PaddleThumb({
         <img
           src={paddle.imageDataUrl}
           alt={paddle.nameZh}
-          className="h-full w-full object-contain transition duration-300 group-hover:scale-[1.04]"
+          className="h-full w-full object-contain p-3 transition duration-300 group-hover:scale-[1.04]"
         />
       </div>
     );
@@ -221,7 +223,7 @@ export function PaddleThumb({
 
   return (
     <div
-      className={`flex flex-col items-center justify-center gap-2 bg-black ${box}`}
+      className={`flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-slate-200 via-slate-100 to-slate-200 ${box}`}
     >
       <PaddleGlyph className="h-12 w-12 text-slate-500" />
       <span className="text-[10px] font-semibold tracking-[0.18em] text-slate-500">

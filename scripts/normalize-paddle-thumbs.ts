@@ -1,6 +1,5 @@
 /**
- * 統一縮圖為 ZOCKER 風格：淺色底 → 純黑，再置中到方形黑畫布
- * （不做黑底 flood，避免吃掉黑色拍面）
+ * 統一縮圖為卡片灰底 #ececec（方形、置中）
  * 用法：npx tsx scripts/normalize-paddle-thumbs.ts
  */
 import "dotenv/config";
@@ -11,7 +10,7 @@ import sharp from "sharp";
 
 const SIZE = 900;
 const PAD = 0.05;
-const BLACK = { r: 0, g: 0, b: 0 };
+const CARD_GREY = { r: 0xec, g: 0xec, b: 0xec };
 
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
@@ -25,11 +24,75 @@ function parseDataUrl(dataUrl: string) {
 function isLightNeutral(r: number, g: number, b: number) {
   const min = Math.min(r, g, b);
   const max = Math.max(r, g, b);
-  // 白／卡片灰／淺灰底
   return min >= 200 && max - min <= 40;
 }
 
-async function normalizeToZockerStyle(input: Buffer): Promise<string> {
+function isNearBlack(r: number, g: number, b: number) {
+  return r <= 32 && g <= 32 && b <= 32;
+}
+
+function sat(r: number, g: number, b: number) {
+  return Math.max(r, g, b) - Math.min(r, g, b);
+}
+
+/** 從邊緣把純黑／淺灰底換成卡片灰；遇到有顏色或較亮的像素就停（保護拍面／邊框） */
+function replaceBgWithCardGrey(pixels: Buffer, width: number, height: number) {
+  const n = width * height;
+  const visited = new Uint8Array(n);
+  const queue: number[] = [];
+
+  const canBeBg = (r: number, g: number, b: number, a: number) => {
+    if (a < 20) return true;
+    if (isLightNeutral(r, g, b)) return true;
+    // 純黑底：僅低飽和近黑才當背景，避免吃進彩邊
+    if (isNearBlack(r, g, b) && sat(r, g, b) <= 12) return true;
+    return false;
+  };
+
+  const tryPush = (x: number, y: number) => {
+    if (x < 0 || y < 0 || x >= width || y >= height) return;
+    const idx = y * width + x;
+    if (visited[idx]) return;
+    const i = idx * 4;
+    if (
+      canBeBg(pixels[i]!, pixels[i + 1]!, pixels[i + 2]!, pixels[i + 3]!)
+    ) {
+      visited[idx] = 1;
+      queue.push(idx);
+    }
+  };
+
+  for (let x = 0; x < width; x++) {
+    tryPush(x, 0);
+    tryPush(x, height - 1);
+  }
+  for (let y = 0; y < height; y++) {
+    tryPush(0, y);
+    tryPush(width - 1, y);
+  }
+
+  while (queue.length) {
+    const idx = queue.pop()!;
+    const i = idx * 4;
+    pixels[i] = CARD_GREY.r;
+    pixels[i + 1] = CARD_GREY.g;
+    pixels[i + 2] = CARD_GREY.b;
+    pixels[i + 3] = 255;
+
+    const x = idx % width;
+    const y = Math.floor(idx / width);
+    for (const [nx, ny] of [
+      [x + 1, y],
+      [x - 1, y],
+      [x, y + 1],
+      [x, y - 1],
+    ] as const) {
+      tryPush(nx, ny);
+    }
+  }
+}
+
+async function normalizeToCardGrey(input: Buffer): Promise<string> {
   const { data, info } = await sharp(input)
     .rotate()
     .ensureAlpha()
@@ -37,18 +100,7 @@ async function normalizeToZockerStyle(input: Buffer): Promise<string> {
     .toBuffer({ resolveWithObject: true });
 
   const pixels = Buffer.from(data);
-  for (let i = 0; i < pixels.length; i += 4) {
-    const r = pixels[i]!;
-    const g = pixels[i + 1]!;
-    const b = pixels[i + 2]!;
-    const a = pixels[i + 3]!;
-    if (a < 20 || isLightNeutral(r, g, b)) {
-      pixels[i] = 0;
-      pixels[i + 1] = 0;
-      pixels[i + 2] = 0;
-      pixels[i + 3] = 255;
-    }
-  }
+  replaceBgWithCardGrey(pixels, info.width, info.height);
 
   const cleaned = await sharp(pixels, {
     raw: { width: info.width, height: info.height, channels: 4 },
@@ -60,7 +112,7 @@ async function normalizeToZockerStyle(input: Buffer): Promise<string> {
   const placed = await sharp(cleaned)
     .resize(inner, inner, {
       fit: "contain",
-      background: { ...BLACK, alpha: 1 },
+      background: { ...CARD_GREY, alpha: 1 },
     })
     .png()
     .toBuffer();
@@ -70,7 +122,7 @@ async function normalizeToZockerStyle(input: Buffer): Promise<string> {
       width: SIZE,
       height: SIZE,
       channels: 3,
-      background: BLACK,
+      background: CARD_GREY,
     },
   })
     .composite([{ input: placed, gravity: "centre" }])
@@ -97,7 +149,7 @@ async function main() {
       continue;
     }
     try {
-      const imageDataUrl = await normalizeToZockerStyle(buf);
+      const imageDataUrl = await normalizeToCardGrey(buf);
       await prisma.paddle.update({
         where: { id: p.id },
         data: { imageDataUrl },
