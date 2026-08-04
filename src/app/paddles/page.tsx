@@ -4,7 +4,7 @@ import { getPaddleBrandNames, getPaddlesByBrandName } from "@/lib/paddles";
 
 export const metadata: Metadata = {
   title: "匹克球拍",
-  description: "依品牌瀏覽匹克球拍款式與詳細介紹",
+  description: "瀏覽全部或依品牌篩選匹克球拍，也可搜尋款式與詳細介紹",
 };
 
 export default async function PaddlesPage() {

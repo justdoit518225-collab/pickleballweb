@@ -1,9 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
+import { Search } from "lucide-react";
 import type { PaddleListItem } from "@/lib/paddles";
 import { ROUTES } from "@/lib/constants";
+
+const ALL_BRAND = "ALL";
 
 function PaddleGlyph({ className }: { className?: string }) {
   return (
@@ -24,6 +27,25 @@ function PaddleGlyph({ className }: { className?: string }) {
   );
 }
 
+function matchesQuery(paddle: PaddleListItem, q: string) {
+  if (!q) return true;
+  const hay = [
+    paddle.brand,
+    paddle.series,
+    paddle.variant,
+    paddle.nameZh,
+    paddle.nameEn,
+    paddle.slug,
+  ]
+    .join(" ")
+    .toLowerCase();
+  return q
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(Boolean)
+    .every((token) => hay.includes(token));
+}
+
 export function PaddleCatalog({
   brands,
   paddlesByBrand,
@@ -31,11 +53,22 @@ export function PaddleCatalog({
   brands: string[];
   paddlesByBrand: Record<string, PaddleListItem[]>;
 }) {
-  const [brand, setBrand] = useState(brands[0] ?? "");
-  const paddles = useMemo(
-    () => (brand ? (paddlesByBrand[brand] ?? []) : []),
-    [brand, paddlesByBrand],
+  const [brand, setBrand] = useState(ALL_BRAND);
+  const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query.trim());
+
+  const brandOptions = useMemo(() => [ALL_BRAND, ...brands], [brands]);
+
+  const allPaddles = useMemo(
+    () => brands.flatMap((b) => paddlesByBrand[b] ?? []),
+    [brands, paddlesByBrand],
   );
+
+  const paddles = useMemo(() => {
+    const base =
+      brand === ALL_BRAND ? allPaddles : (paddlesByBrand[brand] ?? []);
+    return base.filter((p) => matchesQuery(p, deferredQuery));
+  }, [brand, allPaddles, paddlesByBrand, deferredQuery]);
 
   if (brands.length === 0) {
     return (
@@ -45,6 +78,8 @@ export function PaddleCatalog({
       </div>
     );
   }
+
+  const heading = brand === ALL_BRAND ? "全部球拍" : brand;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:py-10">
@@ -61,7 +96,7 @@ export function PaddleCatalog({
             aria-label="品牌"
             className="flex gap-2 overflow-x-auto pb-1 md:flex-col md:gap-0 md:overflow-visible md:border-t md:border-slate-200 md:pb-0"
           >
-            {brands.map((b) => {
+            {brandOptions.map((b) => {
               const active = b === brand;
               return (
                 <button
@@ -83,25 +118,56 @@ export function PaddleCatalog({
         </aside>
 
         <section className="min-w-0 flex-1">
-          <div className="mb-4 flex items-baseline justify-between gap-3">
-            <h2 className="text-lg font-semibold text-slate-900">{brand}</h2>
-            <p className="text-sm text-slate-500">{paddles.length} 款</p>
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-baseline justify-between gap-3 sm:justify-start sm:gap-4">
+              <h2 className="text-lg font-semibold text-slate-900">{heading}</h2>
+              <p className="text-sm text-slate-500">{paddles.length} 款</p>
+            </div>
+
+            <label className="relative block w-full sm:max-w-xs">
+              <span className="sr-only">搜尋球拍</span>
+              <Search
+                className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400"
+                aria-hidden
+              />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="搜尋名稱、系列、品牌…"
+                className="w-full rounded-lg border border-slate-200 bg-white py-2 pr-3 pl-9 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20"
+              />
+            </label>
           </div>
 
-          <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-5">
-            {paddles.map((paddle) => (
-              <li key={paddle.id}>
-                <PaddleCard paddle={paddle} />
-              </li>
-            ))}
-          </ul>
+          {paddles.length === 0 ? (
+            <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
+              {deferredQuery
+                ? `找不到符合「${deferredQuery}」的球拍`
+                : "此品牌尚無球拍"}
+            </p>
+          ) : (
+            <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-5">
+              {paddles.map((paddle) => (
+                <li key={paddle.id}>
+                  <PaddleCard paddle={paddle} showBrand={brand === ALL_BRAND} />
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       </div>
     </div>
   );
 }
 
-function PaddleCard({ paddle }: { paddle: PaddleListItem }) {
+function PaddleCard({
+  paddle,
+  showBrand = false,
+}: {
+  paddle: PaddleListItem;
+  showBrand?: boolean;
+}) {
   const isLuzz = paddle.brand === "LUZZ";
   const title = isLuzz ? paddle.nameEn : paddle.nameZh;
   const subtitle = isLuzz
@@ -116,6 +182,11 @@ function PaddleCard({ paddle }: { paddle: PaddleListItem }) {
         <PaddleThumb paddle={paddle} />
       </div>
       <div className="mt-2.5 space-y-0.5 px-0.5">
+        {showBrand ? (
+          <p className="text-[11px] font-semibold tracking-wide text-brand-teal">
+            {paddle.brand}
+          </p>
+        ) : null}
         <h3 className="text-sm font-semibold leading-snug text-slate-900 group-hover:text-brand-navy">
           {title}
         </h3>
