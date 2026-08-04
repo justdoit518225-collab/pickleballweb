@@ -43,10 +43,10 @@ async function retitle(
   const bg = "#ffffff";
   const svg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
-  <rect x="55" y="620" width="1090" height="130" fill="${bg}"/>
-  <text x="600" y="665" text-anchor="middle" fill="#0a1a2e" font-size="18" font-weight="800" font-family="Segoe UI, Helvetica, Arial, sans-serif" letter-spacing="0.8">${escapeXml(title)}</text>
-  <line x1="240" y1="685" x2="960" y2="685" stroke="#c5d0e0" stroke-width="1.3"/>
-  <text x="600" y="715" text-anchor="middle" fill="#5a6a80" font-size="14" font-family="Segoe UI, Helvetica, Arial, sans-serif">${escapeXml(credit)}</text>
+  <rect x="45" y="600" width="1110" height="165" fill="${bg}"/>
+  <text x="600" y="655" text-anchor="middle" fill="#0a1a2e" font-size="18" font-weight="800" font-family="Segoe UI, Helvetica, Arial, sans-serif" letter-spacing="0.8">${escapeXml(title)}</text>
+  <line x1="240" y1="675" x2="960" y2="675" stroke="#c5d0e0" stroke-width="1.3"/>
+  <text x="600" y="705" text-anchor="middle" fill="#5a6a80" font-size="14" font-family="Segoe UI, Helvetica, Arial, sans-serif">${escapeXml(credit)}</text>
 </svg>`;
   const overlay = await sharp(Buffer.from(svg)).png().toBuffer();
   const dest = path.join(OUT, destName);
