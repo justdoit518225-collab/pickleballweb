@@ -1,7 +1,6 @@
-import Link from "next/link";
 import { auth } from "@/auth";
 import { Logo } from "@/components/brand/logo";
-import { SignOutButton } from "@/components/layout/sign-out-button";
+import { SiteHeaderNav } from "@/components/layout/site-header-nav";
 import { ROUTES } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
@@ -14,41 +13,19 @@ export async function SiteHeader() {
     }));
 
   return (
-    <header className="border-b border-slate-200/80 bg-white/90 backdrop-blur-sm">
-      <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-4">
-        <Logo href={ROUTES.home} variant="horizontal" iconSize={44} nameSize="md" />
-        <nav className="flex items-center gap-3 text-sm sm:gap-4">
-          <Link
-            href={ROUTES.doublesScheduler}
-            className="text-slate-600 hover:text-brand-navy"
-          >
-            賽程產生器
-          </Link>
-          <Link href={ROUTES.paddles} className="text-slate-600 hover:text-brand-navy">
-            匹克球拍
-          </Link>
-          <Link href={`${ROUTES.home}#clubs`} className="text-slate-600 hover:text-brand-navy">
-            探索俱樂部
-          </Link>
-          {session?.user ? (
-            <>
-              <Link href={ROUTES.meInbox} className="text-slate-600 hover:text-brand-navy">
-                通知{unread ? ` (${unread})` : ""}
-              </Link>
-              <Link href={ROUTES.me} className="font-medium text-brand-navy">
-                會員中心
-              </Link>
-              <SignOutButton />
-            </>
-          ) : (
-            <Link
-              href="/login"
-              className="font-medium text-brand-teal hover:text-brand-navy"
-            >
-              登入
-            </Link>
-          )}
-        </nav>
+    <header className="relative z-30 border-b border-slate-200/80 bg-white/90 backdrop-blur-sm">
+      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 px-4 sm:h-16">
+        <Logo
+          href={ROUTES.home}
+          variant="horizontal"
+          iconSize={40}
+          nameSize="md"
+          className="min-w-0 shrink"
+        />
+        <SiteHeaderNav
+          signedIn={Boolean(session?.user)}
+          unreadCount={typeof unread === "number" ? unread : 0}
+        />
       </div>
     </header>
   );
