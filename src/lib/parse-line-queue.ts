@@ -2,7 +2,9 @@
 
 const STOP_NAME_PATTERNS = [
   /^滿/,
+  /^人/, // 人額滿喔／人領滿喔（OCR 常拆成獨立一行）
   /額滿/,
+  /領滿/, // OCR 常把「額」認成「領」
   /成團/,
   /接龍/,
   /付費/,
@@ -18,9 +20,11 @@ const STOP_NAME_PATTERNS = [
   /可以的請/,
   /按實際/,
   /有人報/,
+  // OCR 把「人額」等認成短英文大寫（如 ARE）
+  /^[A-Z]{2,5}$/,
 ];
 
-/** OCR 常把編號認錯：Z→7、O→0、l/I→1… */
+/** OCR 常把編號認錯：Z→7、O→0、l/I→1…（僅在有分隔符的「1. 名」才套用） */
 const OCR_DIGIT_MAP: Record<string, string> = {
   O: "0",
   o: "0",
@@ -38,8 +42,12 @@ const OCR_DIGIT_MAP: Record<string, string> = {
   q: "9",
 };
 
+/**
+ * 必須有「1.」「2、」這類分隔，避免把「7人額滿喔」「BARE」誤當名單。
+ * 真實接龍一定是「編號 + 標點 + 姓名」。
+ */
 const LINE_ITEM =
-  /^\s*([0-9OoDdIl|iZzSsBbggq]{1,2})\s*(?:[\.．、:：\)\]\,，]|[)\]])?\s*(.+?)\s*$/;
+  /^\s*([0-9OoDdIl|iZzSsBbggq]{1,2})\s*(?:[\.．、:：\)）\]\,，])\s*(.+?)\s*$/;
 
 function isStopName(name: string) {
   return STOP_NAME_PATTERNS.some((re) => re.test(name));
