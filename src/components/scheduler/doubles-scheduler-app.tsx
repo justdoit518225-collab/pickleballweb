@@ -21,6 +21,7 @@ import {
   type MatchTemplate,
 } from "@/lib/doubles-schedule";
 import { parseLineQueueText } from "@/lib/parse-line-queue";
+import { preprocessLineScreenshot } from "@/lib/preprocess-line-ocr";
 
 const SLOT_COUNT = 8;
 
@@ -203,10 +204,12 @@ function RegisterStep({
     if (!file) return;
     setOcrBusy(true);
     setOcrProgress(0);
-    setOcrMessage("正在辨識 Line 接龍…（首次可能需下載字型）");
+    setOcrMessage("正在強化截圖並辨識 Line 接龍…（首次可能需下載字型）");
 
     try {
-      const { createWorker } = await import("tesseract.js");
+      const prepared = await preprocessLineScreenshot(file);
+
+      const { createWorker, PSM } = await import("tesseract.js");
       const worker = await createWorker("chi_tra+eng", 1, {
         logger: (m) => {
           if (m.status === "recognizing text" && typeof m.progress === "number") {
@@ -215,14 +218,22 @@ function RegisterStep({
         },
       });
 
+      // 單一文字區塊（接龍名單）辨識較穩
+      await worker.setParameters({
+        tessedit_pageseg_mode: PSM.SINGLE_BLOCK,
+        preserve_interword_spaces: "1",
+      });
+
       const {
         data: { text },
-      } = await worker.recognize(file);
+      } = await worker.recognize(prepared);
       await worker.terminate();
 
       const parsed = parseLineQueueText(text, SLOT_COUNT);
       if (parsed.length === 0) {
-        setOcrMessage("辨識不到編號名單（例如 1. 建伸）。請換較清楚的截圖，或手動填寫。");
+        setOcrMessage(
+          "辨識不到編號名單（例如 1. 建伸）。請盡量只截黃色接龍泡泡，或手動填寫。",
+        );
         return;
       }
 
@@ -280,7 +291,7 @@ function RegisterStep({
           )}
         </button>
         <p className="mt-2 text-center text-xs text-slate-500">
-          請截取含「1. 姓名、2. 姓名…」的接龍畫面
+          請截取含「1. 姓名、2. 姓名…」的黃色接龍泡泡（少帶背景較準）
         </p>
         {ocrMessage && (
           <p

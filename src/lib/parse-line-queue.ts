@@ -2,6 +2,7 @@
 
 const STOP_NAME_PATTERNS = [
   /^滿/,
+  /額滿/,
   /成團/,
   /接龍/,
   /付費/,
@@ -16,20 +17,51 @@ const STOP_NAME_PATTERNS = [
   /^\d{1,2}:\d{2}/,
   /可以的請/,
   /按實際/,
+  /有人報/,
 ];
 
+/** OCR 常把編號認錯：Z→7、O→0、l/I→1… */
+const OCR_DIGIT_MAP: Record<string, string> = {
+  O: "0",
+  o: "0",
+  D: "0",
+  I: "1",
+  l: "1",
+  "|": "1",
+  i: "1",
+  Z: "7",
+  z: "7",
+  S: "5",
+  s: "5",
+  B: "8",
+  g: "9",
+  q: "9",
+};
+
 const LINE_ITEM =
-  /^\s*(\d{1,2})\s*(?:[\.．、:：\)）]|[)\]])?\s*(.+?)\s*$/;
+  /^\s*([0-9OoDdIl|iZzSsBbggq]{1,2})\s*(?:[\.．、:：\)\]\,，]|[)\]])?\s*(.+?)\s*$/;
 
 function isStopName(name: string) {
   return STOP_NAME_PATTERNS.some((re) => re.test(name));
 }
 
+function normalizeOcrIndex(raw: string): number | null {
+  const digits = [...raw]
+    .map((ch) => OCR_DIGIT_MAP[ch] ?? (/^\d$/.test(ch) ? ch : ""))
+    .join("");
+  if (!digits) return null;
+  const index = Number(digits);
+  if (!Number.isInteger(index)) return null;
+  return index;
+}
+
 function cleanName(raw: string) {
   return raw
-    .replace(/^[\-–—•·\s]+/, "")
-    .replace(/[\s]+/g, " ")
+    .replace(/^[\-–—•·\s,，、]+/, "")
     .replace(/[|｜].*$/, "")
+    // 去掉中文字之間被 OCR 插入的空白（建 伸 → 建伸）
+    .replace(/([\u4e00-\u9fff])\s+(?=[\u4e00-\u9fff])/g, "$1")
+    .replace(/[\s]+/g, " ")
     .trim();
 }
 
@@ -43,14 +75,15 @@ export function parseLineQueueText(text: string, max = 8): string[] {
     const m = line.match(LINE_ITEM);
     if (!m) continue;
 
-    const index = Number(m[1]);
-    if (!Number.isInteger(index) || index < 1 || index > max) continue;
+    const index = normalizeOcrIndex(m[1]);
+    if (index == null || index < 1 || index > max) continue;
 
     const name = cleanName(m[2]);
     if (!name || name.length > 24) continue;
     if (isStopName(name)) continue;
     // 純數字或過短雜訊
     if (/^\d+$/.test(name)) continue;
+    if (name.length < 1) continue;
 
     if (!byIndex.has(index)) {
       byIndex.set(index, name);
