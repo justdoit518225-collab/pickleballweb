@@ -1,11 +1,6 @@
-import type { Metadata } from "next";
-import { DoublesSchedulerApp } from "@/components/scheduler/doubles-scheduler-app";
+import { notFound } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "雙打賽程產生器",
-  description: "匹克球動態雙打賽程與計分",
-};
-
+/** 賽程產生器暫隱藏；還原時改回渲染 DoublesSchedulerApp */
 export default function DoublesSchedulerPage() {
-  return <DoublesSchedulerApp />;
+  notFound();
 }

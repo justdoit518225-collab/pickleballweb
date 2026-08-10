@@ -37,9 +37,6 @@ function NavLinks({
 
   return (
     <>
-      <Link href={ROUTES.doublesScheduler} className={item} onClick={onNavigate}>
-        賽程產生器
-      </Link>
       <Link href={ROUTES.paddles} className={item} onClick={onNavigate}>
         匹克球拍
       </Link>
