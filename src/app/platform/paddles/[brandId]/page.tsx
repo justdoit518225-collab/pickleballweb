@@ -68,6 +68,23 @@ export default async function PlatformPaddleBrandPage({
             placeholder="例：luzz-inferno-zero"
             className="sm:col-span-2"
           />
+          <Field
+            label="原價 USD（MSRP，可空白）"
+            name="listPriceUsd"
+            placeholder="例：109 或 299.95"
+            inputMode="decimal"
+          />
+          <Field
+            label="原價來源網址"
+            name="priceSourceUrl"
+            placeholder="https://…"
+          />
+          <Field
+            label="原價備註（可空白）"
+            name="priceNote"
+            placeholder="例：14/16mm 同價"
+            className="sm:col-span-2"
+          />
           <div className="sm:col-span-2">
             <label className="block text-sm font-medium text-slate-700">
               詳細介紹
@@ -194,6 +211,7 @@ function Field({
   placeholder,
   defaultValue,
   className,
+  inputMode,
 }: {
   label: string;
   name: string;
@@ -201,6 +219,7 @@ function Field({
   placeholder?: string;
   defaultValue?: string;
   className?: string;
+  inputMode?: "decimal" | "text" | "numeric" | "url";
 }) {
   return (
     <div className={className}>
@@ -213,6 +232,7 @@ function Field({
         required={required}
         placeholder={placeholder}
         defaultValue={defaultValue}
+        inputMode={inputMode}
         className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
       />
     </div>

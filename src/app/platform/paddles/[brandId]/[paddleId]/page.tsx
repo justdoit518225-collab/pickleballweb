@@ -58,6 +58,28 @@ export default async function PlatformPaddleEditPage({
             defaultValue={paddle.slug}
             className="sm:col-span-2"
           />
+          <Field
+            label="原價 USD（MSRP，可空白）"
+            name="listPriceUsd"
+            placeholder="例：109 或 299.95"
+            inputMode="decimal"
+            defaultValue={
+              paddle.listPriceUsd != null ? paddle.listPriceUsd.toString() : ""
+            }
+          />
+          <Field
+            label="原價來源網址"
+            name="priceSourceUrl"
+            placeholder="https://…"
+            defaultValue={paddle.priceSourceUrl ?? ""}
+          />
+          <Field
+            label="原價備註（可空白）"
+            name="priceNote"
+            placeholder="例：14/16mm 同價"
+            defaultValue={paddle.priceNote ?? ""}
+            className="sm:col-span-2"
+          />
           <div className="sm:col-span-2">
             <label className="block text-sm font-medium text-slate-700">
               詳細介紹
@@ -140,12 +162,16 @@ function Field({
   required,
   defaultValue,
   className,
+  placeholder,
+  inputMode,
 }: {
   label: string;
   name: string;
   required?: boolean;
   defaultValue?: string;
   className?: string;
+  placeholder?: string;
+  inputMode?: "decimal" | "text" | "numeric" | "url";
 }) {
   return (
     <div className={className}>
@@ -157,6 +183,8 @@ function Field({
         name={name}
         required={required}
         defaultValue={defaultValue}
+        placeholder={placeholder}
+        inputMode={inputMode}
         className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
       />
     </div>

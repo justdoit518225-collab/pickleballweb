@@ -9,6 +9,7 @@ import {
   CONTACT_LINE_URL,
   ROUTES,
 } from "@/lib/constants";
+import { formatUsdListPrice } from "@/lib/paddle-price";
 import { getAllPaddleSlugs, getPaddleBySlug } from "@/lib/paddles";
 
 export async function generateStaticParams() {
@@ -84,6 +85,28 @@ export default async function PaddleDetailPage({
                 <p className="text-sm text-slate-500">{paddle.nameEn}</p>
               </>
             )}
+            {paddle.listPriceUsd != null ? (
+              <p className="pt-1 text-base font-semibold text-slate-800">
+                原價{" "}
+                {paddle.priceSourceUrl ? (
+                  <a
+                    href={paddle.priceSourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-brand-teal underline-offset-2 hover:underline"
+                  >
+                    {formatUsdListPrice(paddle.listPriceUsd)}
+                  </a>
+                ) : (
+                  formatUsdListPrice(paddle.listPriceUsd)
+                )}
+                {paddle.priceNote ? (
+                  <span className="ml-2 text-sm font-normal text-slate-500">
+                    （{paddle.priceNote}）
+                  </span>
+                ) : null}
+              </p>
+            ) : null}
           </header>
 
           <section className="space-y-2">
@@ -124,6 +147,30 @@ export default async function PaddleDetailPage({
               <dt className="text-xs text-slate-500">英文全名</dt>
               <dd className="mt-0.5 font-medium text-slate-900">{paddle.nameEn}</dd>
             </div>
+            {paddle.listPriceUsd != null ? (
+              <div>
+                <dt className="text-xs text-slate-500">原價（USD MSRP）</dt>
+                <dd className="mt-0.5 font-medium text-slate-900">
+                  {paddle.priceSourceUrl ? (
+                    <a
+                      href={paddle.priceSourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-brand-teal underline-offset-2 hover:underline"
+                    >
+                      {formatUsdListPrice(paddle.listPriceUsd)}
+                    </a>
+                  ) : (
+                    formatUsdListPrice(paddle.listPriceUsd)
+                  )}
+                  {paddle.priceNote ? (
+                    <span className="ml-1.5 text-xs font-normal text-slate-500">
+                      （{paddle.priceNote}）
+                    </span>
+                  ) : null}
+                </dd>
+              </div>
+            ) : null}
           </dl>
 
           <p className="rounded-xl border border-brand-teal/20 bg-brand-teal/5 px-4 py-3 text-sm text-slate-700">

@@ -390,20 +390,26 @@ model PaddleBrand {
 }
 
 model Paddle {
-  id           String      @id @default(cuid())
-  brandId      String
-  brand        PaddleBrand @relation(fields: [brandId], references: [id], onDelete: Cascade)
-  slug         String      @unique
-  series       String
-  variant      String      @default("-")
-  nameZh       String
-  nameEn       String
-  description  String      @db.Text
-  highlights   String[]
-  imageDataUrl String?     @db.Text
-  sortOrder    Int         @default(0)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
+  id             String      @id @default(cuid())
+  brandId        String
+  brand          PaddleBrand @relation(fields: [brandId], references: [id], onDelete: Cascade)
+  slug           String      @unique
+  series         String
+  variant        String      @default("-")
+  nameZh         String
+  nameEn         String
+  description    String      @db.Text
+  highlights     String[]
+  imageDataUrl   String?     @db.Text
+  /** 原廠官網美金 MSRP／標價（非特價） */
+  listPriceUsd   Decimal?    @db.Decimal(10, 2)
+  /** 原價來源官網 URL */
+  priceSourceUrl String?
+  /** 例如「聯名同價」「14/16mm 同價」 */
+  priceNote      String?
+  sortOrder      Int         @default(0)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 
   @@index([brandId, sortOrder])
 }

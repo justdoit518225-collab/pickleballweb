@@ -75,7 +75,46 @@ const paddleSchema = z.object({
   nameEn: z.string().trim().min(1).max(160),
   description: z.string().trim().min(1).max(800_000),
   slug: z.string().trim().max(80).optional(),
+  listPriceUsd: z.number().min(0).max(99_999).nullable(),
+  priceSourceUrl: z
+    .union([z.null(), z.string().trim().url("來源網址格式不正確").max(500)])
+    .nullable(),
+  priceNote: z.union([z.null(), z.string().trim().max(160)]).nullable(),
 });
+
+function parseOptionalUsd(raw: FormDataEntryValue | null): number | null {
+  if (typeof raw !== "string") return null;
+  const s = raw.trim();
+  if (!s) return null;
+  if (!/^\d+(\.\d{1,2})?$/.test(s)) {
+    throw new Error("原價須為數字（最多兩位小數）");
+  }
+  return Number(s);
+}
+
+function parseOptionalUrl(raw: FormDataEntryValue | null): string | null {
+  if (typeof raw !== "string") return null;
+  const s = raw.trim();
+  return s || null;
+}
+
+function parseOptionalNote(raw: FormDataEntryValue | null): string | null {
+  if (typeof raw !== "string") return null;
+  const s = raw.trim();
+  return s || null;
+}
+
+function parsePriceFields(formData: FormData): {
+  listPriceUsd: number | null;
+  priceSourceUrl: string | null;
+  priceNote: string | null;
+} {
+  return {
+    listPriceUsd: parseOptionalUsd(formData.get("listPriceUsd")),
+    priceSourceUrl: parseOptionalUrl(formData.get("priceSourceUrl")),
+    priceNote: parseOptionalNote(formData.get("priceNote")),
+  };
+}
 
 function normalizeDescription(raw: string, errorRedirect: string): string {
   if (!paddleDescriptionHasContent(raw)) {
@@ -87,6 +126,15 @@ function normalizeDescription(raw: string, errorRedirect: string): string {
 export async function createPaddle(brandId: string, formData: FormData) {
   await requirePlatformAdmin();
 
+  let priceFields: ReturnType<typeof parsePriceFields>;
+  try {
+    priceFields = parsePriceFields(formData);
+  } catch (e) {
+    redirect(
+      `${ROUTES.platformPaddleBrand(brandId)}?error=${encodeURIComponent(e instanceof Error ? e.message : "原價格式錯誤")}`,
+    );
+  }
+
   const parsed = paddleSchema.safeParse({
     series: formData.get("series"),
     variant: formData.get("variant") || "-",
@@ -94,6 +142,7 @@ export async function createPaddle(brandId: string, formData: FormData) {
     nameEn: formData.get("nameEn"),
     description: formData.get("description"),
     slug: formData.get("slug") || undefined,
+    ...priceFields,
   });
 
   if (!parsed.success) {
@@ -152,6 +201,9 @@ export async function createPaddle(brandId: string, formData: FormData) {
       description,
       highlights: parseHighlights(formData.get("highlights")),
       imageDataUrl,
+      listPriceUsd: parsed.data.listPriceUsd,
+      priceSourceUrl: parsed.data.priceSourceUrl,
+      priceNote: parsed.data.priceNote,
       sortOrder: (maxSort._max.sortOrder ?? -1) + 1,
     },
   });
@@ -164,6 +216,15 @@ export async function createPaddle(brandId: string, formData: FormData) {
 export async function updatePaddle(brandId: string, paddleId: string, formData: FormData) {
   await requirePlatformAdmin();
 
+  let priceFields: ReturnType<typeof parsePriceFields>;
+  try {
+    priceFields = parsePriceFields(formData);
+  } catch (e) {
+    redirect(
+      `${ROUTES.platformPaddleEdit(brandId, paddleId)}?error=${encodeURIComponent(e instanceof Error ? e.message : "原價格式錯誤")}`,
+    );
+  }
+
   const parsed = paddleSchema.safeParse({
     series: formData.get("series"),
     variant: formData.get("variant") || "-",
@@ -171,6 +232,7 @@ export async function updatePaddle(brandId: string, paddleId: string, formData: 
     nameEn: formData.get("nameEn"),
     description: formData.get("description"),
     slug: formData.get("slug") || undefined,
+    ...priceFields,
   });
 
   if (!parsed.success) {
@@ -230,6 +292,9 @@ export async function updatePaddle(brandId: string, paddleId: string, formData: 
       nameEn: parsed.data.nameEn,
       description,
       highlights: parseHighlights(formData.get("highlights")),
+      listPriceUsd: parsed.data.listPriceUsd,
+      priceSourceUrl: parsed.data.priceSourceUrl,
+      priceNote: parsed.data.priceNote,
       ...(imageDataUrl !== undefined ? { imageDataUrl } : {}),
     },
   });

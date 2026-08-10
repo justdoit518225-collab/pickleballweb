@@ -12,6 +12,9 @@ export type PaddleListItem = {
   description: string;
   highlights: string[];
   imageDataUrl: string | null;
+  listPriceUsd: number | null;
+  priceSourceUrl: string | null;
+  priceNote: string | null;
 };
 
 export type PaddleBrandItem = {
@@ -30,8 +33,17 @@ function mapPaddle(row: {
   description: string;
   highlights: string[];
   imageDataUrl: string | null;
+  listPriceUsd: { toNumber(): number } | number | null;
+  priceSourceUrl: string | null;
+  priceNote: string | null;
   brand: { id: string; name: string };
 }): PaddleListItem {
+  const listPriceUsd =
+    row.listPriceUsd == null
+      ? null
+      : typeof row.listPriceUsd === "number"
+        ? row.listPriceUsd
+        : row.listPriceUsd.toNumber();
   return {
     id: row.id,
     slug: row.slug,
@@ -44,6 +56,9 @@ function mapPaddle(row: {
     description: row.description,
     highlights: row.highlights,
     imageDataUrl: row.imageDataUrl,
+    listPriceUsd,
+    priceSourceUrl: row.priceSourceUrl,
+    priceNote: row.priceNote,
   };
 }
 

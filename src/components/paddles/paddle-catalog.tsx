@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useDeferredValue, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import type { PaddleListItem } from "@/lib/paddles";
+import { formatUsdListPrice } from "@/lib/paddle-price";
 import { ROUTES } from "@/lib/constants";
 
 const ALL_BRAND = "ALL";
@@ -191,6 +192,11 @@ function PaddleCard({
           {title}
         </h3>
         <p className="text-xs text-slate-500">{subtitle}</p>
+        {paddle.listPriceUsd != null ? (
+          <p className="text-xs font-medium text-slate-700">
+            {formatUsdListPrice(paddle.listPriceUsd)}
+          </p>
+        ) : null}
       </div>
     </Link>
   );
