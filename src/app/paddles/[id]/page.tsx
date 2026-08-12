@@ -4,11 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { PaddleDescriptionView } from "@/components/paddles/paddle-description-view";
 import { PaddleThumb } from "@/components/paddles/paddle-catalog";
-import {
-  CONTACT_LINE_ID,
-  CONTACT_LINE_URL,
-  ROUTES,
-} from "@/lib/constants";
+import { ROUTES } from "@/lib/constants";
 import { formatUsdListPrice } from "@/lib/paddle-price";
 import { getAllPaddleSlugs, getPaddleBySlug } from "@/lib/paddles";
 
@@ -174,15 +170,7 @@ export default async function PaddleDetailPage({
           </dl>
 
           <p className="rounded-xl border border-brand-teal/20 bg-brand-teal/5 px-4 py-3 text-sm text-slate-700">
-            想詢問／試打歡迎加 LINE{" "}
-            <a
-              href={CONTACT_LINE_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-semibold text-brand-teal underline-offset-2 hover:underline"
-            >
-              {CONTACT_LINE_ID}
-            </a>
+            想詢問／試打？請點右下角「聯繫我們」留言，我們會盡快回覆。
           </p>
         </div>
       </article>

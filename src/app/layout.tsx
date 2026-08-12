@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthSessionProvider } from "@/components/providers/session-provider";
+import { ContactWidget } from "@/components/contact/contact-widget";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
@@ -40,6 +41,7 @@ export default function RootLayout({
           <SiteHeader />
           <main className="flex-1">{children}</main>
           <SiteFooter />
+          <ContactWidget />
         </AuthSessionProvider>
       </body>
     </html>

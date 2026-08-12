@@ -1,10 +1,6 @@
 export const APP_NAME = "PlayPlayPlay";
 export const APP_TAGLINE = "匹克球多場館預約平台";
 
-/** 對外聯繫 LINE（官方帳號） */
-export const CONTACT_LINE_ID = "@700qpodg";
-export const CONTACT_LINE_URL = `https://line.me/R/ti/p/${CONTACT_LINE_ID}`;
-
 /** 平台預設對外營運的租戶（seed 建立） */
 export const DEFAULT_TENANT_SLUG = "active-pickleball";
 export const DEFAULT_TENANT_NAME = "Active Pickleball Club";
@@ -30,6 +26,8 @@ export const ROUTES = {
   meNotifications: "/me/notifications",
   platformAdmin: "/platform/tenants",
   platformPaddles: "/platform/paddles",
+  platformContact: "/platform/contact",
+  platformContactThread: (id: string) => `/platform/contact/${id}`,
   platformPaddleBrand: (brandId: string) => `/platform/paddles/${brandId}`,
   platformPaddleEdit: (brandId: string, paddleId: string) =>
     `/platform/paddles/${brandId}/${paddleId}`,

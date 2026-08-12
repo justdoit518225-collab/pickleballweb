@@ -4,6 +4,7 @@ import { ROUTES } from "@/lib/constants";
 const LINKS = [
   { href: ROUTES.platformAdmin, label: "租戶" },
   { href: ROUTES.platformPaddles, label: "匹克球拍" },
+  { href: ROUTES.platformContact, label: "站內聯繫" },
 ] as const;
 
 export function PlatformNav() {

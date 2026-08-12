@@ -35,6 +35,8 @@ model User {
   rentalSlotsBooked      RentalSlot[]            @relation("RentalBookedBy")
   notifications          UserNotification[]
   reviews                TenantReview[]
+  contactThreads         ContactThread[]
+  contactMessagesSent    ContactMessage[]      @relation("ContactMessageSender")
 }
 
 model Account {
@@ -414,7 +416,56 @@ model Paddle {
   @@index([brandId, sortOrder])
 }
 
+// ─── 站內聯繫（訪客浮框 ↔ 平台管理者）──────────────────────────────────────
+
+model ContactThread {
+  id            String              @id @default(cuid())
+  /// 匿名訪客 cookie 識別
+  guestKey      String?
+  userId        String?
+  displayName   String?
+  contactEmail  String?
+  status        ContactThreadStatus @default(OPEN)
+  adminUnread   Int                 @default(0)
+  visitorUnread Int                 @default(0)
+  lastMessageAt DateTime            @default(now())
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  user     User?            @relation(fields: [userId], references: [id], onDelete: SetNull)
+  messages ContactMessage[]
+
+  @@index([lastMessageAt])
+  @@index([guestKey])
+  @@index([userId])
+  @@index([status, lastMessageAt])
+}
+
+model ContactMessage {
+  id           String            @id @default(cuid())
+  threadId     String
+  body         String            @db.Text
+  senderKind   ContactSenderKind
+  senderUserId String?
+  createdAt    DateTime          @default(now())
+
+  thread     ContactThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  senderUser User?         @relation("ContactMessageSender", fields: [senderUserId], references: [id], onDelete: SetNull)
+
+  @@index([threadId, createdAt])
+}
+
 // ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum ContactThreadStatus {
+  OPEN
+  CLOSED
+}
+
+enum ContactSenderKind {
+  VISITOR
+  ADMIN
+}
 
 enum PlatformRole {
   SUPER_ADMIN
