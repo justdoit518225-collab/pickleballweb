@@ -6,4 +6,5 @@ dockerfilePath = "Dockerfile.railway"
 healthcheckPath = "/health"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 5
+restartPolicyMaxRetries = 10
+startCommand = "uvicorn skill_analyzer.main:app --host 0.0.0.0 --port $PORT"

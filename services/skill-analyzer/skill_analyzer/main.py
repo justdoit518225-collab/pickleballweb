@@ -9,12 +9,16 @@ from skill_analyzer.auth import token_from_request, verify_job_token
 from skill_analyzer.config import settings
 from skill_analyzer.db import get_job, update_job
 from skill_analyzer.pipeline.preprocess import probe_duration_sec
-from skill_analyzer.tasks import find_original, job_dir, run_analyze, run_preview_detect
+from skill_analyzer.storage import find_original, job_dir
+from skill_analyzer.tasks import run_analyze, run_preview_detect
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    settings.storage_path.mkdir(parents=True, exist_ok=True)
+    try:
+        settings.storage_path.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        pass
     yield
 
 
@@ -33,6 +37,11 @@ ALLOWED_EXT = {".mp4", ".webm", ".mov"}
 
 def _check(job_id: str, token: str | None, header_token: str | None) -> None:
     verify_job_token(token_from_request(token, header_token), job_id)
+
+
+@app.get("/")
+def root():
+    return {"ok": True, "service": "skill-analyzer"}
 
 
 @app.get("/health")

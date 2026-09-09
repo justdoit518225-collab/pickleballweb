@@ -1,29 +1,12 @@
-from pathlib import Path
-
 from skill_analyzer.celery_app import celery_app
 from skill_analyzer.config import settings
 from skill_analyzer.db import get_job, mark_failed, save_report, update_job
-from skill_analyzer.pipeline.analyze import run_full_analysis
-from skill_analyzer.pipeline.detect import detect_preview
-
-
-def job_dir(job_id: str) -> Path:
-    path = settings.storage_path / job_id
-    path.mkdir(parents=True, exist_ok=True)
-    return path
-
-
-def find_original(job_id: str) -> Path | None:
-    folder = job_dir(job_id)
-    for name in ("original.mp4", "original.webm", "original.mov", "processed.mp4"):
-        candidate = folder / name
-        if candidate.exists():
-            return candidate
-    matches = list(folder.glob("original.*"))
-    return matches[0] if matches else None
+from skill_analyzer.storage import find_original, job_dir
 
 
 def run_preview_detect(job_id: str) -> None:
+    from skill_analyzer.pipeline.detect import detect_preview
+
     try:
         video = find_original(job_id)
         if not video:
@@ -37,6 +20,8 @@ def run_preview_detect(job_id: str) -> None:
 
 
 def run_analyze(job_id: str) -> None:
+    from skill_analyzer.pipeline.analyze import run_full_analysis
+
     try:
         update_job(job_id, status="PROCESSING", progress=8, errorMessage=None)
         job = get_job(job_id)
