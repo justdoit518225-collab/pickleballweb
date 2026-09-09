@@ -51,3 +51,7 @@ next-env.d.ts
 /services/skill-analyzer/__pycache__
 /services/skill-analyzer/**/__pycache__
 *.pt
+/tools/cloudflared.exe
+
+.vercel
+.env*

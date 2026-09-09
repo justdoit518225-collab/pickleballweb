@@ -36,6 +36,32 @@ Next.js 網站負責登入與報告；此服務負責影片直傳、人體/球�
 
 之後平常不用管機器；程式有更新時 push `main`，Railway 會自動重建。單次分析可能要數分鐘，請用 3–5 分鐘、約 100MB 以內的精華片。
 
+## 家裡電腦 + 免費 Tunnel（不加雲端月費）
+
+電腦要開著才能分析。正式站（Vercel）把影片送到你家，經 Cloudflare 免費網址。
+
+第一次：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/setup-home-skill-analyzer.ps1
+```
+
+之後每次要提供分析：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/start-home-skill-analyzer.ps1
+```
+
+畫面上會出現 `https://xxxx.trycloudflare.com`。到 Vercel → pickleballwebx → Settings → Environment Variables：
+
+| 變數 | 值 |
+|------|-----|
+| `SKILL_ANALYZER_URL` | 那串 `https://xxxx.trycloudflare.com`（不要結尾斜線） |
+| `SKILL_ANALYZER_SECRET` | 與本機 `.env` 的 `SKILL_ANALYZER_SECRET` 完全相同 |
+
+存檔後 **Redeploy** 一次 Production。Tunnel 每次重開會換網址，換了就要改 `SKILL_ANALYZER_URL` 再 Redeploy。
+
+
 ## 本機開發
 
 - Python 3.11+
