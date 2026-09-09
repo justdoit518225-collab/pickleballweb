@@ -8,12 +8,15 @@ Next.js 網站負責登入與報告；此服務負責影片直傳、人體/球�
 
 不必自己管 Linux / SSL / 重開機。網站仍在 Vercel，分析服務交給 Railway 常開容器。
 
+**不必填 Root Directory。** 專案根目錄已有 `railway.toml` + `Dockerfile.railway`，Railway 會自動拿來建置。
+
 1. 到 [railway.app](https://railway.app) 用 GitHub 登入
 2. **New Project** → **Deploy from GitHub repo** → 選 `pickleballweb`
-3. 該服務 **Root Directory** 設為 `services/skill-analyzer`
-4. **Add Volume**，掛載路徑 `/data`（存影片）
-5. 記憶體建議 **8 GB**（YOLOv8 CPU）
-6. Variables：
+3. 若問 Framework / Build，維持用 repo 設定即可；**不要**去填 Root Directory
+4. 點畫布上的**服務方塊**（不是左下角 Project Settings）
+5. **Settings → Volume**：**Add Volume**，掛載路徑填 `/data`
+6. **Settings → Resources**：記憶體建議 **8 GB**
+7. **Variables** 新增：
 
 | 變數 | 值 |
 |------|-----|
@@ -23,11 +26,13 @@ Next.js 網站負責登入與報告；此服務負責影片直傳、人體/球�
 | `STORAGE_DIR` | `/data` |
 | `CORS_ORIGINS` | `https://www.playplayplay.fun,https://playplayplay.fun` |
 
-7. 部署完成後複製公開網址（`https://xxxx.up.railway.app`，不要結尾斜線）
-8. 到 Vercel 專案環境變數新增：
+8. 部署完成後複製公開網址（`https://xxxx.up.railway.app`，不要結尾斜線）
+9. 到 Vercel 專案環境變數新增：
    - `SKILL_ANALYZER_URL` = 上一步網址
    - `SKILL_ANALYZER_SECRET` = 與 Railway 相同
-9. Redeploy 一次 Vercel（讓正式站吃到新變數）
+10. Redeploy 一次 Vercel（讓正式站吃到新變數）
+
+若剛才已經建了服務、建置失敗或建成 Next.js：刪掉該服務再 Deploy 一次即可（GitHub 現在有根目錄設定檔）。
 
 之後平常不用管機器；程式有更新時 push `main`，Railway 會自動重建。單次分析可能要數分鐘，請用 3–5 分鐘、約 100MB 以內的精華片。
 

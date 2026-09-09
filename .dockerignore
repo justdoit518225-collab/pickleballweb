@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+.vercel
+storage
+*.traineddata
+**/.venv
+**/__pycache__
+**/*.pt
+scripts
+public
+src
+prisma
+docs
