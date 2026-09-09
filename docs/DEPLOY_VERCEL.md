@@ -84,6 +84,10 @@ git push -u origin main
 | `CRON_SECRET` | 開課提醒 API 驗證（見 `vercel.json`） |
 | `SMTP_*` | Email 通知 |
 | `DUPR_*` | DUPR API |
+| `SKILL_ANALYZER_URL` | 影片實力估算 worker 的公開網址（例：`https://skill.example.com`）。**Vercel 無法跑 YOLO**，未設則前台顯示「分析服務未連線」 |
+| `SKILL_ANALYZER_SECRET` | 與 worker 相同的 HMAC 密鑰 |
+
+網站 UI 可部署到 Vercel；人體/球追蹤必須在本機或 VPS 常開 `uvicorn`（見 `services/skill-analyzer/README.md`），再把該公開 HTTPS 網址填入 `SKILL_ANALYZER_URL`。Worker 的 `CORS_ORIGINS` 需包含 `https://www.playplayplay.fun`。
 
 5. **Deploy**
 

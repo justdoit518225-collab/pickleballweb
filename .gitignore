@@ -44,3 +44,10 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# 本機影片分析儲存
+/storage
+/services/skill-analyzer/.venv
+/services/skill-analyzer/__pycache__
+/services/skill-analyzer/**/__pycache__
+*.pt

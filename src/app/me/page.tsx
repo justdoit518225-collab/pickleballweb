@@ -116,6 +116,16 @@ export default async function MeOverviewPage() {
         )}
       </section>
 
+      <section className="rounded-xl border border-brand-teal/30 bg-brand-teal-soft p-5 md:col-span-2">
+        <h2 className="font-semibold text-brand-navy">影片估算實力等級</h2>
+        <p className="mt-2 text-sm text-slate-600">
+          上傳 3–5 分鐘對打精華，點選自己後可得到技術估算區間（非正式 DUPR）。
+        </p>
+        <Link href={ROUTES.meSkillEstimate} className="btn-brand mt-3 inline-flex">
+          前往實力估算
+        </Link>
+      </section>
+
       <section className="col-span-full rounded-xl border border-slate-200 bg-white p-5">
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>

@@ -21,6 +21,8 @@ export const ROUTES = {
   meBookings: "/me/bookings",
   meInbox: "/me/inbox",
   meDupr: "/me/dupr",
+  meSkillEstimate: "/me/skill-estimate",
+  meSkillEstimateJob: (id: string) => `/me/skill-estimate/${id}`,
   meProfile: "/me/profile",
   meAccounts: "/me/accounts",
   meNotifications: "/me/notifications",

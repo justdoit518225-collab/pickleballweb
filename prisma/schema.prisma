@@ -37,6 +37,7 @@ model User {
   reviews                TenantReview[]
   contactThreads         ContactThread[]
   contactMessagesSent    ContactMessage[]      @relation("ContactMessageSender")
+  skillAnalysisJobs      SkillAnalysisJob[]
 }
 
 model Account {
@@ -317,6 +318,54 @@ model DuprMatchSubmission {
 
   activity    Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
   submittedBy User     @relation("DuprSubmissionSubmitter", fields: [submittedById], references: [id], onDelete: Cascade)
+}
+
+// ─── 影片估算實力等級（非正式 DUPR）────────────────────────────────────────
+
+enum SkillAnalysisStatus {
+  CREATED
+  AWAITING_PLAYER
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model SkillAnalysisJob {
+  id               String              @id @default(cuid())
+  userId           String
+  status           SkillAnalysisStatus @default(CREATED)
+  originalFilename String?
+  storageKey       String?
+  durationSec      Int?
+  detections       Json?
+  selectedTrackId  Int?
+  playerClick      Json?
+  courtQuad        Json?
+  progress         Int                 @default(0)
+  errorMessage     String?             @db.Text
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  user   User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  report SkillAnalysisReport?
+
+  @@index([userId, createdAt])
+}
+
+model SkillAnalysisReport {
+  id             String   @id @default(cuid())
+  jobId          String   @unique
+  estimatedMid   Decimal  @db.Decimal(4, 2)
+  estimatedLow   Decimal  @db.Decimal(4, 2)
+  estimatedHigh  Decimal  @db.Decimal(4, 2)
+  metrics        Json
+  overlaySummary Json?
+  modelVersion   String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  job SkillAnalysisJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
 }
 
 // ─── 通知偏好（第二階段 LINE；第一階段先建表）────────────────────────────────

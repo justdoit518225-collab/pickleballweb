@@ -48,6 +48,9 @@ function NavLinks({
           <Link href={ROUTES.meInbox} className={item} onClick={onNavigate}>
             通知{unreadCount ? ` (${unreadCount})` : ""}
           </Link>
+          <Link href={ROUTES.meSkillEstimate} className={item} onClick={onNavigate}>
+            實力估算
+          </Link>
           <Link href={ROUTES.me} className={strong} onClick={onNavigate}>
             會員中心
           </Link>
