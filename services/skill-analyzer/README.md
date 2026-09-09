@@ -4,7 +4,34 @@ Next.js 網站負責登入與報告；此服務負責影片直傳、人體/球�
 
 產出是 **Estimated Skill Level**，非正式 DUPR。
 
-## 需求
+## 正式站（最少維護）：Railway
+
+不必自己管 Linux / SSL / 重開機。網站仍在 Vercel，分析服務交給 Railway 常開容器。
+
+1. 到 [railway.app](https://railway.app) 用 GitHub 登入
+2. **New Project** → **Deploy from GitHub repo** → 選 `pickleballweb`
+3. 該服務 **Root Directory** 設為 `services/skill-analyzer`
+4. **Add Volume**，掛載路徑 `/data`（存影片）
+5. 記憶體建議 **8 GB**（YOLOv8 CPU）
+6. Variables：
+
+| 變數 | 值 |
+|------|-----|
+| `DATABASE_URL` | 與 Vercel 相同的 Neon **Pooled** 連線 |
+| `SKILL_ANALYZER_SECRET` | 自訂長隨機字串（之後貼到 Vercel 同一組） |
+| `SKILL_ANALYZER_INLINE` | `1` |
+| `STORAGE_DIR` | `/data` |
+| `CORS_ORIGINS` | `https://www.playplayplay.fun,https://playplayplay.fun` |
+
+7. 部署完成後複製公開網址（`https://xxxx.up.railway.app`，不要結尾斜線）
+8. 到 Vercel 專案環境變數新增：
+   - `SKILL_ANALYZER_URL` = 上一步網址
+   - `SKILL_ANALYZER_SECRET` = 與 Railway 相同
+9. Redeploy 一次 Vercel（讓正式站吃到新變數）
+
+之後平常不用管機器；程式有更新時 push `main`，Railway 會自動重建。單次分析可能要數分鐘，請用 3–5 分鐘、約 100MB 以內的精華片。
+
+## 本機開發
 
 - Python 3.11+
 - PostgreSQL（與網站同一 `DATABASE_URL`）
@@ -13,8 +40,6 @@ Next.js 網站負責登入與報告；此服務負責影片直傳、人體/球�
 - 第一次執行會下載 `yolov8n-pose.pt`
 
 Windows 上 Celery 請用 `--pool=solo`。
-
-## 啟動
 
 在專案根目錄的 `.env` 加上：
 
@@ -42,12 +67,6 @@ celery -A skill_analyzer.celery_app worker --loglevel=info --pool=solo
 
 網站：`npm run dev` 後到 `/me/skill-estimate`。
 
-正式站（https://www.playplayplay.fun）只部署 Next.js。分析服務需有**公開 HTTPS**，並在 Vercel 設定：
-
-- `SKILL_ANALYZER_URL`：worker 網址
-- `SKILL_ANALYZER_SECRET`：與 worker 相同
-
-Worker 環境變數另需 `CORS_ORIGINS=https://www.playplayplay.fun,https://playplayplay.fun` 與同一個 `DATABASE_URL`（Neon）。
 
 ## 流程
 
