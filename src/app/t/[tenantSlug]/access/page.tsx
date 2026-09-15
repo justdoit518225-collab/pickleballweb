@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { submitTenantAccessCode } from "@/app/t/[tenantSlug]/actions";
 import { Badge } from "@/components/ui/badge";
 import { canAccessTenant } from "@/lib/tenant-access";
@@ -16,7 +16,12 @@ export default async function TenantAccessPage({
   const { tenantSlug } = await params;
   const { error } = await searchParams;
   const tenant = await getTenantBySlug(tenantSlug);
-  if (!tenant) notFound();
+  if (!tenant) {
+    // 常見情況：把邀請碼誤當 slug（例如 /t/1234/access）
+    redirect(
+      `${ROUTES.home}?privateError=${encodeURIComponent("找不到此俱樂部，請在首頁輸入邀請碼")}#private-club`,
+    );
+  }
 
   if (tenant.visibility === "PUBLIC") {
     redirect(ROUTES.tenant(tenantSlug));

@@ -6,7 +6,12 @@ import { APP_TAGLINE, ROUTES } from "@/lib/constants";
 import { getPublicTenants } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ privateError?: string }>;
+}) {
+  const { privateError } = await searchParams;
   const [publicClubs, session] = await Promise.all([
     getPublicTenants(),
     auth(),
@@ -90,12 +95,15 @@ export default async function HomePage() {
           </ul>
         )}
 
-        <div className="mt-10 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5">
+        <div
+          id="private-club"
+          className="mt-10 scroll-mt-24 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5"
+        >
           <h3 className="font-medium text-slate-800">私人俱樂部</h3>
           <p className="mt-1 text-sm text-slate-600">
-            若您收到邀請，請輸入俱樂部代碼後輸入邀請碼進入（不會顯示於上方列表）。
+            若您收到邀請，請直接輸入邀請碼進入（不會顯示於上方列表）。
           </p>
-          <PrivateClubEntry />
+          <PrivateClubEntry error={privateError} />
         </div>
       </section>
     </div>
