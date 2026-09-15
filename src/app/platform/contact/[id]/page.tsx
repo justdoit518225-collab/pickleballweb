@@ -3,8 +3,9 @@ import { notFound } from "next/navigation";
 import {
   closeContactThread,
   reopenContactThread,
-  replyContactThread,
 } from "@/app/platform/contact/actions";
+import { ContactThreadChat } from "@/components/contact/contact-thread-chat";
+import { toContactMessageDto } from "@/lib/contact";
 import { ROUTES } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
@@ -12,13 +13,10 @@ export const dynamic = "force-dynamic";
 
 export default async function PlatformContactThreadPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
 }) {
   const { id } = await params;
-  const sp = await searchParams;
   const thread = await prisma.contactThread.findUnique({
     where: { id },
     include: {
@@ -78,52 +76,11 @@ export default async function PlatformContactThreadPage({
         </form>
       </div>
 
-      <div className="mt-6 space-y-3 rounded-xl border border-slate-200 bg-white p-4">
-        {thread.messages.map((m) => {
-          const admin = m.senderKind === "ADMIN";
-          return (
-            <div
-              key={m.id}
-              className={`rounded-xl px-3 py-2 text-sm ${
-                admin
-                  ? "ml-8 bg-brand-navy text-white"
-                  : "mr-8 border border-slate-100 bg-slate-50 text-slate-700"
-              }`}
-            >
-              <div className="mb-1 flex justify-between gap-2 text-[10px] opacity-70">
-                <span>{admin ? "管理員" : "訪客"}</span>
-                <time>{m.createdAt.toLocaleString("zh-TW")}</time>
-              </div>
-              <p className="whitespace-pre-wrap leading-relaxed">{m.body}</p>
-            </div>
-          );
-        })}
-      </div>
-
-      {sp.error === "empty" ? (
-        <p className="mt-3 text-sm text-rose-600">請輸入回覆內容</p>
-      ) : null}
-
-      {thread.status === "OPEN" ? (
-        <form
-          action={replyContactThread.bind(null, id)}
-          className="mt-4 space-y-3"
-        >
-          <textarea
-            name="body"
-            rows={4}
-            required
-            maxLength={2000}
-            placeholder="輸入回覆…"
-            className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-teal"
-          />
-          <button type="submit" className="btn-brand">
-            送出回覆
-          </button>
-        </form>
-      ) : (
-        <p className="mt-4 text-sm text-slate-500">對話已關閉，重新開啟後可再回覆。</p>
-      )}
+      <ContactThreadChat
+        threadId={id}
+        status={thread.status}
+        initialMessages={thread.messages.map(toContactMessageDto)}
+      />
     </div>
   );
 }

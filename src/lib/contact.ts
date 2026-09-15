@@ -48,25 +48,85 @@ export function guestCookieOptions(value: string) {
   };
 }
 
-/** 找訪客／登入者目前的對話串 */
+async function latestThread(where: { userId?: string; guestKey?: string }) {
+  const open = await prisma.contactThread.findFirst({
+    where: { ...where, status: "OPEN" },
+    orderBy: { lastMessageAt: "desc" },
+  });
+  if (open) return open;
+  return prisma.contactThread.findFirst({
+    where,
+    orderBy: { lastMessageAt: "desc" },
+  });
+}
+
+/** 找訪客／登入者目前的對話串（優先進行中，否則最近一筆含已關閉） */
 export async function findVisitorThread(opts: {
   userId?: string | null;
   guestKey?: string | null;
 }) {
   if (opts.userId) {
-    const byUser = await prisma.contactThread.findFirst({
-      where: { userId: opts.userId, status: "OPEN" },
-      orderBy: { lastMessageAt: "desc" },
-    });
+    const byUser = await latestThread({ userId: opts.userId });
     if (byUser) return byUser;
   }
   if (opts.guestKey) {
-    return prisma.contactThread.findFirst({
-      where: { guestKey: opts.guestKey, status: "OPEN" },
-      orderBy: { lastMessageAt: "desc" },
-    });
+    return latestThread({ guestKey: opts.guestKey });
   }
   return null;
+}
+
+export function toContactMessageDto(m: {
+  id: string;
+  body: string;
+  senderKind: "VISITOR" | "ADMIN";
+  createdAt: Date;
+}) {
+  return {
+    id: m.id,
+    body: m.body,
+    senderKind: m.senderKind,
+    createdAt: m.createdAt.toISOString(),
+  };
+}
+
+export async function postAdminReply(opts: {
+  threadId: string;
+  body: string;
+  adminUserId: string;
+}) {
+  const thread = await prisma.contactThread.findUnique({
+    where: { id: opts.threadId },
+  });
+  if (!thread) return null;
+
+  const message = await prisma.contactMessage.create({
+    data: {
+      threadId: opts.threadId,
+      body: opts.body,
+      senderKind: "ADMIN",
+      senderUserId: opts.adminUserId,
+    },
+  });
+
+  const updated = await prisma.contactThread.update({
+    where: { id: opts.threadId },
+    data: {
+      lastMessageAt: message.createdAt,
+      visitorUnread: { increment: 1 },
+      adminUnread: 0,
+      status: "OPEN",
+    },
+  });
+
+  void notifyVisitorAdminReply({
+    userId: thread.userId,
+    contactEmail: thread.contactEmail,
+    preview: opts.body,
+  }).catch((err) => {
+    console.error("[contact] notify visitor failed", err);
+  });
+
+  return { message, thread: updated };
 }
 
 export async function listThreadMessages(threadId: string) {

@@ -10,10 +10,14 @@ import {
   sanitizeContactBody,
   sanitizeContactEmail,
   sanitizeDisplayName,
+  toContactMessageDto,
 } from "@/lib/contact";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+export const dynamic = "force-dynamic";
+
+export async function GET(req: Request) {
+  const peek = new URL(req.url).searchParams.get("peek") === "1";
   const session = await auth();
   const userId = session?.user?.id ?? null;
   const guestKey = await readGuestKeyFromCookies();
@@ -23,7 +27,8 @@ export async function GET() {
   }
 
   const messages = await listThreadMessages(thread.id);
-  if (thread.visitorUnread > 0) {
+  const visitorUnread = thread.visitorUnread;
+  if (!peek && visitorUnread > 0) {
     await prisma.contactThread.update({
       where: { id: thread.id },
       data: { visitorUnread: 0 },
@@ -36,14 +41,9 @@ export async function GET() {
       displayName: thread.displayName,
       contactEmail: thread.contactEmail,
       status: thread.status,
-      visitorUnread: 0,
+      visitorUnread: peek ? visitorUnread : 0,
     },
-    messages: messages.map((m) => ({
-      id: m.id,
-      body: m.body,
-      senderKind: m.senderKind,
-      createdAt: m.createdAt.toISOString(),
-    })),
+    messages: messages.map(toContactMessageDto),
   });
 }
 
@@ -91,10 +91,12 @@ export async function POST(req: Request) {
       displayName?: string;
       contactEmail?: string;
       userId?: string;
+      status?: "OPEN";
     } = {};
     if (displayName) patch.displayName = displayName;
     if (contactEmail) patch.contactEmail = contactEmail;
     if (userId && !thread.userId) patch.userId = userId;
+    if (thread.status === "CLOSED") patch.status = "OPEN";
     if (Object.keys(patch).length) {
       thread = await prisma.contactThread.update({
         where: { id: thread.id },
@@ -122,17 +124,14 @@ export async function POST(req: Request) {
     },
   });
 
-  await notifyAdminsNewContact(thread.id, body);
+  void notifyAdminsNewContact(thread.id, body).catch((err) => {
+    console.error("[contact] notify admins failed", err);
+  });
 
   const res = NextResponse.json({
     ok: true,
     threadId: thread.id,
-    message: {
-      id: message.id,
-      body: message.body,
-      senderKind: message.senderKind,
-      createdAt: message.createdAt.toISOString(),
-    },
+    message: toContactMessageDto(message),
   });
 
   if (!userId) {

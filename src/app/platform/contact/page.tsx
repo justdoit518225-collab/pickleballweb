@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ContactInboxRefresher } from "@/components/contact/contact-inbox-refresher";
 import { ROUTES } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
@@ -20,9 +21,10 @@ export default async function PlatformContactPage() {
 
   return (
     <div>
+      <ContactInboxRefresher />
       <h1 className="text-xl font-bold text-brand-navy">站內聯繫</h1>
       <p className="mt-1 text-sm text-slate-600">
-        訪客透過右下角浮框留言，可在此回覆。
+        訪客透過右下角浮框留言，可在此回覆。此頁會自動更新。
       </p>
 
       <ul className="mt-6 divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
