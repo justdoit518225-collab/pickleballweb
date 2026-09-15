@@ -4,18 +4,12 @@ import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { PaddleDescriptionView } from "@/components/paddles/paddle-description-view";
 import { PaddleThumb } from "@/components/paddles/paddle-catalog";
+import { PaddlePriceDisplay } from "@/components/paddles/paddle-price-display";
 import { ROUTES } from "@/lib/constants";
-import { formatUsdListPrice } from "@/lib/paddle-price";
-import { getAllPaddleSlugs, getPaddleBySlug } from "@/lib/paddles";
+import { getPaddleDealPriceContext } from "@/lib/paddle-deal-price";
+import { getPaddleBySlug } from "@/lib/paddles";
 
-export async function generateStaticParams() {
-  try {
-    const slugs = await getAllPaddleSlugs();
-    return slugs.map((id) => ({ id }));
-  } catch {
-    return [];
-  }
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -37,7 +31,8 @@ export default async function PaddleDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const paddle = await getPaddleBySlug(id);
+  const deal = await getPaddleDealPriceContext();
+  const paddle = await getPaddleBySlug(id, deal.showMemberPrice);
   if (!paddle) notFound();
 
   return (
@@ -81,28 +76,16 @@ export default async function PaddleDetailPage({
                 <p className="text-sm text-slate-500">{paddle.nameEn}</p>
               </>
             )}
-            {paddle.listPriceUsd != null ? (
-              <p className="pt-1 text-base font-semibold text-slate-800">
-                原價{" "}
-                {paddle.priceSourceUrl ? (
-                  <a
-                    href={paddle.priceSourceUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-brand-teal underline-offset-2 hover:underline"
-                  >
-                    {formatUsdListPrice(paddle.listPriceUsd)}
-                  </a>
-                ) : (
-                  formatUsdListPrice(paddle.listPriceUsd)
-                )}
-                {paddle.priceNote ? (
-                  <span className="ml-2 text-sm font-normal text-slate-500">
-                    （{paddle.priceNote}）
-                  </span>
-                ) : null}
-              </p>
-            ) : null}
+            <PaddlePriceDisplay
+              listPriceUsd={paddle.listPriceUsd}
+              priceSourceUrl={paddle.priceSourceUrl}
+              priceNote={paddle.priceNote}
+              showMemberPrice={deal.showMemberPrice}
+              memberPriceTwd={paddle.memberPriceTwd}
+              memberPriceNote={paddle.memberPriceNote}
+              joinHref={deal.joinHref}
+              variant="detail"
+            />
           </header>
 
           <section className="space-y-2">
@@ -143,30 +126,16 @@ export default async function PaddleDetailPage({
               <dt className="text-xs text-slate-500">英文全名</dt>
               <dd className="mt-0.5 font-medium text-slate-900">{paddle.nameEn}</dd>
             </div>
-            {paddle.listPriceUsd != null ? (
-              <div>
-                <dt className="text-xs text-slate-500">原價（USD MSRP）</dt>
-                <dd className="mt-0.5 font-medium text-slate-900">
-                  {paddle.priceSourceUrl ? (
-                    <a
-                      href={paddle.priceSourceUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-brand-teal underline-offset-2 hover:underline"
-                    >
-                      {formatUsdListPrice(paddle.listPriceUsd)}
-                    </a>
-                  ) : (
-                    formatUsdListPrice(paddle.listPriceUsd)
-                  )}
-                  {paddle.priceNote ? (
-                    <span className="ml-1.5 text-xs font-normal text-slate-500">
-                      （{paddle.priceNote}）
-                    </span>
-                  ) : null}
-                </dd>
-              </div>
-            ) : null}
+            <PaddlePriceDisplay
+              listPriceUsd={paddle.listPriceUsd}
+              priceSourceUrl={paddle.priceSourceUrl}
+              priceNote={paddle.priceNote}
+              showMemberPrice={deal.showMemberPrice}
+              memberPriceTwd={paddle.memberPriceTwd}
+              memberPriceNote={paddle.memberPriceNote}
+              joinHref={deal.joinHref}
+              variant="spec"
+            />
           </dl>
 
           <p className="rounded-xl border border-brand-teal/20 bg-brand-teal/5 px-4 py-3 text-sm text-slate-700">

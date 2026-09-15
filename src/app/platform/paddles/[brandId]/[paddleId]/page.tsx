@@ -80,6 +80,21 @@ export default async function PlatformPaddleEditPage({
             defaultValue={paddle.priceNote ?? ""}
             className="sm:col-span-2"
           />
+          <Field
+            label="會員售價 TWD（可空白）"
+            name="memberPriceTwd"
+            placeholder="例：6700"
+            inputMode="numeric"
+            defaultValue={
+              paddle.memberPriceTwd != null ? paddle.memberPriceTwd.toString() : ""
+            }
+          />
+          <Field
+            label="會員售價備註（可空白）"
+            name="memberPriceNote"
+            placeholder="例：贈拍套、電洽"
+            defaultValue={paddle.memberPriceNote ?? ""}
+          />
           <div className="sm:col-span-2">
             <label className="block text-sm font-medium text-slate-700">
               詳細介紹

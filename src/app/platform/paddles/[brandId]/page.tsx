@@ -85,6 +85,17 @@ export default async function PlatformPaddleBrandPage({
             placeholder="例：14/16mm 同價"
             className="sm:col-span-2"
           />
+          <Field
+            label="會員售價 TWD（可空白）"
+            name="memberPriceTwd"
+            placeholder="例：6700"
+            inputMode="numeric"
+          />
+          <Field
+            label="會員售價備註（可空白）"
+            name="memberPriceNote"
+            placeholder="例：贈拍套、電洽"
+          />
           <div className="sm:col-span-2">
             <label className="block text-sm font-medium text-slate-700">
               詳細介紹

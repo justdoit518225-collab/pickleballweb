@@ -80,6 +80,8 @@ const paddleSchema = z.object({
     .union([z.null(), z.string().trim().url("來源網址格式不正確").max(500)])
     .nullable(),
   priceNote: z.union([z.null(), z.string().trim().max(160)]).nullable(),
+  memberPriceTwd: z.number().int().min(0).max(9_999_999).nullable(),
+  memberPriceNote: z.union([z.null(), z.string().trim().max(160)]).nullable(),
 });
 
 function parseOptionalUsd(raw: FormDataEntryValue | null): number | null {
@@ -88,6 +90,16 @@ function parseOptionalUsd(raw: FormDataEntryValue | null): number | null {
   if (!s) return null;
   if (!/^\d+(\.\d{1,2})?$/.test(s)) {
     throw new Error("原價須為數字（最多兩位小數）");
+  }
+  return Number(s);
+}
+
+function parseOptionalTwd(raw: FormDataEntryValue | null): number | null {
+  if (typeof raw !== "string") return null;
+  const s = raw.trim();
+  if (!s) return null;
+  if (!/^\d+$/.test(s)) {
+    throw new Error("會員售價須為整數（台幣）");
   }
   return Number(s);
 }
@@ -108,11 +120,15 @@ function parsePriceFields(formData: FormData): {
   listPriceUsd: number | null;
   priceSourceUrl: string | null;
   priceNote: string | null;
+  memberPriceTwd: number | null;
+  memberPriceNote: string | null;
 } {
   return {
     listPriceUsd: parseOptionalUsd(formData.get("listPriceUsd")),
     priceSourceUrl: parseOptionalUrl(formData.get("priceSourceUrl")),
     priceNote: parseOptionalNote(formData.get("priceNote")),
+    memberPriceTwd: parseOptionalTwd(formData.get("memberPriceTwd")),
+    memberPriceNote: parseOptionalNote(formData.get("memberPriceNote")),
   };
 }
 
@@ -204,6 +220,8 @@ export async function createPaddle(brandId: string, formData: FormData) {
       listPriceUsd: parsed.data.listPriceUsd,
       priceSourceUrl: parsed.data.priceSourceUrl,
       priceNote: parsed.data.priceNote,
+      memberPriceTwd: parsed.data.memberPriceTwd,
+      memberPriceNote: parsed.data.memberPriceNote,
       sortOrder: (maxSort._max.sortOrder ?? -1) + 1,
     },
   });
@@ -295,6 +313,8 @@ export async function updatePaddle(brandId: string, paddleId: string, formData: 
       listPriceUsd: parsed.data.listPriceUsd,
       priceSourceUrl: parsed.data.priceSourceUrl,
       priceNote: parsed.data.priceNote,
+      memberPriceTwd: parsed.data.memberPriceTwd,
+      memberPriceNote: parsed.data.memberPriceNote,
       ...(imageDataUrl !== undefined ? { imageDataUrl } : {}),
     },
   });

@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useDeferredValue, useMemo, useState } from "react";
 import { Search } from "lucide-react";
+import { PaddlePriceDisplay } from "@/components/paddles/paddle-price-display";
 import type { PaddleListItem } from "@/lib/paddles";
-import { formatUsdListPrice } from "@/lib/paddle-price";
 import { ROUTES } from "@/lib/constants";
 
 const ALL_BRAND = "ALL";
@@ -50,9 +50,13 @@ function matchesQuery(paddle: PaddleListItem, q: string) {
 export function PaddleCatalog({
   brands,
   paddlesByBrand,
+  showMemberPrice,
+  joinHref,
 }: {
   brands: string[];
   paddlesByBrand: Record<string, PaddleListItem[]>;
+  showMemberPrice: boolean;
+  joinHref: string;
 }) {
   const [brand, setBrand] = useState(ALL_BRAND);
   const [query, setQuery] = useState("");
@@ -149,11 +153,16 @@ export function PaddleCatalog({
             </p>
           ) : (
             <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-5">
-              {paddles.map((paddle) => (
-                <li key={paddle.id}>
-                  <PaddleCard paddle={paddle} showBrand={brand === ALL_BRAND} />
-                </li>
-              ))}
+          {paddles.map((paddle) => (
+            <li key={paddle.id}>
+              <PaddleCard
+                paddle={paddle}
+                showBrand={brand === ALL_BRAND}
+                showMemberPrice={showMemberPrice}
+                joinHref={joinHref}
+              />
+            </li>
+          ))}
             </ul>
           )}
         </section>
@@ -165,9 +174,13 @@ export function PaddleCatalog({
 function PaddleCard({
   paddle,
   showBrand = false,
+  showMemberPrice,
+  joinHref,
 }: {
   paddle: PaddleListItem;
   showBrand?: boolean;
+  showMemberPrice: boolean;
+  joinHref: string;
 }) {
   const isLuzz = paddle.brand === "LUZZ";
   const title = isLuzz ? paddle.nameEn : paddle.nameZh;
@@ -178,27 +191,34 @@ function PaddleCard({
       : paddle.series;
 
   return (
-    <Link href={ROUTES.paddle(paddle.slug)} className="group block">
-      <div className="overflow-hidden rounded-lg bg-[#ececec] transition group-hover:bg-[#e4e4e4]">
-        <PaddleThumb paddle={paddle} />
+    <div className="group block">
+      <Link href={ROUTES.paddle(paddle.slug)} className="block">
+        <div className="overflow-hidden rounded-lg bg-[#ececec] transition group-hover:bg-[#e4e4e4]">
+          <PaddleThumb paddle={paddle} />
+        </div>
+        <div className="mt-2.5 space-y-0.5 px-0.5">
+          {showBrand ? (
+            <p className="text-[11px] font-semibold tracking-wide text-brand-teal">
+              {paddle.brand}
+            </p>
+          ) : null}
+          <h3 className="text-sm font-semibold leading-snug text-slate-900 group-hover:text-brand-navy">
+            {title}
+          </h3>
+          <p className="text-xs text-slate-500">{subtitle}</p>
+        </div>
+      </Link>
+      <div className="mt-0.5 px-0.5">
+        <PaddlePriceDisplay
+          listPriceUsd={paddle.listPriceUsd}
+          showMemberPrice={showMemberPrice}
+          memberPriceTwd={paddle.memberPriceTwd}
+          memberPriceNote={paddle.memberPriceNote}
+          joinHref={joinHref}
+          variant="catalog"
+        />
       </div>
-      <div className="mt-2.5 space-y-0.5 px-0.5">
-        {showBrand ? (
-          <p className="text-[11px] font-semibold tracking-wide text-brand-teal">
-            {paddle.brand}
-          </p>
-        ) : null}
-        <h3 className="text-sm font-semibold leading-snug text-slate-900 group-hover:text-brand-navy">
-          {title}
-        </h3>
-        <p className="text-xs text-slate-500">{subtitle}</p>
-        {paddle.listPriceUsd != null ? (
-          <p className="text-xs font-medium text-slate-700">
-            {formatUsdListPrice(paddle.listPriceUsd)}
-          </p>
-        ) : null}
-      </div>
-    </Link>
+    </div>
   );
 }
 

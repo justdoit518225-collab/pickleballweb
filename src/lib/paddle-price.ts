@@ -6,3 +6,8 @@ export function formatUsdListPrice(amount: number): string {
     : rounded.toFixed(2);
   return `US$${nice}`;
 }
+
+/** Format TWD member sale price, e.g. NT$6,700 */
+export function formatTwdMemberPrice(amount: number): string {
+  return `NT$${Math.round(amount).toLocaleString("en-US")}`;
+}

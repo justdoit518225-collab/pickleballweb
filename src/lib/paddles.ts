@@ -15,6 +15,9 @@ export type PaddleListItem = {
   listPriceUsd: number | null;
   priceSourceUrl: string | null;
   priceNote: string | null;
+  /** 僅在 showMemberPrice 時帶出，避免未入會洩漏 */
+  memberPriceTwd: number | null;
+  memberPriceNote: string | null;
 };
 
 export type PaddleBrandItem = {
@@ -23,21 +26,26 @@ export type PaddleBrandItem = {
   paddleCount: number;
 };
 
-function mapPaddle(row: {
-  id: string;
-  slug: string;
-  series: string;
-  variant: string;
-  nameZh: string;
-  nameEn: string;
-  description: string;
-  highlights: string[];
-  imageDataUrl: string | null;
-  listPriceUsd: { toNumber(): number } | number | null;
-  priceSourceUrl: string | null;
-  priceNote: string | null;
-  brand: { id: string; name: string };
-}): PaddleListItem {
+function mapPaddle(
+  row: {
+    id: string;
+    slug: string;
+    series: string;
+    variant: string;
+    nameZh: string;
+    nameEn: string;
+    description: string;
+    highlights: string[];
+    imageDataUrl: string | null;
+    listPriceUsd: { toNumber(): number } | number | null;
+    priceSourceUrl: string | null;
+    priceNote: string | null;
+    memberPriceTwd: number | null;
+    memberPriceNote: string | null;
+    brand: { id: string; name: string };
+  },
+  showMemberPrice: boolean,
+): PaddleListItem {
   const listPriceUsd =
     row.listPriceUsd == null
       ? null
@@ -59,6 +67,8 @@ function mapPaddle(row: {
     listPriceUsd,
     priceSourceUrl: row.priceSourceUrl,
     priceNote: row.priceNote,
+    memberPriceTwd: showMemberPrice ? row.memberPriceTwd : null,
+    memberPriceNote: showMemberPrice ? row.memberPriceNote : null,
   };
 }
 
@@ -82,21 +92,27 @@ export async function getPaddleBrandNames(): Promise<string[]> {
   return brands.map((b) => b.name);
 }
 
-export async function getPaddlesByBrandName(brandName: string): Promise<PaddleListItem[]> {
+export async function getPaddlesByBrandName(
+  brandName: string,
+  showMemberPrice = false,
+): Promise<PaddleListItem[]> {
   const rows = await prisma.paddle.findMany({
     where: { brand: { name: brandName } },
     orderBy: [{ sortOrder: "asc" }, { nameZh: "asc" }],
     include: { brand: { select: { id: true, name: true } } },
   });
-  return rows.map(mapPaddle);
+  return rows.map((row) => mapPaddle(row, showMemberPrice));
 }
 
-export async function getPaddleBySlug(slug: string): Promise<PaddleListItem | null> {
+export async function getPaddleBySlug(
+  slug: string,
+  showMemberPrice = false,
+): Promise<PaddleListItem | null> {
   const row = await prisma.paddle.findUnique({
     where: { slug },
     include: { brand: { select: { id: true, name: true } } },
   });
-  return row ? mapPaddle(row) : null;
+  return row ? mapPaddle(row, showMemberPrice) : null;
 }
 
 export async function getAllPaddleSlugs(): Promise<string[]> {

@@ -8,6 +8,13 @@ export const DEFAULT_TENANT_NAME = "Active Pickleball Club";
 /** 樂活板橋：使用「今日 × 球場 × 每小時」看板為首頁 */
 export const LOHO_TENANT_SLUG = "loho2";
 
+/**
+ * 球拍會員優惠價所綁定的俱樂部。
+ * 可用環境變數 PADDLE_DEAL_TENANT_SLUG 覆寫。
+ */
+export const PADDLE_DEAL_TENANT_SLUG =
+  process.env.PADDLE_DEAL_TENANT_SLUG?.trim() || "chris-club";
+
 export function usesHourlyBoardHome(slug: string) {
   return slug === LOHO_TENANT_SLUG;
 }
