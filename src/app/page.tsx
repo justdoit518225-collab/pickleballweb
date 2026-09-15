@@ -10,9 +10,19 @@ import { prisma } from "@/lib/prisma";
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ privateError?: string; private?: string }>;
+  searchParams: Promise<{
+    privateError?: string;
+    private?: string;
+    left?: string;
+    leaveError?: string;
+  }>;
 }) {
-  const { privateError, private: privateFocus } = await searchParams;
+  const {
+    privateError,
+    private: privateFocus,
+    left,
+    leaveError,
+  } = await searchParams;
   const [publicClubs, session] = await Promise.all([
     getPublicTenants(),
     auth(),
@@ -28,6 +38,16 @@ export default async function HomePage({
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-16">
+      {left ? (
+        <p className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          已退出「{left}」
+        </p>
+      ) : null}
+      {leaveError ? (
+        <p className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          {leaveError}
+        </p>
+      ) : null}
       <section className="rounded-2xl border border-brand-navy-soft bg-gradient-to-br from-brand-navy-soft via-white to-brand-lime-soft px-8 py-14 shadow-sm">
         <div className="flex flex-col items-center text-center sm:items-start sm:text-left">
           <Logo href={ROUTES.home} variant="stacked" iconSize={140} nameSize="hero" />

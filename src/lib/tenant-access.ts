@@ -72,23 +72,31 @@ export async function grantTenantAccess(slug: string): Promise<void> {
   });
 }
 
-/** 退出俱樂部時移除該館的 cookie 進入權限 */
+/** 退出俱樂部時移除該館的 cookie 進入權限（失敗不阻斷退出） */
 export async function revokeTenantAccess(slug: string): Promise<void> {
-  const jar = await cookies();
-  const existing = await getGrantedTenantSlugs();
-  const slugs = existing.filter((s) => s !== slug);
-  if (slugs.length === 0) {
-    jar.delete(COOKIE_NAME);
-    return;
+  try {
+    const jar = await cookies();
+    const existing = await getGrantedTenantSlugs();
+    const slugs = existing.filter((s) => s !== slug);
+    const cookieOptions = {
+      httpOnly: true,
+      sameSite: "lax" as const,
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+    };
+    if (slugs.length === 0) {
+      // 用 maxAge:0 覆寫，比 delete 更相容（需與當初 set 的屬性一致）
+      jar.set(COOKIE_NAME, "", { ...cookieOptions, maxAge: 0 });
+      return;
+    }
+    const payload: GrantPayload = { slugs, exp: Date.now() + GRANT_TTL_MS };
+    jar.set(COOKIE_NAME, signPayload(payload), {
+      ...cookieOptions,
+      maxAge: GRANT_TTL_MS / 1000,
+    });
+  } catch {
+    // cookie 清不掉也不應讓「退出會員」失敗
   }
-  const payload: GrantPayload = { slugs, exp: Date.now() + GRANT_TTL_MS };
-  jar.set(COOKIE_NAME, signPayload(payload), {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: GRANT_TTL_MS / 1000,
-  });
 }
 
 async function hasStaffOrMembership(tenantId: string, userId: string): Promise<boolean> {

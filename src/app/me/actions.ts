@@ -179,12 +179,19 @@ export async function markAllNotificationsRead() {
   revalidatePath(ROUTES.meInbox);
 }
 
-/** 會員自行退出場館／俱樂部 */
-export async function leaveClub(formData: FormData) {
-  const user = await requireUser();
+/** 會員自行退出場館／俱樂部。回傳結果由前端導向，避免 redirect 被當成系統錯誤。 */
+export async function leaveClub(
+  formData: FormData,
+): Promise<{ ok: true; clubName: string } | { ok: false; error: string }> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { ok: false, error: "請先登入" };
+  }
+  const userId = session.user.id;
+
   const tenantId = String(formData.get("tenantId") ?? "").trim();
   if (!tenantId) {
-    redirect(`${ROUTES.me}?error=${encodeURIComponent("缺少場館")}`);
+    return { ok: false, error: "缺少場館" };
   }
 
   const tenant = await prisma.tenant.findUnique({
@@ -192,32 +199,40 @@ export async function leaveClub(formData: FormData) {
     select: { id: true, slug: true, displayName: true },
   });
   if (!tenant) {
-    redirect(`${ROUTES.me}?error=${encodeURIComponent("找不到場館")}`);
+    return { ok: false, error: "找不到場館" };
   }
 
   const membership = await prisma.tenantMembership.findUnique({
-    where: { tenantId_userId: { tenantId: tenant.id, userId: user.id } },
+    where: { tenantId_userId: { tenantId: tenant.id, userId } },
+    select: { id: true },
   });
   if (!membership) {
-    redirect(`${ROUTES.me}?error=${encodeURIComponent("您不是此場館會員")}`);
+    return { ok: false, error: "您不是此場館會員" };
   }
 
-  await prisma.$transaction([
-    prisma.tenantMembership.delete({
-      where: { tenantId_userId: { tenantId: tenant.id, userId: user.id } },
-    }),
-    prisma.notificationPreference.deleteMany({
-      where: { tenantId: tenant.id, userId: user.id },
-    }),
-  ]);
+  try {
+    await prisma.tenantMembership.delete({
+      where: { tenantId_userId: { tenantId: tenant.id, userId } },
+    });
+  } catch {
+    return { ok: false, error: "退出失敗，請稍後再試" };
+  }
+
+  try {
+    await prisma.notificationPreference.deleteMany({
+      where: { tenantId: tenant.id, userId },
+    });
+  } catch {
+    // ignore
+  }
 
   await revokeTenantAccess(tenant.slug);
 
+  revalidatePath(ROUTES.home);
   revalidatePath(ROUTES.me);
   revalidatePath(ROUTES.meProfile);
   revalidatePath(ROUTES.paddles);
   revalidatePath(ROUTES.tenant(tenant.slug));
-  redirect(
-    `${ROUTES.me}?left=${encodeURIComponent(tenant.displayName)}`,
-  );
+
+  return { ok: true, clubName: tenant.displayName };
 }
