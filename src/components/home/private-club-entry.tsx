@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useFormStatus } from "react-dom";
 import { submitHomePrivateAccessCode } from "@/app/home-private-access";
+import { ROUTES } from "@/lib/constants";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -11,12 +13,39 @@ function SubmitButton() {
       disabled={pending}
       className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-brand-navy hover:bg-slate-50 disabled:opacity-60"
     >
-      {pending ? "驗證中…" : "輸入邀請碼進入"}
+      {pending ? "驗證中…" : "輸入邀請碼加入"}
     </button>
   );
 }
 
-export function PrivateClubEntry({ error }: { error?: string }) {
+export function PrivateClubEntry({
+  error,
+  isLoggedIn,
+}: {
+  error?: string;
+  isLoggedIn: boolean;
+}) {
+  if (!isLoggedIn) {
+    return (
+      <div className="mt-4 space-y-2">
+        <p className="text-sm text-slate-600">
+          請先以 Google 或 LINE 登入成為會員，才能輸入邀請碼加入私人俱樂部。
+        </p>
+        <Link
+          href={ROUTES.loginWithCallback(`${ROUTES.home}?private=1`)}
+          className="inline-flex rounded-lg bg-brand-navy px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+        >
+          登入後再加入
+        </Link>
+        {error ? (
+          <p className="text-sm text-red-600" role="alert">
+            {error}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <form action={submitHomePrivateAccessCode} className="mt-4 space-y-2">
       <div className="flex flex-wrap gap-2">

@@ -77,7 +77,7 @@ export function PaddlePriceDisplay({
         ) : (
           <p className="text-[11px] leading-snug text-brand-teal">
             <Link href={joinHref} className="font-medium hover:underline">
-              加入俱樂部取得優惠價格
+              登入並加入俱樂部取得優惠價格
             </Link>
           </p>
         )}
@@ -117,7 +117,7 @@ export function PaddlePriceDisplay({
           ) : (
             <p className="text-sm font-normal text-brand-teal">
               <Link href={joinHref} className="hover:underline">
-                加入俱樂部取得優惠價格
+                登入並加入俱樂部取得優惠價格
               </Link>
             </p>
           )}
@@ -158,7 +158,7 @@ export function PaddlePriceDisplay({
       ) : (
         <p className="text-sm text-brand-teal">
           <Link href={joinHref} className="font-semibold hover:underline">
-            加入俱樂部取得優惠價格
+            登入並加入俱樂部取得優惠價格
           </Link>
         </p>
       )}

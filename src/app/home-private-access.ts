@@ -17,8 +17,15 @@ function homePrivateError(message: string): never {
   );
 }
 
-/** 首頁：以邀請碼直接開啟對應的私人俱樂部（不必先知道 slug） */
+/** 首頁：以邀請碼直接加入對應的私人俱樂部（須已登入） */
 export async function submitHomePrivateAccessCode(formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect(
+      ROUTES.loginWithCallback(`${ROUTES.home}?private=1`),
+    );
+  }
+
   const code = String(formData.get("accessCode") ?? "").trim();
   if (!code) {
     homePrivateError("請輸入邀請碼");
@@ -38,11 +45,7 @@ export async function submitHomePrivateAccessCode(formData: FormData) {
   }
 
   await grantTenantAccess(tenant.slug);
-
-  const session = await auth();
-  if (session?.user?.id) {
-    await ensureTenantMembershipOnAccess(tenant.id, session.user.id);
-  }
+  await ensureTenantMembershipOnAccess(tenant.id, session.user.id);
 
   revalidatePath(ROUTES.tenant(tenant.slug));
   redirect(`${ROUTES.tenant(tenant.slug)}?joined=1`);

@@ -16,6 +16,11 @@ export async function submitTenantAccessCode(
   tenantSlug: string,
   formData: FormData,
 ) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect(ROUTES.loginWithCallback(ROUTES.tenantAccess(tenantSlug)));
+  }
+
   const code = String(formData.get("accessCode") ?? "").trim();
   if (!code) {
     redirect(
@@ -37,11 +42,7 @@ export async function submitTenantAccessCode(
   }
 
   await grantTenantAccess(tenantSlug);
-
-  const session = await auth();
-  if (session?.user?.id) {
-    await ensureTenantMembershipOnAccess(tenant.id, session.user.id);
-  }
+  await ensureTenantMembershipOnAccess(tenant.id, session.user.id);
 
   revalidatePath(ROUTES.tenant(tenantSlug));
   redirect(`${ROUTES.tenant(tenantSlug)}?joined=1`);

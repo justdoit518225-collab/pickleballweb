@@ -18,7 +18,7 @@ export async function getPaddleDealPriceContext(): Promise<PaddleDealPriceContex
   });
 
   const dealClubName = tenant?.displayName ?? "俱樂部";
-  const joinHref =
+  const accessHref =
     tenant?.visibility === "PRIVATE"
       ? ROUTES.tenantAccess(slug)
       : ROUTES.tenant(slug);
@@ -28,7 +28,7 @@ export async function getPaddleDealPriceContext(): Promise<PaddleDealPriceContex
       showMemberPrice: false,
       dealClubSlug: slug,
       dealClubName,
-      joinHref,
+      joinHref: ROUTES.loginWithCallback(accessHref),
     };
   }
 
@@ -39,9 +39,11 @@ export async function getPaddleDealPriceContext(): Promise<PaddleDealPriceContex
       showMemberPrice: false,
       dealClubSlug: slug,
       dealClubName,
-      joinHref,
+      joinHref: ROUTES.loginWithCallback(accessHref),
     };
   }
+
+  const joinHref = accessHref;
 
   const membership = await prisma.tenantMembership.findUnique({
     where: {

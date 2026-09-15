@@ -87,11 +87,12 @@ export async function canAccessTenant(
 ): Promise<boolean> {
   if (!tenant.visibility || tenant.visibility === "PUBLIC") return true;
 
+  // 私人俱樂部：必須已登入會員（訪客僅憑 cookie 不可進入）
   const session = await auth();
-  if (session?.user?.id) {
-    if (session.user.platformRole === "SUPER_ADMIN") return true;
-    if (await hasStaffOrMembership(tenant.id, session.user.id)) return true;
-  }
+  if (!session?.user?.id) return false;
+
+  if (session.user.platformRole === "SUPER_ADMIN") return true;
+  if (await hasStaffOrMembership(tenant.id, session.user.id)) return true;
 
   const grants = await getGrantedTenantSlugs();
   return grants.includes(tenant.slug);

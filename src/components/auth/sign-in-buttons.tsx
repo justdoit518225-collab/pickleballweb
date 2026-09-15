@@ -5,8 +5,14 @@ import { useEffect, useState } from "react";
 
 type ProviderMap = Awaited<ReturnType<typeof getProviders>>;
 
-export function SignInButtons() {
+function safeCallbackUrl(url: string | undefined): string {
+  if (url && url.startsWith("/") && !url.startsWith("//")) return url;
+  return "/me";
+}
+
+export function SignInButtons({ callbackUrl }: { callbackUrl?: string }) {
   const [providers, setProviders] = useState<ProviderMap>(null);
+  const nextUrl = safeCallbackUrl(callbackUrl);
 
   useEffect(() => {
     getProviders().then(setProviders);
@@ -26,7 +32,7 @@ export function SignInButtons() {
       {hasGoogle ? (
         <button
           type="button"
-          onClick={() => signIn("google", { callbackUrl: "/me" })}
+          onClick={() => signIn("google", { callbackUrl: nextUrl })}
           className="rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-medium hover:bg-slate-50"
         >
           使用 Google 登入
@@ -39,7 +45,7 @@ export function SignInButtons() {
       {hasLine ? (
         <button
           type="button"
-          onClick={() => signIn("line", { callbackUrl: "/me" })}
+          onClick={() => signIn("line", { callbackUrl: nextUrl })}
           className="rounded-lg bg-[#06C755] px-4 py-3 text-sm font-medium text-white hover:bg-[#05b34c]"
         >
           使用 LINE 登入

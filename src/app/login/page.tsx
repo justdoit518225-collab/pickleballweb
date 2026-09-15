@@ -19,12 +19,18 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; callbackUrl?: string }>;
 }) {
+  const { error, callbackUrl } = await searchParams;
   const session = await auth();
-  if (session?.user) redirect(ROUTES.me);
+  if (session?.user) {
+    const next =
+      callbackUrl && callbackUrl.startsWith("/") && !callbackUrl.startsWith("//")
+        ? callbackUrl
+        : ROUTES.me;
+    redirect(next);
+  }
 
-  const { error } = await searchParams;
   const errorMessage = error ? AUTH_ERROR_MESSAGES[error] : undefined;
 
   return (
@@ -32,7 +38,7 @@ export default async function LoginPage({
       <Logo variant="stacked" iconSize={100} nameSize="xl" href={ROUTES.home} />
       <h1 className="mt-8 text-xl font-bold text-brand-navy">登入 / 註冊</h1>
       <p className="mt-2 text-center text-sm text-slate-600">
-        使用 Google 或 LINE 帳號，即可跨場館預約活動
+        使用 Google 或 LINE 帳號加入會員後，才能加入俱樂部與預約活動
       </p>
       {errorMessage ? (
         <p className="mt-4 w-full max-w-sm rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-900">
@@ -40,7 +46,7 @@ export default async function LoginPage({
         </p>
       ) : null}
       <div className="mt-8 flex w-full justify-center">
-        <SignInButtons />
+        <SignInButtons callbackUrl={callbackUrl} />
       </div>
     </div>
   );

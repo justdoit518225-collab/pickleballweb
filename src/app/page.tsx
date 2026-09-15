@@ -2,6 +2,7 @@ import Link from "next/link";
 import { auth } from "@/auth";
 import { Logo } from "@/components/brand/logo";
 import { PrivateClubEntry } from "@/components/home/private-club-entry";
+import { ScrollToId } from "@/components/home/scroll-to-id";
 import { APP_TAGLINE, ROUTES } from "@/lib/constants";
 import { getPublicTenants } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
@@ -9,9 +10,9 @@ import { prisma } from "@/lib/prisma";
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ privateError?: string }>;
+  searchParams: Promise<{ privateError?: string; private?: string }>;
 }) {
-  const { privateError } = await searchParams;
+  const { privateError, private: privateFocus } = await searchParams;
   const [publicClubs, session] = await Promise.all([
     getPublicTenants(),
     auth(),
@@ -97,13 +98,20 @@ export default async function HomePage({
 
         <div
           id="private-club"
-          className="mt-10 scroll-mt-24 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5"
+          className={[
+            "mt-10 scroll-mt-24 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5",
+            privateFocus === "1" ? "ring-2 ring-brand-teal/40" : "",
+          ].join(" ")}
         >
+          {privateFocus === "1" ? <ScrollToId id="private-club" /> : null}
           <h3 className="font-medium text-slate-800">私人俱樂部</h3>
           <p className="mt-1 text-sm text-slate-600">
-            若您收到邀請，請直接輸入邀請碼進入（不會顯示於上方列表）。
+            須先以 Google 或 LINE 登入會員；登入後輸入邀請碼即可加入（不會顯示於上方列表）。
           </p>
-          <PrivateClubEntry error={privateError} />
+          <PrivateClubEntry
+            error={privateError}
+            isLoggedIn={Boolean(session?.user)}
+          />
         </div>
       </section>
     </div>

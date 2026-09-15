@@ -1,11 +1,7 @@
 export const APP_NAME = "PlayPlayPlay";
 export const APP_TAGLINE = "匹克球多場館預約平台";
 
-/** 平台預設對外營運的租戶（seed 建立） */
-export const DEFAULT_TENANT_SLUG = "active-pickleball";
-export const DEFAULT_TENANT_NAME = "Active Pickleball Club";
-
-/** 樂活板橋：使用「今日 × 球場 × 每小時」看板為首頁 */
+/** 使用「今日 × 球場 × 每小時」看板為首頁的租戶 slug */
 export const LOHO_TENANT_SLUG = "loho2";
 
 /**
@@ -21,6 +17,15 @@ export function usesHourlyBoardHome(slug: string) {
 
 export const ROUTES = {
   home: "/",
+  login: "/login",
+  /** 登入後回到指定路徑（僅允許站內相對路徑） */
+  loginWithCallback: (callbackUrl: string) => {
+    const safe =
+      callbackUrl.startsWith("/") && !callbackUrl.startsWith("//")
+        ? callbackUrl
+        : "/";
+    return `/login?callbackUrl=${encodeURIComponent(safe)}`;
+  },
   doublesScheduler: "/doubles-scheduler",
   paddles: "/paddles",
   paddle: (id: string) => `/paddles/${id}`,
@@ -35,6 +40,7 @@ export const ROUTES = {
   meNotifications: "/me/notifications",
   platformAdmin: "/platform/tenants",
   platformPaddles: "/platform/paddles",
+  platformSkillTraining: "/platform/skill-training",
   platformContact: "/platform/contact",
   platformContactThread: (id: string) => `/platform/contact/${id}`,
   platformPaddleBrand: (brandId: string) => `/platform/paddles/${brandId}`,
