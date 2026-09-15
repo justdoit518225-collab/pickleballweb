@@ -8,6 +8,7 @@ import { readAvatarDataUrl } from "@/lib/avatar-upload";
 import { importDuprProfileFromApi, linkDuprProfile, syncDuprFromApi } from "@/lib/dupr";
 import { prisma } from "@/lib/prisma";
 import { ROUTES } from "@/lib/constants";
+import { revokeTenantAccess } from "@/lib/tenant-access";
 
 async function requireUser() {
   const session = await auth();
@@ -176,4 +177,47 @@ export async function markAllNotificationsRead() {
     data: { readAt: new Date() },
   });
   revalidatePath(ROUTES.meInbox);
+}
+
+/** 會員自行退出場館／俱樂部 */
+export async function leaveClub(formData: FormData) {
+  const user = await requireUser();
+  const tenantId = String(formData.get("tenantId") ?? "").trim();
+  if (!tenantId) {
+    redirect(`${ROUTES.me}?error=${encodeURIComponent("缺少場館")}`);
+  }
+
+  const tenant = await prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { id: true, slug: true, displayName: true },
+  });
+  if (!tenant) {
+    redirect(`${ROUTES.me}?error=${encodeURIComponent("找不到場館")}`);
+  }
+
+  const membership = await prisma.tenantMembership.findUnique({
+    where: { tenantId_userId: { tenantId: tenant.id, userId: user.id } },
+  });
+  if (!membership) {
+    redirect(`${ROUTES.me}?error=${encodeURIComponent("您不是此場館會員")}`);
+  }
+
+  await prisma.$transaction([
+    prisma.tenantMembership.delete({
+      where: { tenantId_userId: { tenantId: tenant.id, userId: user.id } },
+    }),
+    prisma.notificationPreference.deleteMany({
+      where: { tenantId: tenant.id, userId: user.id },
+    }),
+  ]);
+
+  await revokeTenantAccess(tenant.slug);
+
+  revalidatePath(ROUTES.me);
+  revalidatePath(ROUTES.meProfile);
+  revalidatePath(ROUTES.paddles);
+  revalidatePath(ROUTES.tenant(tenant.slug));
+  redirect(
+    `${ROUTES.me}?left=${encodeURIComponent(tenant.displayName)}`,
+  );
 }

@@ -5,7 +5,12 @@ import { Avatar } from "@/components/ui/avatar";
 import { prisma } from "@/lib/prisma";
 import { ROUTES } from "@/lib/constants";
 
-export default async function MeOverviewPage() {
+export default async function MeOverviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ left?: string; error?: string }>;
+}) {
+  const { left, error } = await searchParams;
   const session = await auth();
   const userId = session!.user!.id;
 
@@ -119,7 +124,7 @@ export default async function MeOverviewPage() {
       <section className="rounded-xl border border-brand-teal/30 bg-brand-teal-soft p-5 md:col-span-2">
         <h2 className="font-semibold text-brand-navy">影片估算實力等級</h2>
         <p className="mt-2 text-sm text-slate-600">
-          上傳 3–5 分鐘對打精華，點選自己後可得到技術估算區間（非正式 DUPR）。
+          上傳對打精華後估算技術等級。若已連結官方 DUPR，可把影片標成訓練樣本，讓模型愈來愈準。
         </p>
         <Link href={ROUTES.meSkillEstimate} className="btn-brand mt-3 inline-flex">
           前往實力估算
@@ -135,6 +140,16 @@ export default async function MeOverviewPage() {
             </p>
           </div>
         </div>
+        {left ? (
+          <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+            已退出「{left}」
+          </p>
+        ) : null}
+        {error ? (
+          <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {error}
+          </p>
+        ) : null}
         <MembershipVenueCards memberships={memberships} accountUser={accountForDisplay} />
       </section>
     </div>

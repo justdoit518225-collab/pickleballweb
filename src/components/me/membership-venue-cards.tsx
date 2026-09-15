@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { LeaveClubButton } from "@/components/me/leave-club-button";
 import { Avatar } from "@/components/ui/avatar";
 import { resolveMemberDisplay } from "@/lib/member-display";
 import { ROUTES } from "@/lib/constants";
@@ -97,6 +98,7 @@ export function MembershipVenueCards({
                 >
                   編輯暱稱／頭像
                 </Link>
+                <LeaveClubButton tenantId={m.tenantId} clubName={m.tenant.displayName} />
               </div>
             </div>
           </li>

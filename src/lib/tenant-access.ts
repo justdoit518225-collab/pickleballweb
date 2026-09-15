@@ -72,6 +72,25 @@ export async function grantTenantAccess(slug: string): Promise<void> {
   });
 }
 
+/** 退出俱樂部時移除該館的 cookie 進入權限 */
+export async function revokeTenantAccess(slug: string): Promise<void> {
+  const jar = await cookies();
+  const existing = await getGrantedTenantSlugs();
+  const slugs = existing.filter((s) => s !== slug);
+  if (slugs.length === 0) {
+    jar.delete(COOKIE_NAME);
+    return;
+  }
+  const payload: GrantPayload = { slugs, exp: Date.now() + GRANT_TTL_MS };
+  jar.set(COOKIE_NAME, signPayload(payload), {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: GRANT_TTL_MS / 1000,
+  });
+}
+
 async function hasStaffOrMembership(tenantId: string, userId: string): Promise<boolean> {
   const [staff, member] = await Promise.all([
     prisma.tenantStaffRole.findFirst({ where: { tenantId, userId } }),
