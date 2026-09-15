@@ -20,20 +20,24 @@ type Props = {
 export function ContactThreadChat({
   threadId,
   status = "OPEN",
-  initialMessages = [],
+  initialMessages,
   title,
   compact = false,
   onBack,
   onClose,
 }: Props) {
-  const [messages, setMessages] = useState(initialMessages);
+  const [messages, setMessages] = useState<ContactMessageDto[]>(
+    () => initialMessages ?? [],
+  );
   const [statusNow, setStatusNow] = useState(status);
   const [who, setWho] = useState(title ?? "訪客");
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [booted, setBooted] = useState((initialMessages?.length ?? 0) > 0);
   const listRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const seqRef = useRef(0);
 
   const scrollToBottom = useEffectEvent(() => {
     const el = listRef.current;
@@ -44,12 +48,14 @@ export function ContactThreadChat({
     abortRef.current?.abort();
     const ac = new AbortController();
     abortRef.current = ac;
+    const seq = ++seqRef.current;
     const timeout = window.setTimeout(() => ac.abort(), 8000);
     try {
       const res = await fetch(`/api/platform/contact/${threadId}`, {
         cache: "no-store",
         signal: ac.signal,
       });
+      if (seq !== seqRef.current) return;
       if (!res.ok) return;
       const data = (await res.json()) as {
         thread?: {
@@ -59,10 +65,12 @@ export function ContactThreadChat({
         };
         messages?: ContactMessageDto[];
       };
+      if (seq !== seqRef.current) return;
       if (data.messages) setMessages(data.messages);
       if (data.thread?.status) setStatusNow(data.thread.status);
       const nextWho = data.thread?.displayName || data.thread?.contactEmail;
       if (nextWho) setWho(nextWho);
+      setBooted(true);
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
     } finally {
@@ -71,22 +79,27 @@ export function ContactThreadChat({
   });
 
   useEffect(() => {
-    setMessages(initialMessages);
-  }, [initialMessages]);
-
-  useEffect(() => {
+    seqRef.current += 1;
+    setMessages(initialMessages ?? []);
     setStatusNow(status);
-  }, [status]);
+    setWho(title ?? "訪客");
+    setDraft("");
+    setError(null);
+    setBooted((initialMessages?.length ?? 0) > 0);
+    void load();
+    const t = window.setInterval(() => void load(), 3000);
+    return () => {
+      window.clearInterval(t);
+      abortRef.current?.abort();
+    };
+    // Only reload when switching conversations. initialMessages is a new [] each
+    // render if omitted, which used to wipe the loaded history.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- threadId is the conversation identity
+  }, [threadId]);
 
   useEffect(() => {
     if (title) setWho(title);
   }, [title]);
-
-  useEffect(() => {
-    void load();
-    const t = window.setInterval(() => void load(), 3000);
-    return () => window.clearInterval(t);
-  }, [threadId]);
 
   useEffect(() => {
     scrollToBottom();
@@ -144,31 +157,35 @@ export function ContactThreadChat({
       <div
         ref={listRef}
         aria-live="polite"
-        className={`flex-1 space-y-3 overflow-y-auto ${compact ? "bg-slate-50 p-3" : "p-4"}`}
+        className={`min-h-0 flex-1 space-y-3 overflow-y-auto ${compact ? "bg-slate-50 p-3" : "p-4"}`}
       >
-        {messages.map((m) => {
-          const admin = m.senderKind === "ADMIN";
-          return (
-            <div
-              key={m.id}
-              className={`rounded-xl px-3 py-2 text-sm ${
-                admin
-                  ? compact
-                    ? "ml-8 rounded-br-md bg-brand-navy text-white"
-                    : "ml-8 bg-brand-navy text-white"
-                  : compact
-                    ? "mr-8 rounded-bl-md border border-slate-200 bg-white text-slate-700"
-                    : "mr-8 border border-slate-100 bg-slate-50 text-slate-700"
-              }`}
-            >
-              <div className="mb-1 flex justify-between gap-2 text-[10px] opacity-70">
-                <span>{admin ? "你" : "訪客"}</span>
-                <time>{formatContactTime(m.createdAt)}</time>
+        {!booted && messages.length === 0 ? (
+          <p className="py-6 text-center text-xs text-slate-400">載入中…</p>
+        ) : (
+          messages.map((m) => {
+            const admin = m.senderKind === "ADMIN";
+            return (
+              <div
+                key={m.id}
+                className={`rounded-xl px-3 py-2 text-sm ${
+                  admin
+                    ? compact
+                      ? "ml-8 rounded-br-md bg-brand-navy text-white"
+                      : "ml-8 bg-brand-navy text-white"
+                    : compact
+                      ? "mr-8 rounded-bl-md border border-slate-200 bg-white text-slate-700"
+                      : "mr-8 border border-slate-100 bg-slate-50 text-slate-700"
+                }`}
+              >
+                <div className="mb-1 flex justify-between gap-2 text-[10px] opacity-70">
+                  <span>{admin ? "你" : "訪客"}</span>
+                  <time>{formatContactTime(m.createdAt)}</time>
+                </div>
+                <p className="whitespace-pre-wrap leading-relaxed">{m.body}</p>
               </div>
-              <p className="whitespace-pre-wrap leading-relaxed">{m.body}</p>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
 
       {statusNow === "OPEN" ? (

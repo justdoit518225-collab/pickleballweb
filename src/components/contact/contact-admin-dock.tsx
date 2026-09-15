@@ -57,11 +57,12 @@ export function ContactAdminDock() {
     <div className="pointer-events-none fixed right-4 bottom-4 z-50 flex flex-col items-end gap-3 sm:right-6 sm:bottom-6">
       {inboxOpen ? (
         <div className="pointer-events-auto flex h-[min(32rem,calc(100dvh-2rem))] w-[min(22rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10">
-          {active ? (
+          {activeId ? (
             <ContactThreadChat
-              threadId={active.id}
-              status={active.status}
-              title={active.who}
+              key={activeId}
+              threadId={activeId}
+              status={active?.status ?? "OPEN"}
+              title={active?.who}
               compact
               onBack={() => setActiveId(null)}
               onClose={() => {

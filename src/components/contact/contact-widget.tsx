@@ -66,7 +66,10 @@ function ContactVisitorWidget() {
       if (!res.ok) return;
       const data = (await res.json()) as ThreadPayload;
       const next = data.messages ?? [];
-      setMessages(next);
+      setMessages((prev) => {
+        if (next.length === 0 && prev.length > 0 && !data.thread) return prev;
+        return next;
+      });
       setStatus(data.thread?.status ?? "OPEN");
       if (opts.markRead) {
         setUnread(0);
