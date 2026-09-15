@@ -16,6 +16,7 @@ export type ContactInboxThreadDto = {
   status: ContactThreadStatus;
   adminUnread: number;
   lastMessageAt: string;
+  messages: ContactMessageDto[];
 };
 
 export function formatContactTime(iso: string) {

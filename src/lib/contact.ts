@@ -90,14 +90,14 @@ export async function listAdminInboxThreads() {
     include: {
       user: { select: { name: true, email: true } },
       messages: {
-        orderBy: { createdAt: "desc" },
-        take: 1,
-        select: { body: true, senderKind: true },
+        orderBy: { createdAt: "asc" },
+        take: 100,
+        select: { id: true, body: true, senderKind: true, createdAt: true },
       },
     },
   });
   return threads.map((t) => {
-    const last = t.messages[0];
+    const last = t.messages[t.messages.length - 1];
     return {
       id: t.id,
       who: contactThreadWho(t),
@@ -106,6 +106,7 @@ export async function listAdminInboxThreads() {
       status: t.status,
       adminUnread: t.adminUnread,
       lastMessageAt: t.lastMessageAt.toISOString(),
+      messages: t.messages.map(toContactMessageDto),
     };
   });
 }

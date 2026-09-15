@@ -63,6 +63,7 @@ export function ContactAdminDock() {
               threadId={activeId}
               status={active?.status ?? "OPEN"}
               title={active?.who}
+              initialMessages={active?.messages}
               compact
               onBack={() => setActiveId(null)}
               onClose={() => {
@@ -72,7 +73,7 @@ export function ContactAdminDock() {
             />
           ) : (
             <>
-              <div className="flex items-center justify-between bg-brand-navy px-4 py-3 text-white">
+              <div className="flex shrink-0 items-center justify-between bg-brand-navy px-4 py-3 text-white">
                 <div>
                   <p className="text-sm font-semibold">訪客訊息</p>
                   <p className="text-xs text-white/75">
@@ -92,7 +93,7 @@ export function ContactAdminDock() {
                   <X className="h-4 w-4" />
                 </button>
               </div>
-              <ul className="flex-1 overflow-y-auto bg-slate-50">
+              <ul className="min-h-0 flex-1 overflow-y-auto bg-slate-50">
                 {loading && threads.length === 0 ? (
                   <li className="px-4 py-8 text-center text-xs text-slate-400">載入中…</li>
                 ) : threads.length === 0 ? (

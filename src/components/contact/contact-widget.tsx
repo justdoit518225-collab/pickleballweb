@@ -162,8 +162,8 @@ function ContactVisitorWidget() {
   return (
     <div className="pointer-events-none fixed right-4 bottom-4 z-50 flex flex-col items-end gap-3 sm:right-6 sm:bottom-6">
       {open ? (
-        <div className="pointer-events-auto flex h-[min(32rem,calc(100dvh-2rem))] w-[min(22rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10">
-          <div className="flex items-center justify-between bg-brand-navy px-4 py-3 text-white">
+        <div className="pointer-events-auto flex h-[min(32rem,calc(100dvh-2rem))] w-[min(22rem,calc(100vw-2rem))] min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-900/10">
+          <div className="flex shrink-0 items-center justify-between bg-brand-navy px-4 py-3 text-white">
             <div>
               <p className="text-sm font-semibold">聯繫我們</p>
               <p className="text-xs text-white/75">留言後我們會盡快回覆</p>
@@ -178,7 +178,7 @@ function ContactVisitorWidget() {
             </button>
           </div>
 
-          <div className="border-b border-slate-100 px-3 py-2">
+          <div className="shrink-0 border-b border-slate-100 px-3 py-2">
             {editIdentity ? (
               <div className="space-y-2">
                 <input
@@ -211,8 +211,9 @@ function ContactVisitorWidget() {
           <div
             ref={listRef}
             aria-live="polite"
-            className="flex-1 space-y-2 overflow-y-auto bg-slate-50 px-3 py-3"
+            className="min-h-0 flex-1 overflow-y-auto bg-slate-50 px-3 py-3"
           >
+            <div className="space-y-2">
             {loading && messages.length === 0 ? (
               <p className="text-center text-xs text-slate-400">載入中…</p>
             ) : messages.length === 0 ? (
@@ -255,9 +256,10 @@ function ContactVisitorWidget() {
                 對話已結束，傳送新訊息即可繼續。
               </p>
             ) : null}
+            </div>
           </div>
 
-          <form onSubmit={onSubmit} className="border-t border-slate-100 bg-white p-3">
+          <form onSubmit={onSubmit} className="shrink-0 border-t border-slate-100 bg-white p-3">
             {error ? <p className="mb-2 text-xs text-rose-600">{error}</p> : null}
             <div className="flex items-end gap-2">
               <textarea
