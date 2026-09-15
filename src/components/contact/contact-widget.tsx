@@ -2,7 +2,9 @@
 
 import { FormEvent, KeyboardEvent, useEffect, useEffectEvent, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { MessageCircle, Send, X } from "lucide-react";
+import { ContactAdminDock } from "@/components/contact/contact-admin-dock";
 import {
   formatContactTime,
   type ContactMessageDto,
@@ -20,6 +22,14 @@ type ThreadPayload = {
 };
 
 export function ContactWidget() {
+  const { data: session } = useSession();
+  if (session?.user?.platformRole === "SUPER_ADMIN") {
+    return <ContactAdminDock />;
+  }
+  return <ContactVisitorWidget />;
+}
+
+function ContactVisitorWidget() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);

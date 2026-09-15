@@ -8,6 +8,16 @@ export type ContactMessageDto = {
   createdAt: string;
 };
 
+export type ContactInboxThreadDto = {
+  id: string;
+  who: string;
+  preview: string | null;
+  lastFromAdmin: boolean;
+  status: ContactThreadStatus;
+  adminUnread: number;
+  lastMessageAt: string;
+};
+
 export function formatContactTime(iso: string) {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";

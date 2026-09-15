@@ -24,7 +24,7 @@ export default async function PlatformContactPage() {
       <ContactInboxRefresher />
       <h1 className="text-xl font-bold text-brand-navy">站內聯繫</h1>
       <p className="mt-1 text-sm text-slate-600">
-        訪客透過右下角浮框留言，可在此回覆。此頁會自動更新。
+        訪客從右下角浮框留言。你也可以直接點右下角圖示，點進每位訪客的視窗回覆。
       </p>
 
       <ul className="mt-6 divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">

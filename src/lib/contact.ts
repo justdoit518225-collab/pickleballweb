@@ -75,6 +75,41 @@ export async function findVisitorThread(opts: {
   return null;
 }
 
+export function contactThreadWho(t: {
+  displayName: string | null;
+  contactEmail: string | null;
+  user?: { name: string | null; email: string | null } | null;
+}) {
+  return t.displayName || t.user?.name || t.contactEmail || t.user?.email || "訪客";
+}
+
+export async function listAdminInboxThreads() {
+  const threads = await prisma.contactThread.findMany({
+    orderBy: { lastMessageAt: "desc" },
+    take: 50,
+    include: {
+      user: { select: { name: true, email: true } },
+      messages: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { body: true, senderKind: true },
+      },
+    },
+  });
+  return threads.map((t) => {
+    const last = t.messages[0];
+    return {
+      id: t.id,
+      who: contactThreadWho(t),
+      preview: last?.body ?? null,
+      lastFromAdmin: last?.senderKind === "ADMIN",
+      status: t.status,
+      adminUnread: t.adminUnread,
+      lastMessageAt: t.lastMessageAt.toISOString(),
+    };
+  });
+}
+
 export function toContactMessageDto(m: {
   id: string;
   body: string;

@@ -19,12 +19,13 @@ async function requireAdmin() {
 }
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { error } = await requireAdmin();
   if (error) return error;
 
+  const peek = new URL(req.url).searchParams.get("peek") === "1";
   const { id } = await params;
   const thread = await prisma.contactThread.findUnique({ where: { id } });
   if (!thread) {
@@ -32,7 +33,8 @@ export async function GET(
   }
 
   const messages = await listThreadMessages(id);
-  if (thread.adminUnread > 0) {
+  const adminUnread = thread.adminUnread;
+  if (!peek && adminUnread > 0) {
     await prisma.contactThread.update({
       where: { id },
       data: { adminUnread: 0 },
@@ -45,7 +47,7 @@ export async function GET(
       status: thread.status,
       displayName: thread.displayName,
       contactEmail: thread.contactEmail,
-      adminUnread: 0,
+      adminUnread: peek ? adminUnread : 0,
     },
     messages: messages.map(toContactMessageDto),
   });
