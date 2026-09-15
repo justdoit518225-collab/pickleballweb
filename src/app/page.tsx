@@ -106,7 +106,9 @@ export default async function HomePage({
           {privateFocus === "1" ? <ScrollToId id="private-club" /> : null}
           <h3 className="font-medium text-slate-800">私人俱樂部</h3>
           <p className="mt-1 text-sm text-slate-600">
-            須先以 Google 或 LINE 登入會員；登入後輸入邀請碼即可加入（不會顯示於上方列表）。
+            {session?.user
+              ? "請輸入邀請碼加入（不會顯示於上方列表）。"
+              : "不會顯示於上方列表。請先登入，再輸入邀請碼加入。"}
           </p>
           <PrivateClubEntry
             error={privateError}

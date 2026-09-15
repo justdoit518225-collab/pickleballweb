@@ -28,14 +28,11 @@ export function PrivateClubEntry({
   if (!isLoggedIn) {
     return (
       <div className="mt-4 space-y-2">
-        <p className="text-sm text-slate-600">
-          請先以 Google 或 LINE 登入成為會員，才能輸入邀請碼加入私人俱樂部。
-        </p>
         <Link
           href={ROUTES.loginWithCallback(`${ROUTES.home}?private=1`)}
           className="inline-flex rounded-lg bg-brand-navy px-4 py-2 text-sm font-medium text-white hover:opacity-90"
         >
-          登入後再加入
+          使用 Google / LINE 登入
         </Link>
         {error ? (
           <p className="text-sm text-red-600" role="alert">
