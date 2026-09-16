@@ -12,6 +12,7 @@ type Props = {
   memberPriceTwd?: number | null;
   memberPriceNote?: string | null;
   joinHref: string;
+  joinCtaLabel: string;
   /** catalog = 緊湊；detail = 標題下大字 */
   variant?: "catalog" | "detail" | "spec";
 };
@@ -24,6 +25,7 @@ export function PaddlePriceDisplay({
   memberPriceTwd,
   memberPriceNote,
   joinHref,
+  joinCtaLabel,
   variant = "catalog",
 }: Props) {
   const hasUsd = listPriceUsd != null;
@@ -77,7 +79,7 @@ export function PaddlePriceDisplay({
         ) : (
           <p className="text-[11px] leading-snug text-brand-teal">
             <Link href={joinHref} className="font-medium hover:underline">
-              登入並加入俱樂部取得優惠價格
+              {joinCtaLabel}
             </Link>
           </p>
         )}
@@ -117,7 +119,7 @@ export function PaddlePriceDisplay({
           ) : (
             <p className="text-sm font-normal text-brand-teal">
               <Link href={joinHref} className="hover:underline">
-                登入並加入俱樂部取得優惠價格
+                {joinCtaLabel}
               </Link>
             </p>
           )}
@@ -158,7 +160,7 @@ export function PaddlePriceDisplay({
       ) : (
         <p className="text-sm text-brand-teal">
           <Link href={joinHref} className="font-semibold hover:underline">
-            登入並加入俱樂部取得優惠價格
+            {joinCtaLabel}
           </Link>
         </p>
       )}

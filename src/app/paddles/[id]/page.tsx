@@ -84,6 +84,7 @@ export default async function PaddleDetailPage({
               memberPriceTwd={paddle.memberPriceTwd}
               memberPriceNote={paddle.memberPriceNote}
               joinHref={deal.joinHref}
+              joinCtaLabel={deal.joinCtaLabel}
               variant="detail"
             />
           </header>
@@ -134,6 +135,7 @@ export default async function PaddleDetailPage({
               memberPriceTwd={paddle.memberPriceTwd}
               memberPriceNote={paddle.memberPriceNote}
               joinHref={deal.joinHref}
+              joinCtaLabel={deal.joinCtaLabel}
               variant="spec"
             />
           </dl>

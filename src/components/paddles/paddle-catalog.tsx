@@ -52,11 +52,13 @@ export function PaddleCatalog({
   paddlesByBrand,
   showMemberPrice,
   joinHref,
+  joinCtaLabel,
 }: {
   brands: string[];
   paddlesByBrand: Record<string, PaddleListItem[]>;
   showMemberPrice: boolean;
   joinHref: string;
+  joinCtaLabel: string;
 }) {
   const [brand, setBrand] = useState(ALL_BRAND);
   const [query, setQuery] = useState("");
@@ -160,6 +162,7 @@ export function PaddleCatalog({
                 showBrand={brand === ALL_BRAND}
                 showMemberPrice={showMemberPrice}
                 joinHref={joinHref}
+                joinCtaLabel={joinCtaLabel}
               />
             </li>
           ))}
@@ -176,11 +179,13 @@ function PaddleCard({
   showBrand = false,
   showMemberPrice,
   joinHref,
+  joinCtaLabel,
 }: {
   paddle: PaddleListItem;
   showBrand?: boolean;
   showMemberPrice: boolean;
   joinHref: string;
+  joinCtaLabel: string;
 }) {
   const isLuzz = paddle.brand === "LUZZ";
   const title = isLuzz ? paddle.nameEn : paddle.nameZh;
@@ -215,6 +220,7 @@ function PaddleCard({
           memberPriceTwd={paddle.memberPriceTwd}
           memberPriceNote={paddle.memberPriceNote}
           joinHref={joinHref}
+          joinCtaLabel={joinCtaLabel}
           variant="catalog"
         />
       </div>

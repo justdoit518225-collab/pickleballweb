@@ -6,10 +6,17 @@ export type PaddleDealPriceContext = {
   showMemberPrice: boolean;
   dealClubSlug: string;
   dealClubName: string;
-  /** 未入會 CTA 連結：公開館進首頁；私人館進邀請碼頁 */
+  /** 未入會 CTA 連結 */
   joinHref: string;
+  /** 未入會 CTA 文案 */
+  joinCtaLabel: string;
 };
 
+/**
+ * 球拍優惠 CTA：
+ * - 未登入 → 登入頁（登入後回到邀請碼／俱樂部入口）
+ * - 已登入但未入會 → 私人館邀請碼頁／公開館首頁
+ */
 export async function getPaddleDealPriceContext(): Promise<PaddleDealPriceContext> {
   const slug = PADDLE_DEAL_TENANT_SLUG;
   const tenant = await prisma.tenant.findUnique({
@@ -18,8 +25,9 @@ export async function getPaddleDealPriceContext(): Promise<PaddleDealPriceContex
   });
 
   const dealClubName = tenant?.displayName ?? "俱樂部";
-  const accessHref =
-    tenant?.visibility === "PRIVATE"
+  /** 加入目標：私人館一律走邀請碼頁 */
+  const joinTargetHref =
+    !tenant || tenant.visibility === "PRIVATE"
       ? ROUTES.tenantAccess(slug)
       : ROUTES.tenant(slug);
 
@@ -28,7 +36,8 @@ export async function getPaddleDealPriceContext(): Promise<PaddleDealPriceContex
       showMemberPrice: false,
       dealClubSlug: slug,
       dealClubName,
-      joinHref: ROUTES.loginWithCallback(accessHref),
+      joinHref: ROUTES.loginWithCallback(joinTargetHref),
+      joinCtaLabel: "登入並加入俱樂部取得優惠價格",
     };
   }
 
@@ -39,11 +48,10 @@ export async function getPaddleDealPriceContext(): Promise<PaddleDealPriceContex
       showMemberPrice: false,
       dealClubSlug: slug,
       dealClubName,
-      joinHref: ROUTES.loginWithCallback(accessHref),
+      joinHref: ROUTES.loginWithCallback(joinTargetHref),
+      joinCtaLabel: "登入並加入俱樂部取得優惠價格",
     };
   }
-
-  const joinHref = accessHref;
 
   const membership = await prisma.tenantMembership.findUnique({
     where: {
@@ -52,10 +60,13 @@ export async function getPaddleDealPriceContext(): Promise<PaddleDealPriceContex
     select: { isBanned: true },
   });
 
+  const isMember = Boolean(membership && !membership.isBanned);
+
   return {
-    showMemberPrice: Boolean(membership && !membership.isBanned),
+    showMemberPrice: isMember,
     dealClubSlug: slug,
     dealClubName,
-    joinHref,
+    joinHref: joinTargetHref,
+    joinCtaLabel: "加入俱樂部取得優惠價格",
   };
 }

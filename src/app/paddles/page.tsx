@@ -32,6 +32,7 @@ export default async function PaddlesPage() {
       paddlesByBrand={paddlesByBrand}
       showMemberPrice={deal.showMemberPrice}
       joinHref={deal.joinHref}
+      joinCtaLabel={deal.joinCtaLabel}
     />
   );
 }
