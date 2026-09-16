@@ -12,10 +12,13 @@ export type PaddleDealPriceContext = {
   joinCtaLabel: string;
 };
 
+/** 首頁私人俱樂部邀請碼區塊（不暴露 tenant slug） */
+const HOME_PRIVATE_JOIN_HREF = `${ROUTES.home}?private=1`;
+
 /**
  * 球拍優惠 CTA：
- * - 未登入 → 登入頁（登入後回到邀請碼／俱樂部入口）
- * - 已登入但未入會 → 私人館邀請碼頁／公開館首頁
+ * - 未登入 → 登入頁（登入後回首頁輸入邀請碼）
+ * - 已登入但未入會 → 首頁邀請碼區塊（不直接連到 /t/{slug}）
  */
 export async function getPaddleDealPriceContext(): Promise<PaddleDealPriceContext> {
   const slug = PADDLE_DEAL_TENANT_SLUG;
@@ -25,10 +28,13 @@ export async function getPaddleDealPriceContext(): Promise<PaddleDealPriceContex
   });
 
   const dealClubName = tenant?.displayName ?? "俱樂部";
-  /** 加入目標：私人館一律走邀請碼頁 */
+  /**
+   * 私人館：走首頁邀請碼，使用者只需知道邀請碼，不必知道 slug。
+   * 公開館：可直接進俱樂部頁。
+   */
   const joinTargetHref =
     !tenant || tenant.visibility === "PRIVATE"
-      ? ROUTES.tenantAccess(slug)
+      ? HOME_PRIVATE_JOIN_HREF
       : ROUTES.tenant(slug);
 
   if (!tenant) {
