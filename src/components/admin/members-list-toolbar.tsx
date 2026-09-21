@@ -39,7 +39,7 @@ export function MembersListToolbar({
             name="q"
             type="search"
             defaultValue={q}
-            placeholder="姓名、Email、暱稱…"
+            placeholder="姓名、Email、暱稱、LINE ID…"
             className="mt-1 w-full min-w-[160px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
           />
         </div>

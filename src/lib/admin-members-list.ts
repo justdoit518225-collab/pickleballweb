@@ -39,9 +39,36 @@ export function buildMemberWhere(
       { nickname: { contains: q, mode: "insensitive" } },
       { user: { name: { contains: q, mode: "insensitive" } } },
       { user: { email: { contains: q, mode: "insensitive" } } },
+      {
+        user: {
+          accounts: {
+            some: { provider: "line", providerAccountId: { contains: q, mode: "insensitive" } },
+          },
+        },
+      },
+      {
+        user: {
+          notificationPreferences: {
+            some: { tenantId, lineUserId: { contains: q, mode: "insensitive" } },
+          },
+        },
+      },
     ];
   }
   return where;
+}
+
+export type MemberLineLookup = {
+  accounts: { providerAccountId: string }[];
+  notificationPreferences: { lineUserId: string | null; lineLinked: boolean }[];
+};
+
+/** LINE 登入帳號 ID：優先 OAuth Account，其次該場館通知綁定。 */
+export function resolveMemberLineUserId(user: MemberLineLookup): string | null {
+  const fromAccount = user.accounts[0]?.providerAccountId?.trim();
+  if (fromAccount) return fromAccount;
+  const fromPref = user.notificationPreferences.find((p) => p.lineUserId?.trim())?.lineUserId?.trim();
+  return fromPref || null;
 }
 
 export function memberListSkip(page: number, pageSize: number, view: MemberListView) {
