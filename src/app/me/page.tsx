@@ -16,7 +16,7 @@ export default async function MeOverviewPage({
 
   const isSuperAdmin = session!.user!.platformRole === "SUPER_ADMIN";
 
-  const [memberships, dupr, staffRoles, allTenantsForSuper, accountUser] = await Promise.all([
+  const [memberships, staffRoles, allTenantsForSuper, accountUser] = await Promise.all([
     prisma.tenantMembership.findMany({
       where: { userId },
       include: {
@@ -31,7 +31,6 @@ export default async function MeOverviewPage({
       },
       orderBy: { joinedAt: "desc" },
     }),
-    prisma.duprProfile.findUnique({ where: { userId } }),
     prisma.tenantStaffRole.findMany({
       where: { userId },
       include: { tenant: true },
@@ -59,7 +58,7 @@ export default async function MeOverviewPage({
     : [...new Map(staffRoles.map((r) => [r.tenant.id, r.tenant])).values()];
 
   return (
-    <div className="grid gap-6 md:grid-cols-2">
+    <div className="space-y-6">
       <section className="rounded-xl border border-slate-200 bg-white p-5">
         <div className="flex items-center gap-4">
           <Avatar src={session!.user!.image} name={session!.user!.name ?? "會員"} />
@@ -95,43 +94,6 @@ export default async function MeOverviewPage({
       </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <h2 className="font-semibold">DUPR 狀態</h2>
-        {dupr?.linkStatus === "LINKED" ? (
-          <dl className="mt-3 space-y-1 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-slate-500">名稱</dt>
-              <dd>{dupr.duprName ?? "—"}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-slate-500">單打</dt>
-              <dd>{dupr.singlesRating?.toString() ?? "—"}</dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-slate-500">雙打</dt>
-              <dd>{dupr.doublesRating?.toString() ?? "—"}</dd>
-            </div>
-          </dl>
-        ) : (
-          <p className="mt-2 text-sm text-slate-600">
-            尚未連結 DUPR。
-            <Link href={ROUTES.meDupr} className="ml-1 text-brand-navy">
-              前往設定
-            </Link>
-          </p>
-        )}
-      </section>
-
-      <section className="rounded-xl border border-brand-teal/30 bg-brand-teal-soft p-5 md:col-span-2">
-        <h2 className="font-semibold text-brand-navy">影片估算實力等級</h2>
-        <p className="mt-2 text-sm text-slate-600">
-          上傳對打精華後估算技術等級。若已連結官方 DUPR，可把影片標成訓練樣本，讓模型愈來愈準。
-        </p>
-        <Link href={ROUTES.meSkillEstimate} className="btn-brand mt-3 inline-flex">
-          前往實力估算
-        </Link>
-      </section>
-
-      <section className="col-span-full rounded-xl border border-slate-200 bg-white p-5">
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div>
             <h2 className="text-lg font-semibold text-slate-900">已加入的場館</h2>

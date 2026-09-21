@@ -10,9 +10,6 @@ const nav = [
   { href: ROUTES.meInbox, label: "通知收件匣" },
   { href: ROUTES.meProfile, label: "個人資料" },
   { href: ROUTES.meAccounts, label: "登入方式" },
-  { href: ROUTES.meDupr, label: "DUPR" },
-  { href: ROUTES.meSkillEstimate, label: "實力估算" },
-  { href: ROUTES.meNotifications, label: "通知設定" },
 ] as const;
 
 function isNavActive(pathname: string, href: string) {

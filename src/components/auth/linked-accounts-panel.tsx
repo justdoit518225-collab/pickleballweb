@@ -3,11 +3,7 @@
 import { signIn } from "next-auth/react";
 import { useTransition } from "react";
 import { unlinkOAuthAccount } from "@/app/me/account-actions";
-import {
-  OAUTH_PROVIDER_LABELS,
-  type OAuthProviderId,
-  maskProviderAccountId,
-} from "@/lib/oauth-providers";
+import { OAUTH_PROVIDER_LABELS, type OAuthProviderId } from "@/lib/oauth-providers";
 import { ROUTES } from "@/lib/constants";
 
 export type LinkedAccountView = {
@@ -82,9 +78,7 @@ export function LinkedAccountsPanel({
               <div>
                 <p className="font-medium text-slate-800">{label}</p>
                 {linked ? (
-                  <p className="mt-0.5 text-xs text-slate-500">
-                    已連結 · ID {maskProviderAccountId(linked.providerAccountId)}
-                  </p>
+                  <p className="mt-0.5 text-xs text-slate-500">已連結</p>
                 ) : (
                   <p className="mt-0.5 text-xs text-slate-500">尚未連結</p>
                 )}
@@ -117,10 +111,6 @@ export function LinkedAccountsPanel({
           );
         })}
       </ul>
-
-      <p className="text-xs text-slate-500">
-        請先使用目前已連結的方式登入，再於此頁連結其他平台。至少需保留一種登入方式，以免無法再登入。
-      </p>
     </div>
   );
 }
