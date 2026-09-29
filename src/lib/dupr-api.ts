@@ -269,3 +269,62 @@ export function isDuprApiConfigured(): boolean {
       (process.env.DUPR_CLIENT_ID?.trim() && process.env.DUPR_CLIENT_SECRET?.trim()),
   );
 }
+
+export type DuprMatchTeamPayload = {
+  player1: string;
+  player2: string;
+  game1: number;
+};
+
+export type DuprMatchPayload = {
+  identifier: string;
+  matchSource: "CLUB";
+  format: "DOUBLES";
+  event: string;
+  location: string | null;
+  matchDate: string;
+  teamA: DuprMatchTeamPayload;
+  teamB: DuprMatchTeamPayload;
+};
+
+export class DuprUploadUnavailableError extends Error {}
+
+/** 比賽上傳端點待 DUPR 開通 API 通道後設定 DUPR_MATCH_UPLOAD_URL */
+export function isDuprMatchUploadConfigured(): boolean {
+  return Boolean(process.env.DUPR_MATCH_UPLOAD_URL?.trim()) && isDuprApiConfigured();
+}
+
+export async function submitDuprMatchBatch(
+  matches: DuprMatchPayload[],
+): Promise<{ submitted: number; raw: unknown }> {
+  const url = process.env.DUPR_MATCH_UPLOAD_URL?.trim();
+  if (!url || !isDuprApiConfigured()) {
+    throw new DuprUploadUnavailableError("DUPR 比賽上傳 API 尚未開通，資料已保留，開通後可重新上傳");
+  }
+  const token = await getBearerToken();
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ matches }),
+    cache: "no-store",
+  });
+  const text = await res.text();
+  let raw: unknown = text;
+  try {
+    raw = text ? JSON.parse(text) : null;
+  } catch {
+    // 保留原始文字
+  }
+  if (!res.ok) {
+    const message =
+      raw && typeof raw === "object" && "message" in raw
+        ? String((raw as { message: unknown }).message)
+        : `DUPR 上傳失敗 (${res.status})`;
+    throw new Error(message);
+  }
+  return { submitted: matches.length, raw };
+}

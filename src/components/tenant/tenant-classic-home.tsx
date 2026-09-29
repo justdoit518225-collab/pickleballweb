@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { sumPartySize } from "@/lib/activity-capacity";
 import { formatActivityDateTime } from "@/lib/format-datetime";
+import { prisma } from "@/lib/prisma";
 import { countTenantUpcomingRentals } from "@/lib/rental-service";
 import { getPublishedActivities } from "@/lib/tenant";
 import { activityKindBadgeVariant, adminActivityKindLabel, ROUTES } from "@/lib/constants";
@@ -17,9 +18,10 @@ type TenantWithVenues = {
 /** 傳統場館首頁（Active 等租戶）：球敘 / 課程 / 看板入口 + 活動列表 */
 export async function TenantClassicHome({ tenant }: { tenant: TenantWithVenues }) {
   const tenantSlug = tenant.slug;
-  const [activities, rentalCount] = await Promise.all([
+  const [activities, rentalCount, liveDuprCount] = await Promise.all([
     getPublishedActivities(tenant.id),
     countTenantUpcomingRentals(tenant.id),
+    prisma.duprEvent.count({ where: { tenantId: tenant.id, status: "SCHEDULED" } }),
   ]);
 
   return (
@@ -32,6 +34,14 @@ export async function TenantClassicHome({ tenant }: { tenant: TenantWithVenues }
       </header>
 
       <nav className="mt-6 flex flex-wrap gap-2">
+        {liveDuprCount > 0 && (
+          <Link
+            href={ROUTES.tenantDuprEvents(tenantSlug)}
+            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
+          >
+            DUPR 計分（進行中 {liveDuprCount}）
+          </Link>
+        )}
         <Link
           href={ROUTES.tenantActivities(tenantSlug, "open-play")}
           className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm"

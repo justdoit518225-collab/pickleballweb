@@ -38,6 +38,8 @@ model User {
   contactThreads         ContactThread[]
   contactMessagesSent    ContactMessage[]      @relation("ContactMessageSender")
   skillAnalysisJobs      SkillAnalysisJob[]
+  duprEventsCreated      DuprEvent[]             @relation("DuprEventCreator")
+  duprEventsFinalized    DuprEvent[]             @relation("DuprEventFinalizer")
 }
 
 model Account {
@@ -98,6 +100,7 @@ model Tenant {
   notificationPreferences NotificationPreference[]
   reviews                 TenantReview[]
   userNotifications       UserNotification[]
+  duprEvents              DuprEvent[]
 }
 
 model Venue {
@@ -318,6 +321,96 @@ model DuprMatchSubmission {
 
   activity    Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
   submittedBy User     @relation("DuprSubmissionSubmitter", fields: [submittedById], references: [id], onDelete: Cascade)
+}
+
+// ─── DUPR 對戰活動（報名名單 → 輪轉對戰表 → 現場平板計分 → 整批上傳）───────────
+
+model DuprEvent {
+  id            String          @id @default(cuid())
+  tenantId      String
+  title         String
+  startAt       DateTime
+  endAt         DateTime?
+  location      String?
+  source        DuprEventSource @default(MANUAL)
+  /// FitBook 課程 ID（/member/course/{id}/{storeId}）
+  fitbookCourseId String?
+  fitbookUrl      String?
+  courtCount    Int             @default(1)
+  status        DuprEventStatus @default(DRAFT)
+  /// 現場平板計分用 4 碼現場碼
+  scoringPin    String
+  createdById   String?
+  finalizedAt   DateTime?
+  finalizedById String?
+  submittedAt   DateTime?
+  submitError   String?         @db.Text
+  submitPayload Json?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  tenant      Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  createdBy   User?             @relation("DuprEventCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  finalizedBy User?             @relation("DuprEventFinalizer", fields: [finalizedById], references: [id], onDelete: SetNull)
+  players     DuprEventPlayer[]
+  matches     DuprEventMatch[]
+
+  @@index([tenantId, startAt])
+}
+
+model DuprEventPlayer {
+  id          String   @id @default(cuid())
+  eventId     String
+  /// 對戰表編號（1 起算）
+  seq         Int
+  name        String
+  duprId      String?
+  userId      String?
+  fitbookName String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  event DuprEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, seq])
+}
+
+model DuprEventMatch {
+  id          String    @id @default(cuid())
+  eventId     String
+  /// 全場次順序（1 起算）
+  seq         Int
+  round       Int
+  court       Int       @default(1)
+  /// 以下皆為 DuprEventPlayer.seq
+  teamA1      Int
+  teamA2      Int
+  teamB1      Int
+  teamB2      Int
+  resting     Int[]
+  scoreA      Int?
+  scoreB      Int?
+  scoredAt    DateTime?
+  confirmedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  event         DuprEvent               @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  confirmations DuprMatchConfirmation[]
+
+  @@unique([eventId, seq])
+  @@index([eventId, round])
+}
+
+model DuprMatchConfirmation {
+  id          String   @id @default(cuid())
+  matchId     String
+  playerSeq   Int
+  confirmedAt DateTime @default(now())
+
+  match DuprEventMatch @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, playerSeq])
 }
 
 // ─── 影片估算實力等級（非正式 DUPR）────────────────────────────────────────
@@ -566,6 +659,19 @@ enum DuprSubmissionStatus {
   PENDING
   SYNCED
   FAILED
+}
+
+enum DuprEventSource {
+  MANUAL
+  FITBOOK
+  FITBOOK_MOCK
+}
+
+enum DuprEventStatus {
+  DRAFT
+  SCHEDULED
+  FINALIZED
+  SUBMITTED
 }
 
 enum WaitlistStatus {

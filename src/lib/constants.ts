@@ -57,7 +57,15 @@ export const ROUTES = {
     const base = `/t/${slug}/board`;
     return date ? `${base}?date=${date}` : base;
   },
+  tenantDuprEvents: (slug: string) => `/t/${slug}/dupr`,
+  tenantDuprEvent: (slug: string, id: string) => `/t/${slug}/dupr/${id}`,
   tenantAdmin: (slug: string) => `/admin/${slug}`,
+  tenantAdminDuprEvents: (slug: string, date?: string) => {
+    const base = `/admin/${slug}/dupr-events`;
+    return date ? `${base}?date=${date}` : base;
+  },
+  tenantAdminDuprEvent: (slug: string, id: string) => `/admin/${slug}/dupr-events/${id}`,
+  tenantAdminDuprEventCsv: (slug: string, id: string) => `/admin/${slug}/dupr-events/${id}/csv`,
   tenantAdminBoard: (slug: string) => `/admin/${slug}/board`,
   tenantAdminRentals: (slug: string) => `/admin/${slug}/rentals`,
   tenantAdminVenues: (slug: string) => `/admin/${slug}/venues`,
