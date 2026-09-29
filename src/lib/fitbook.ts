@@ -36,6 +36,7 @@ export type FitbookCourse = {
   location: string | null;
   reservationCount: number;
   remainCount: number;
+  capacity: number;
   url: string;
 };
 
@@ -47,6 +48,7 @@ type RawCourse = {
   show_time?: string;
   reservation_count?: number;
   remain_count?: number;
+  order_count?: number;
 };
 
 function parseTimeRange(date: string, showTime: string) {
@@ -89,6 +91,8 @@ export async function fetchFitbookCourses(store: FitbookStore, date: string): Pr
     if (!courseId) return [];
     const name = c.name?.trim() ?? "";
     const showTime = c.show_time ?? "";
+    const reservationCount = Number(c.reservation_count ?? 0);
+    const remainCount = Number(c.remain_count ?? 0);
     return [
       {
         courseId,
@@ -99,8 +103,9 @@ export async function fetchFitbookCourses(store: FitbookStore, date: string): Pr
         showTime,
         ...parseTimeRange(date, showTime),
         location: parseLocation(name),
-        reservationCount: Number(c.reservation_count ?? 0),
-        remainCount: Number(c.remain_count ?? 0),
+        reservationCount,
+        remainCount,
+        capacity: Number(c.order_count ?? reservationCount + remainCount),
         url,
       },
     ];

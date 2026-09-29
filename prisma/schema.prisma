@@ -199,6 +199,9 @@ model Activity {
   duprEventId   String?
   duprEventName String?
 
+  /// 由 FitBook 匯入時的課程 ID（重複匯入以此比對）
+  fitbookCourseId String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -209,6 +212,8 @@ model Activity {
   bookings             Booking[]
   waitlistEntries      WaitlistEntry[]
   duprMatchSubmissions DuprMatchSubmission[]
+
+  @@unique([tenantId, fitbookCourseId])
 }
 
 model Booking {

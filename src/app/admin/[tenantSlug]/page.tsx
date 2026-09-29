@@ -33,7 +33,7 @@ export default async function TenantAdminPage({
   const where = buildAdminActivityWhere(tenant.id, filterParams);
   const orderBy = adminActivityOrderBy(when);
 
-  const { activities, activityTotal, venues, rentalCount } = await withPrisma(async (db) => {
+  const { activities, activityTotal, venues } = await withPrisma(async (db) => {
     const activities = await db.activity.findMany({
       where,
       include: {
@@ -52,10 +52,7 @@ export default async function TenantAdminPage({
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     });
-    const rentalCount = await db.rentalSlot.count({
-      where: { tenantId: tenant.id, startAt: { gte: new Date() } },
-    });
-    return { activities, activityTotal, venues, rentalCount };
+    return { activities, activityTotal, venues };
   });
 
   return (
@@ -65,7 +62,7 @@ export default async function TenantAdminPage({
           已批次建立 {batchCreated} 場活動
         </p>
       )}
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-2">
         <Link
           href={ROUTES.tenantAdminActivityNew(tenantSlug, "open-play")}
           className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-5 shadow-sm hover:border-emerald-200"
@@ -73,23 +70,11 @@ export default async function TenantAdminPage({
           <h2 className="font-semibold text-emerald-800">＋ 球敘活動</h2>
         </Link>
         <Link
-          href={ROUTES.tenantAdminActivityNew(tenantSlug, "course")}
-          className="rounded-xl border border-blue-100 bg-blue-50/50 p-5 shadow-sm hover:border-blue-200"
-        >
-          <h2 className="font-semibold text-blue-800">＋ 課程活動</h2>
-        </Link>
-        <Link
           href={ROUTES.tenantAdminActivityNew(tenantSlug, "dupr")}
           className="rounded-xl border border-indigo-100 bg-indigo-50/50 p-5 shadow-sm hover:border-indigo-200"
         >
           <h2 className="font-semibold text-indigo-800">＋ DUPR 活動</h2>
           <p className="mt-1 text-xs text-indigo-600/90">需連結 DUPR 才可報名</p>
-        </Link>
-        <Link
-          href={ROUTES.tenantAdminRentals(tenantSlug)}
-          className="rounded-xl border border-violet-100 bg-violet-50/50 p-5 shadow-sm hover:border-violet-200"
-        >
-          <h2 className="font-semibold text-violet-800">場地租借 · {rentalCount} 時段</h2>
         </Link>
       </section>
 

@@ -55,7 +55,6 @@ export default async function PlatformPaddleBrandPage({
         <h2 className="font-semibold text-slate-800">新增球拍</h2>
         <form
           action={createPaddle.bind(null, brandId)}
-          encType="multipart/form-data"
           className="mt-4 grid gap-3 sm:grid-cols-2"
         >
           <Field label="中文全名" name="nameZh" required />

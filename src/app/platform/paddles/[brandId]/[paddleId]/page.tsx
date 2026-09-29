@@ -44,7 +44,6 @@ export default async function PlatformPaddleEditPage({
       <section className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
         <form
           action={updatePaddle.bind(null, brandId, paddleId)}
-          encType="multipart/form-data"
           className="grid gap-3 sm:grid-cols-2"
         >
           <Field label="中文全名" name="nameZh" required defaultValue={paddle.nameZh} />

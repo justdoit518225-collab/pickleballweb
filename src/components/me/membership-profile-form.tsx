@@ -51,7 +51,6 @@ export function MembershipProfileForm({
   return (
     <form
       action={updateMembershipProfile}
-      encType="multipart/form-data"
       className="space-y-4 rounded-xl border-2 border-slate-200 bg-white p-5 shadow-sm"
     >
       <input type="hidden" name="tenantId" value={tenantId} />
