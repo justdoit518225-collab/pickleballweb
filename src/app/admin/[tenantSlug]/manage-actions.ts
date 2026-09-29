@@ -3,6 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { getFitbookStore } from "@/lib/fitbook";
+import {
+  clearTenantFitbookCookie,
+  FitbookSessionError,
+  saveTenantFitbookCookie,
+} from "@/lib/fitbook-session";
 import { notifyUser } from "@/lib/notifications";
 import { hashAccessCode } from "@/lib/tenant-access";
 import { prisma } from "@/lib/prisma";
@@ -372,4 +378,40 @@ export async function updateTenantAccessSettings(tenantSlug: string, formData: F
   revalidatePath(ROUTES.tenant(tenantSlug));
   revalidatePath(ROUTES.tenantAdminSettings(tenantSlug));
   redirect(`${ROUTES.tenantAdminSettings(tenantSlug)}?saved=1`);
+}
+
+function fitbookSettingsRedirect(tenantSlug: string, key: "fbSaved" | "fbError", message: string): never {
+  redirect(`${ROUTES.tenantAdminSettings(tenantSlug)}?${key}=${encodeURIComponent(message)}`);
+}
+
+export async function saveFitbookCookie(tenantSlug: string, formData: FormData) {
+  const { tenant } = await assertTenantAdmin(tenantSlug);
+  const store = getFitbookStore(tenantSlug);
+  if (!store) fitbookSettingsRedirect(tenantSlug, "fbError", "此俱樂部尚未對應 FitBook 場館");
+
+  let result: Awaited<ReturnType<typeof saveTenantFitbookCookie>>;
+  try {
+    result = await saveTenantFitbookCookie(tenant.id, store, String(formData.get("cookie") ?? ""));
+  } catch (e) {
+    if (!(e instanceof FitbookSessionError)) throw e;
+    fitbookSettingsRedirect(tenantSlug, "fbError", e.message);
+  }
+
+  revalidatePath(ROUTES.tenantAdminSettings(tenantSlug));
+  revalidatePath(ROUTES.tenantAdminDuprEvents(tenantSlug));
+  fitbookSettingsRedirect(
+    tenantSlug,
+    "fbSaved",
+    result.tested
+      ? `已連線 FitBook${result.accountName ? `（帳號：${result.accountName}）` : ""}`
+      : "已儲存，但近 7 天 FitBook 沒有場次可測試，將在下次匯入時確認",
+  );
+}
+
+export async function clearFitbookCookie(tenantSlug: string) {
+  const { tenant } = await assertTenantAdmin(tenantSlug);
+  await clearTenantFitbookCookie(tenant.id);
+  revalidatePath(ROUTES.tenantAdminSettings(tenantSlug));
+  revalidatePath(ROUTES.tenantAdminDuprEvents(tenantSlug));
+  fitbookSettingsRedirect(tenantSlug, "fbSaved", "已移除 FitBook 連線");
 }

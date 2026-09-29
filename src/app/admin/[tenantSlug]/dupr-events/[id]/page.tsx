@@ -447,7 +447,12 @@ export default async function AdminDuprEventPage({
           message="確定刪除此 DUPR 活動？名單、對戰表與分數將一併刪除。"
           className="text-right"
         >
-          <button type="submit" className="text-xs text-red-600 hover:underline">刪除此活動</button>
+          <button
+            type="submit"
+            className="rounded-lg border border-red-200 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+          >
+            刪除此活動
+          </button>
         </ConfirmForm>
       )}
     </div>

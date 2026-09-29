@@ -28,7 +28,9 @@ import {
   isValidYmd,
   mockFitbookRoster,
   parseFitbookMemberList,
+  type FitbookRosterEntry,
 } from "@/lib/fitbook";
+import { fetchTenantFitbookRoster, FitbookSessionError } from "@/lib/fitbook-session";
 import { MIN_PLAYERS } from "@/lib/dupr-schedule";
 import { prisma } from "@/lib/prisma";
 
@@ -77,10 +79,28 @@ export async function createDuprEventFromFitbook(tenantSlug: string, formData: F
   }
   if (!course) redirect(withQuery(listPath, "error", "FitBook 找不到此場次"));
 
-  const pasted = parseFitbookMemberList(String(formData.get("roster") ?? ""));
-  const isReal = pasted.length > 0;
-  const roster = isReal ? pasted : mockFitbookRoster(course.courseId, course.reservationCount);
-  if (roster.length < MIN_PLAYERS) redirect(withQuery(listPath, "error", `名單至少需要 ${MIN_PLAYERS} 人`));
+  let roster = parseFitbookMemberList(String(formData.get("roster") ?? ""));
+  let origin: "pasted" | "live" | "mock" = "pasted";
+  if (roster.length === 0) {
+    let live: FitbookRosterEntry[] | null = null;
+    try {
+      live = await fetchTenantFitbookRoster(tenant.id, store, course.courseId);
+    } catch (e) {
+      if (!(e instanceof FitbookSessionError)) throw e;
+      redirect(withQuery(listPath, "error", e.message));
+    }
+    if (live) {
+      roster = live;
+      origin = "live";
+    } else {
+      roster = mockFitbookRoster(course.courseId, course.reservationCount);
+      origin = "mock";
+    }
+  }
+  const isReal = origin !== "mock";
+  if (roster.length < MIN_PLAYERS) {
+    redirect(withQuery(listPath, "error", `名單至少需要 ${MIN_PLAYERS} 人（目前 ${roster.length} 人）`));
+  }
   const event = await createDuprEvent({
     tenantId: tenant.id,
     createdById: session.user.id,
@@ -104,7 +124,9 @@ export async function createDuprEventFromFitbook(tenantSlug: string, formData: F
     withQuery(
       ROUTES.tenantAdminDuprEvent(tenantSlug, event.id),
       "saved",
-      `已從 FitBook 匯入 ${roster.length} 位報名者${isReal ? countNote : "（模擬名單）"}`,
+      origin === "live"
+        ? `已從 FitBook 即時抓取 ${roster.length} 位報名者${countNote}`
+        : `已從 FitBook 匯入 ${roster.length} 位報名者${isReal ? countNote : "（模擬名單）"}`,
     ),
   );
 }

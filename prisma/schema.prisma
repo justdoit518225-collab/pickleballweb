@@ -88,6 +88,12 @@ model Tenant {
   visibility     TenantVisibility @default(PUBLIC)
   /// 私人俱樂部邀請碼（SHA-256 hex，不存明文）
   accessCodeHash String?
+  /// FitBook 登入 cookie（AES-256-GCM 加密），用於抓取課程「已預約會員」名單
+  fitbookCookieEnc       String?   @db.Text
+  fitbookAccountName     String?
+  fitbookCookieSetAt     DateTime?
+  fitbookCookieLastOkAt  DateTime?
+  fitbookCookieExpiredAt DateTime?
   isActive       Boolean          @default(true)
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt

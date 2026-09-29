@@ -2,7 +2,9 @@ import Link from "next/link";
 import {
   createDuprEventFromFitbook,
   createDuprEventManual,
+  deleteDuprEvent,
 } from "@/app/admin/[tenantSlug]/dupr-events/actions";
+import { ConfirmForm } from "@/components/admin/confirm-form";
 import { Badge } from "@/components/ui/badge";
 import { requireTenantStaff } from "@/lib/authz";
 import { ROUTES } from "@/lib/constants";
@@ -14,6 +16,7 @@ import {
   isValidYmd,
   type FitbookCourse,
 } from "@/lib/fitbook";
+import { getFitbookConnection } from "@/lib/fitbook-session";
 import { formatTaipeiDateTime } from "@/lib/format-datetime";
 import { prisma } from "@/lib/prisma";
 import { getTaipeiYmd } from "@/lib/venue-timezone";
@@ -34,8 +37,9 @@ export default async function AdminDuprEventsPage({
 }) {
   const { tenantSlug } = await params;
   const sp = await searchParams;
-  const { tenant } = await requireTenantStaff(tenantSlug);
+  const { tenant, isTenantAdmin } = await requireTenantStaff(tenantSlug);
   const store = getFitbookStore(tenantSlug);
+  const fitbook = store ? await getFitbookConnection(tenant.id) : null;
   const date = sp.date && isValidYmd(sp.date) ? sp.date : getTaipeiYmd(new Date());
 
   let courses: FitbookCourse[] = [];
@@ -102,6 +106,16 @@ export default async function AdminDuprEventsPage({
                   <span className="text-xs tabular-nums text-slate-600">
                     {e._count.players} 人 · 已確認 {confirmed}/{e._count.matches} 場
                   </span>
+                  {e.status !== "SUBMITTED" && (
+                    <ConfirmForm
+                      action={deleteDuprEvent.bind(null, tenantSlug, e.id)}
+                      message={`確定刪除「${e.title}」？名單、對戰表與分數將一併刪除。`}
+                    >
+                      <button type="submit" className="rounded-lg px-2 py-1 text-xs text-red-600 hover:bg-red-50">
+                        刪除
+                      </button>
+                    </ConfirmForm>
+                  )}
                 </li>
               );
             })}
@@ -122,10 +136,28 @@ export default async function AdminDuprEventsPage({
               在 FitBook 開啟 {date} ↗
             </a>
           </div>
-          <p className="mt-1 text-xs text-amber-700">
-            FitBook 的報名者姓名需登入才看得到：登入 FitBook 打開該場次，複製「已預約會員」名單，貼到場次下方的「貼上真實名單」即可匯入真實名單；
-            不貼則依報名人數產生模擬名單（姓名與 DUPR ID 皆為模擬）。
-          </p>
+          {fitbook?.status === "ok" ? (
+            <p className="mt-1 text-xs text-emerald-700">
+              已連線 FitBook{fitbook.accountName ? `（帳號：${fitbook.accountName}）` : ""}：按「匯入名單」會即時抓取該場「已預約會員」。
+              有貼上名單時以貼上的為準。
+            </p>
+          ) : (
+            <p className={`mt-1 text-xs ${fitbook?.status === "expired" ? "text-red-600" : "text-amber-700"}`}>
+              {fitbook?.status === "expired" ? "FitBook 登入已失效，" : "尚未連線 FitBook，"}
+              {isTenantAdmin ? (
+                <>
+                  請到
+                  <Link href={`${ROUTES.tenantAdminSettings(tenantSlug)}#fitbook`} className="underline">
+                    設定 → FitBook 連線
+                  </Link>
+                  貼上登入 Cookie 以即時抓取名單。
+                </>
+              ) : (
+                "請場館管理員到「設定」更新 FitBook 連線。"
+              )}
+              目前可複製 FitBook「已預約會員」貼到場次下方匯入；不貼則依報名人數產生模擬名單。
+            </p>
+          )}
 
           <form method="get" className="mt-4 flex flex-wrap items-end gap-2">
             <label className="text-sm">

@@ -1,7 +1,7 @@
 /**
  * FitBook 約課系統（https://www.fit-book.com.tw）
- * 課程列表為公開 JSON；報名者名單需以場館帳號登入才看得到，
- * 在取得正式存取方式前先以模擬名單代替（人數依 FitBook 實際報名數）。
+ * 課程列表為公開 JSON；報名者名單需以 LINE 登入 FitBook 後才看得到，
+ * 由管理員提供登入 cookie（見 fitbook-session.ts）即時抓取，未設定時可貼上名單或用模擬名單。
  */
 
 const FITBOOK_BASE = "https://www.fit-book.com.tw";
@@ -125,21 +125,62 @@ export type FitbookRosterEntry = { name: string; duprId: string | null };
 
 const MEMBER_LIST_HEADINGS = new Set(["已預約會員", "候補會員"]);
 
-/**
- * 解析從 FitBook 課程頁「已預約會員」複製的文字（一行一位，夾雜空行）。
- * 同一帳號代多人報名時暱稱會重複出現，依序加上 (2)、(3) 區分。
- */
-export function parseFitbookMemberList(text: string): FitbookRosterEntry[] {
+/** 同一帳號代多人報名時暱稱會重複出現，依序加上 (2)、(3) 區分 */
+function numberDuplicateNames(names: string[]): FitbookRosterEntry[] {
   const seen = new Map<string, number>();
-  return text
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter((line) => line && !MEMBER_LIST_HEADINGS.has(line))
-    .map((name) => {
-      const n = (seen.get(name) ?? 0) + 1;
-      seen.set(name, n);
-      return { name: n === 1 ? name : `${name} (${n})`, duprId: null };
-    });
+  return names.map((name) => {
+    const n = (seen.get(name) ?? 0) + 1;
+    seen.set(name, n);
+    return { name: n === 1 ? name : `${name} (${n})`, duprId: null };
+  });
+}
+
+/** 解析從 FitBook 課程頁「已預約會員」複製的文字（一行一位，夾雜空行） */
+export function parseFitbookMemberList(text: string): FitbookRosterEntry[] {
+  return numberDuplicateNames(
+    text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line && !MEMBER_LIST_HEADINGS.has(line)),
+  );
+}
+
+export function fitbookMemberCourseUrl(store: FitbookStore, courseId: string) {
+  return `${FITBOOK_BASE}/${store.urlName}/member/course/${encodeURIComponent(courseId)}/${store.storeId}`;
+}
+
+function decodeHtmlText(s: string) {
+  return s
+    .replace(/<[^>]*>/g, "")
+    .replace(/&#x([0-9a-f]+);/gi, (_, h: string) => String.fromCodePoint(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d: string) => String.fromCodePoint(Number(d)))
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .trim();
+}
+
+export type FitbookCoursePage =
+  | { loggedIn: false }
+  | { loggedIn: true; accountName: string | null; roster: FitbookRosterEntry[] };
+
+/** 解析登入後的 FitBook 課程頁（/member/course/{id}/{storeId}）：「已預約會員」區塊每位一個 <p class="… truncate …"> */
+export function parseFitbookCoursePage(html: string): FitbookCoursePage {
+  if (!html.includes("/member/logout/")) return { loggedIn: false };
+
+  const accountName = decodeHtmlText(html.match(/<option value="">([^<]*?)\s*[（(]自己[)）]\s*<\/option>/)?.[1] ?? "") || null;
+
+  const start = html.indexOf("已預約會員");
+  if (start < 0) return { loggedIn: true, accountName, roster: [] };
+  const end = html.indexOf("<h2", start);
+  const section = html.slice(start, end < 0 ? undefined : end);
+  const names = [...section.matchAll(/<p\s+class="[^"]*\btruncate\b[^"]*"[^>]*>([\s\S]*?)<\/p>/g)]
+    .map((m) => decodeHtmlText(m[1]))
+    .filter(Boolean);
+  return { loggedIn: true, accountName, roster: numberDuplicateNames(names) };
 }
 
 const MOCK_NAMES = [
