@@ -123,8 +123,8 @@ export default async function AdminDuprEventsPage({
             </a>
           </div>
           <p className="mt-1 text-xs text-amber-700">
-            FitBook 尚未開設 DUPR 場次，且報名者姓名需登入才看得到；目前以 {store.label}
-            的真實球敘場次（名稱、時間、報名人數）產生模擬名單，姓名與 DUPR ID（SIM 開頭）皆為模擬。
+            FitBook 的報名者姓名需登入才看得到：登入 FitBook 打開該場次，複製「已預約會員」名單，貼到場次下方的「貼上真實名單」即可匯入真實名單；
+            不貼則依報名人數產生模擬名單（姓名與 DUPR ID 皆為模擬）。
           </p>
 
           <form method="get" className="mt-4 flex flex-wrap items-end gap-2">
@@ -149,37 +149,48 @@ export default async function AdminDuprEventsPage({
           ) : (
             <ul className="mt-4 space-y-2">
               {courses.map((c) => (
-                <li
-                  key={c.courseId}
-                  className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3 text-sm"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-slate-800">{c.name}</p>
-                    <p className="mt-0.5 text-xs text-slate-500">
-                      {c.showTime} · {c.categoryName} · 報名 {c.reservationCount} 人
-                    </p>
-                  </div>
-                  <form action={createDuprEventFromFitbook.bind(null, tenantSlug)} className="flex items-center gap-2">
-                    <input type="hidden" name="date" value={date} />
-                    <input type="hidden" name="courseId" value={c.courseId} />
-                    <label className="flex items-center gap-1 text-xs text-slate-600">
-                      場地數
-                      <input
-                        type="number"
-                        name="courtCount"
-                        min={1}
-                        max={16}
-                        defaultValue={Math.max(1, Math.floor(c.reservationCount / 6))}
-                        className="w-16 rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+                <li key={c.courseId} className="rounded-lg border border-slate-100 bg-slate-50/60 px-4 py-3 text-sm">
+                  <form action={createDuprEventFromFitbook.bind(null, tenantSlug)}>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-slate-800">{c.name}</p>
+                        <p className="mt-0.5 text-xs text-slate-500">
+                          {c.showTime} · {c.categoryName} · 報名 {c.reservationCount} 人 ·{" "}
+                          <a href={c.url} target="_blank" rel="noreferrer" className="text-brand-teal">
+                            FitBook 名單 ↗
+                          </a>
+                        </p>
+                      </div>
+                      <input type="hidden" name="date" value={date} />
+                      <input type="hidden" name="courseId" value={c.courseId} />
+                      <label className="flex items-center gap-1 text-xs text-slate-600">
+                        場地數
+                        <input
+                          type="number"
+                          name="courtCount"
+                          min={1}
+                          max={16}
+                          defaultValue={Math.max(1, Math.floor(c.reservationCount / 6))}
+                          className="w-16 rounded-lg border border-slate-200 px-2 py-1.5 text-sm"
+                        />
+                      </label>
+                      <button
+                        type="submit"
+                        disabled={c.reservationCount === 0}
+                        className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm text-white hover:bg-indigo-700 disabled:bg-slate-300"
+                      >
+                        匯入名單
+                      </button>
+                    </div>
+                    <details className="mt-2">
+                      <summary className="cursor-pointer text-xs text-slate-500">貼上真實名單（選填）</summary>
+                      <textarea
+                        name="roster"
+                        rows={6}
+                        placeholder={"從 FitBook「已預約會員」複製後貼上，一行一位\n重複的暱稱（同帳號代多人報名）會自動編號"}
+                        className="mt-2 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
                       />
-                    </label>
-                    <button
-                      type="submit"
-                      disabled={c.reservationCount === 0}
-                      className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm text-white hover:bg-indigo-700 disabled:bg-slate-300"
-                    >
-                      匯入名單
-                    </button>
+                    </details>
                   </form>
                 </li>
               ))}

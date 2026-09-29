@@ -27,7 +27,9 @@ import {
   getFitbookStore,
   isValidYmd,
   mockFitbookRoster,
+  parseFitbookMemberList,
 } from "@/lib/fitbook";
+import { MIN_PLAYERS } from "@/lib/dupr-schedule";
 import { prisma } from "@/lib/prisma";
 
 function withQuery(path: string, key: "error" | "saved", message: string) {
@@ -75,7 +77,10 @@ export async function createDuprEventFromFitbook(tenantSlug: string, formData: F
   }
   if (!course) redirect(withQuery(listPath, "error", "FitBook 找不到此場次"));
 
-  const roster = mockFitbookRoster(course.courseId, course.reservationCount);
+  const pasted = parseFitbookMemberList(String(formData.get("roster") ?? ""));
+  const isReal = pasted.length > 0;
+  const roster = isReal ? pasted : mockFitbookRoster(course.courseId, course.reservationCount);
+  if (roster.length < MIN_PLAYERS) redirect(withQuery(listPath, "error", `名單至少需要 ${MIN_PLAYERS} 人`));
   const event = await createDuprEvent({
     tenantId: tenant.id,
     createdById: session.user.id,
@@ -83,19 +88,23 @@ export async function createDuprEventFromFitbook(tenantSlug: string, formData: F
     startAt: course.startAt,
     endAt: course.endAt,
     location: course.location,
-    source: "FITBOOK_MOCK",
+    source: isReal ? "FITBOOK" : "FITBOOK_MOCK",
     fitbookCourseId: course.courseId,
     fitbookUrl: fitbookScheduleUrl(store, date),
     courtCount: intField(formData, "courtCount", Math.max(1, Math.floor(roster.length / 6))),
     roster,
   });
 
+  const countNote =
+    isReal && roster.length !== course.reservationCount
+      ? `（FitBook 顯示報名 ${course.reservationCount} 人，請確認名單是否完整）`
+      : "";
   revalidatePath(ROUTES.tenantAdminDuprEvents(tenantSlug));
   redirect(
     withQuery(
       ROUTES.tenantAdminDuprEvent(tenantSlug, event.id),
       "saved",
-      `已從 FitBook 匯入 ${roster.length} 位報名者（模擬名單）`,
+      `已從 FitBook 匯入 ${roster.length} 位報名者${isReal ? countNote : "（模擬名單）"}`,
     ),
   );
 }

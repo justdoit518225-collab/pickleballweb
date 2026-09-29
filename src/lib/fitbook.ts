@@ -123,6 +123,25 @@ export async function findFitbookCourse(
 
 export type FitbookRosterEntry = { name: string; duprId: string | null };
 
+const MEMBER_LIST_HEADINGS = new Set(["已預約會員", "候補會員"]);
+
+/**
+ * 解析從 FitBook 課程頁「已預約會員」複製的文字（一行一位，夾雜空行）。
+ * 同一帳號代多人報名時暱稱會重複出現，依序加上 (2)、(3) 區分。
+ */
+export function parseFitbookMemberList(text: string): FitbookRosterEntry[] {
+  const seen = new Map<string, number>();
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !MEMBER_LIST_HEADINGS.has(line))
+    .map((name) => {
+      const n = (seen.get(name) ?? 0) + 1;
+      seen.set(name, n);
+      return { name: n === 1 ? name : `${name} (${n})`, duprId: null };
+    });
+}
+
 const MOCK_NAMES = [
   "建伸", "小昱", "Kevin 陳", "阿杰", "美美", "Amy", "大偉", "小芳", "Jason", "阿志",
   "佩琪", "Leo", "小安", "Tina 林", "宗翰", "阿傑", "Ivy", "家豪", "Momo", "思妤",
