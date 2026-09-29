@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { sumPartySize } from "@/lib/activity-capacity";
 import { formatActivityDateTime } from "@/lib/format-datetime";
-import { prisma } from "@/lib/prisma";
+import { countLiveDuprEvents } from "@/lib/dupr-event";
 import { countTenantUpcomingRentals } from "@/lib/rental-service";
 import { getPublishedActivities } from "@/lib/tenant";
 import { activityKindBadgeVariant, adminActivityKindLabel, ROUTES } from "@/lib/constants";
@@ -21,7 +21,7 @@ export async function TenantClassicHome({ tenant }: { tenant: TenantWithVenues }
   const [activities, rentalCount, liveDuprCount] = await Promise.all([
     getPublishedActivities(tenant.id),
     countTenantUpcomingRentals(tenant.id),
-    prisma.duprEvent.count({ where: { tenantId: tenant.id, status: "SCHEDULED" } }),
+    countLiveDuprEvents(tenant.id),
   ]);
 
   return (
@@ -37,9 +37,9 @@ export async function TenantClassicHome({ tenant }: { tenant: TenantWithVenues }
         {liveDuprCount > 0 && (
           <Link
             href={ROUTES.tenantDuprEvents(tenantSlug)}
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700"
+            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm"
           >
-            DUPR 計分（進行中 {liveDuprCount}）
+            DUPR
           </Link>
         )}
         <Link
@@ -53,12 +53,6 @@ export async function TenantClassicHome({ tenant }: { tenant: TenantWithVenues }
           className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm"
         >
           課程
-        </Link>
-        <Link
-          href={ROUTES.tenantBoard(tenantSlug)}
-          className="rounded-lg border border-brand-teal/40 bg-brand-lime-soft/40 px-4 py-2 text-sm font-medium text-brand-navy shadow-sm"
-        >
-          當日球敘看板
         </Link>
         {rentalCount > 0 && (
           <Link

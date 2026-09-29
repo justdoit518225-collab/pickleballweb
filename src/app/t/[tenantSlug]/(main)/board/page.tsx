@@ -42,7 +42,12 @@ export default async function DayBoardPage({
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <BoardPageBody tenantId={tenant.id} tenantSlug={tenantSlug} day={day} />
+      <Link href={ROUTES.tenant(tenantSlug)} className="text-sm text-emerald-600">
+        ← {tenant.displayName}
+      </Link>
+      <div className="mt-4">
+        <BoardPageBody tenantId={tenant.id} tenantSlug={tenantSlug} day={day} />
+      </div>
     </div>
   );
 }

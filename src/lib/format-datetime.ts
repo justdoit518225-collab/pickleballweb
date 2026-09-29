@@ -37,6 +37,10 @@ export function formatTaipeiDateTime(date: Date): string {
   return date.toLocaleString("zh-TW", { ...ACTIVITY_DATETIME_ADMIN, timeZone: "Asia/Taipei" });
 }
 
+export function formatTaipeiDate(date: Date): string {
+  return date.toLocaleDateString("zh-TW", { month: "numeric", day: "numeric", weekday: "short", timeZone: "Asia/Taipei" });
+}
+
 export function formatTaipeiTime(date: Date): string {
   return date.toLocaleTimeString("zh-TW", { ...ACTIVITY_TIME, timeZone: "Asia/Taipei", hour12: false });
 }

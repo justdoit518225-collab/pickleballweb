@@ -1,5 +1,5 @@
 import { randomInt } from "node:crypto";
-import type { DuprEventSource, DuprEventStatus } from "@/generated/prisma/client";
+import type { DuprEventSource, DuprEventStatus, Prisma } from "@/generated/prisma/client";
 import {
   DuprUploadUnavailableError,
   submitDuprMatchBatch,
@@ -139,22 +139,54 @@ export async function getTenantDuprEvent(tenantId: string, eventId: string) {
 export type DuprEventDetail = NonNullable<Awaited<ReturnType<typeof getTenantDuprEvent>>>;
 
 /** 平板入口：進行中的活動，以及近幾天已確認的活動 */
-export async function listLiveDuprEvents(tenantId: string, recentDays = 3) {
-  const since = new Date(Date.now() - recentDays * 24 * 60 * 60 * 1000);
+const DAY_MS = 24 * 60 * 60 * 1000;
+/** 前台只列近期活動：進行中但超過此天數未最終確認的視為遺留，不再顯示 */
+const LIVE_SCHEDULED_DAYS = 7;
+const LIVE_FINISHED_DAYS = 3;
+
+function liveDuprEventWhere(tenantId: string): Prisma.DuprEventWhereInput {
+  const now = Date.now();
+  return {
+    tenantId,
+    OR: [
+      { status: "SCHEDULED", startAt: { gte: new Date(now - LIVE_SCHEDULED_DAYS * DAY_MS) } },
+      { status: { in: ["FINALIZED", "SUBMITTED"] }, startAt: { gte: new Date(now - LIVE_FINISHED_DAYS * DAY_MS) } },
+    ],
+  };
+}
+
+export async function countLiveDuprEvents(tenantId: string) {
+  return prisma.duprEvent.count({ where: liveDuprEventWhere(tenantId) });
+}
+
+export async function listLiveDuprEvents(tenantId: string) {
   return prisma.duprEvent.findMany({
-    where: {
-      tenantId,
-      OR: [
-        { status: "SCHEDULED" },
-        { status: { in: ["FINALIZED", "SUBMITTED"] }, startAt: { gte: since } },
-      ],
-    },
+    where: liveDuprEventWhere(tenantId),
     orderBy: { startAt: "asc" },
     include: {
       _count: { select: { players: true, matches: true } },
       matches: { select: { confirmedAt: true } },
     },
   });
+}
+
+/** 依台北日期分組：今天 → 之後（由近到遠）→ 之前（由近到遠） */
+export async function listLiveDuprEventDays(tenantId: string) {
+  const events = await listLiveDuprEvents(tenantId);
+  const today = getTaipeiYmd(new Date());
+  const byDay = new Map<string, typeof events>();
+  for (const e of events) {
+    const ymd = getTaipeiYmd(e.startAt);
+    byDay.set(ymd, [...(byDay.get(ymd) ?? []), e]);
+  }
+  const rank = (ymd: string) => (ymd === today ? 0 : ymd > today ? 1 : 2);
+  return [...byDay]
+    .map(([ymd, dayEvents]) => ({ ymd, isToday: ymd === today, events: dayEvents }))
+    .sort((a, b) => {
+      const r = rank(a.ymd) - rank(b.ymd);
+      if (r !== 0) return r;
+      return rank(a.ymd) === 2 ? b.ymd.localeCompare(a.ymd) : a.ymd.localeCompare(b.ymd);
+    });
 }
 
 async function loadEventOrThrow(tenantId: string, eventId: string) {
