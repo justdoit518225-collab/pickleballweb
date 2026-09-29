@@ -1,4 +1,4 @@
-import { requireTenantStaff } from "@/lib/authz";
+import { requireTenantAdmin } from "@/lib/authz";
 import { prisma } from "@/lib/prisma";
 import { updateTenantAccessSettings } from "@/app/admin/[tenantSlug]/manage-actions";
 
@@ -11,7 +11,7 @@ export default async function TenantSettingsPage({
 }) {
   const { tenantSlug } = await params;
   const { saved, error } = await searchParams;
-  const { tenant } = await requireTenantStaff(tenantSlug);
+  const { tenant } = await requireTenantAdmin(tenantSlug);
 
   const full = await prisma.tenant.findUniqueOrThrow({
     where: { id: tenant.id },

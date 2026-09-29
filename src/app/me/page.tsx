@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { auth } from "@/auth";
+import { DuprRatingCard } from "@/components/me/dupr-rating-card";
 import { MembershipVenueCards } from "@/components/me/membership-venue-cards";
 import { Avatar } from "@/components/ui/avatar";
 import { prisma } from "@/lib/prisma";
@@ -16,7 +17,7 @@ export default async function MeOverviewPage({
 
   const isSuperAdmin = session!.user!.platformRole === "SUPER_ADMIN";
 
-  const [memberships, staffRoles, allTenantsForSuper, accountUser] = await Promise.all([
+  const [memberships, staffRoles, allTenantsForSuper, accountUser, dupr] = await Promise.all([
     prisma.tenantMembership.findMany({
       where: { userId },
       include: {
@@ -45,7 +46,9 @@ export default async function MeOverviewPage({
       where: { id: userId },
       select: { name: true, image: true },
     }),
+    prisma.duprProfile.findUnique({ where: { userId } }),
   ]);
+  const duprLinked = dupr?.linkStatus === "LINKED" && Boolean(dupr.duprId);
 
   const accountForDisplay = {
     id: userId,
@@ -91,6 +94,22 @@ export default async function MeOverviewPage({
             </Link>
           ))}
         </div>
+      </section>
+
+      <section className="rounded-xl border border-slate-200 bg-white p-5">
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 className="text-lg font-semibold text-slate-900">DUPR</h2>
+          <Link href={ROUTES.meDupr} className="text-sm font-medium text-brand-navy">
+            {duprLinked ? "管理 →" : "連結 DUPR →"}
+          </Link>
+        </div>
+        {duprLinked && dupr ? (
+          <div className="mt-3">
+            <DuprRatingCard profile={dupr} />
+          </div>
+        ) : (
+          <p className="mt-2 text-sm text-slate-500">尚未連結 DUPR，登入 DUPR 帳號後即可在這裡看到你的積分。</p>
+        )}
       </section>
 
       <section className="rounded-xl border border-slate-200 bg-white p-5">

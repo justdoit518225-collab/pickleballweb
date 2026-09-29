@@ -6,7 +6,8 @@ import { auth } from "@/auth";
 import { notifyUser } from "@/lib/notifications";
 import { hashAccessCode } from "@/lib/tenant-access";
 import { prisma } from "@/lib/prisma";
-import { ROUTES } from "@/lib/constants";
+import { requireTenantStaff } from "@/lib/authz";
+import { isTenantRoleKey, ROUTES, type TenantRoleKey } from "@/lib/constants";
 import { toSlug, venueSlugFromInputs } from "@/lib/slug";
 
 async function assertStaff(tenantSlug: string) {
@@ -20,6 +21,27 @@ async function assertStaff(tenantSlug: string) {
   });
   if (!isSuper && !staff) redirect("/");
   return { tenant, userId: session.user.id };
+}
+
+async function assertTenantAdmin(tenantSlug: string) {
+  const { isTenantAdmin, tenant, session } = await requireTenantStaff(tenantSlug);
+  if (!isTenantAdmin) redirect(ROUTES.tenantAdmin(tenantSlug));
+  return { tenant, userId: session.user!.id! };
+}
+
+/** 變更後是否會讓俱樂部沒有任何場館管理員 */
+async function leavesNoTenantAdmin(tenantId: string, userId: string, nextRole: TenantRoleKey | null) {
+  const admins = await prisma.tenantStaffRole.findMany({
+    where: { tenantId, role: "TENANT_ADMIN" },
+    select: { userId: true },
+  });
+  const remaining = new Set(admins.map((a) => a.userId));
+  if (nextRole !== "TENANT_ADMIN") remaining.delete(userId);
+  return remaining.size === 0;
+}
+
+function staffError(tenantSlug: string, message: string): never {
+  redirect(`${ROUTES.tenantAdminStaff(tenantSlug)}?error=${encodeURIComponent(message)}`);
 }
 
 export async function createVenue(tenantSlug: string, formData: FormData) {
@@ -197,26 +219,56 @@ export async function setMemberBanned(tenantSlug: string, userId: string, banned
 }
 
 export async function addStaffByEmail(tenantSlug: string, formData: FormData) {
-  const { tenant } = await assertStaff(tenantSlug);
+  const { tenant } = await assertTenantAdmin(tenantSlug);
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
-  const role = String(formData.get("role") ?? "STAFF") as "TENANT_ADMIN" | "VENUE_MANAGER" | "STAFF";
+  const role = String(formData.get("role") ?? "STAFF");
+  if (!isTenantRoleKey(role)) staffError(tenantSlug, "請選擇權限");
 
   const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) {
-    redirect(`${ROUTES.tenantAdminStaff(tenantSlug)}?error=${encodeURIComponent("找不到此 Email 使用者，請對方先登入一次")}`);
-  }
+  if (!user) staffError(tenantSlug, "找不到此 Email 使用者，請對方先登入一次");
 
   const existing = await prisma.tenantStaffRole.findFirst({
-    where: { tenantId: tenant.id, userId: user.id, role },
+    where: { tenantId: tenant.id, userId: user.id },
   });
-  if (!existing) {
-    await prisma.tenantStaffRole.create({
-      data: { tenantId: tenant.id, userId: user.id, role },
-    });
-  }
+  if (existing) staffError(tenantSlug, "此帳號已在員工列表，請直接在下方修改權限");
+
+  await prisma.tenantStaffRole.create({
+    data: { tenantId: tenant.id, userId: user.id, role },
+  });
 
   revalidatePath(ROUTES.tenantAdminStaff(tenantSlug));
-  redirect(`${ROUTES.tenantAdminStaff(tenantSlug)}?saved=1`);
+  redirect(`${ROUTES.tenantAdminStaff(tenantSlug)}?saved=added`);
+}
+
+export async function updateStaffRole(tenantSlug: string, userId: string, formData: FormData) {
+  const { tenant, userId: actorId } = await assertTenantAdmin(tenantSlug);
+  const role = String(formData.get("role") ?? "");
+  if (!isTenantRoleKey(role)) staffError(tenantSlug, "請選擇權限");
+  if (await leavesNoTenantAdmin(tenant.id, userId, role)) {
+    staffError(tenantSlug, "至少需保留一位場館管理員");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.tenantStaffRole.deleteMany({ where: { tenantId: tenant.id, userId } });
+    await tx.tenantStaffRole.create({ data: { tenantId: tenant.id, userId, role } });
+  });
+
+  revalidatePath(ROUTES.tenantAdminStaff(tenantSlug));
+  if (userId === actorId && role !== "TENANT_ADMIN") redirect(ROUTES.tenantAdmin(tenantSlug));
+  redirect(`${ROUTES.tenantAdminStaff(tenantSlug)}?saved=updated`);
+}
+
+export async function removeStaff(tenantSlug: string, userId: string) {
+  const { tenant, userId: actorId } = await assertTenantAdmin(tenantSlug);
+  if (await leavesNoTenantAdmin(tenant.id, userId, null)) {
+    staffError(tenantSlug, "至少需保留一位場館管理員");
+  }
+
+  await prisma.tenantStaffRole.deleteMany({ where: { tenantId: tenant.id, userId } });
+
+  revalidatePath(ROUTES.tenantAdminStaff(tenantSlug));
+  if (userId === actorId) redirect(ROUTES.me);
+  redirect(`${ROUTES.tenantAdminStaff(tenantSlug)}?saved=removed`);
 }
 
 export async function cancelActivityAsAdmin(tenantSlug: string, activityId: string) {
@@ -282,7 +334,7 @@ export async function submitDuprMatchResult(
 }
 
 export async function updateTenantAccessSettings(tenantSlug: string, formData: FormData) {
-  const { tenant } = await assertStaff(tenantSlug);
+  const { tenant } = await assertTenantAdmin(tenantSlug);
   const visibility = String(formData.get("visibility"));
   const accessCode = String(formData.get("accessCode") ?? "").trim();
 

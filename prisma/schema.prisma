@@ -301,8 +301,8 @@ model DuprProfile {
   userId         String         @unique
   duprId         String?        @unique
   duprName       String?
-  singlesRating  Decimal?       @db.Decimal(4, 2)
-  doublesRating  Decimal?       @db.Decimal(4, 2)
+  singlesRating  Decimal?       @db.Decimal(5, 3)
+  doublesRating  Decimal?       @db.Decimal(5, 3)
   profileUrl     String?
   linkStatus     DuprLinkStatus @default(NOT_LINKED)
   lastSyncedAt   DateTime?

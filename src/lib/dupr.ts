@@ -1,4 +1,5 @@
 import { fetchDuprPlayerByDuprId, isDuprApiConfigured } from "@/lib/dupr-api";
+import { fetchDuprBasicInfo, parseSsoRatings } from "@/lib/dupr-sso";
 import { prisma } from "@/lib/prisma";
 
 export type DuprLinkInput = {
@@ -62,6 +63,42 @@ export async function importDuprProfileFromApi(userId: string, duprId: string) {
       rawData: snapshot.rawData as object,
     },
   });
+}
+
+/** 經 DUPR SSO 登入後連結帳號：DUPR ID 以伺服器端驗證 token 取得，積分優先用 Partner API */
+export async function linkDuprProfileViaSso(userId: string, input: { userToken: string; stats?: unknown }) {
+  const basic = await fetchDuprBasicInfo(input.userToken);
+  const owner = await prisma.duprProfile.findUnique({ where: { duprId: basic.duprId }, select: { userId: true } });
+  if (owner && owner.userId !== userId) throw new Error("此 DUPR 帳號已連結到其他會員");
+
+  let { singles, doubles } = parseSsoRatings(input.stats);
+  let duprName = basic.fullName;
+  if (isDuprApiConfigured()) {
+    try {
+      const snapshot = await fetchDuprPlayerByDuprId(basic.duprId);
+      singles = snapshot.singlesRating ?? singles;
+      doubles = snapshot.doublesRating ?? doubles;
+      duprName = duprName ?? snapshot.duprName;
+    } catch {
+      // Partner API 失敗時沿用 SSO 回傳的積分
+    }
+  }
+
+  const data = {
+    duprId: basic.duprId,
+    duprName,
+    singlesRating: singles,
+    doublesRating: doubles,
+    linkStatus: "LINKED" as const,
+    profileUrl: `https://www.dupr.com/dashboard/player/${basic.duprId}`,
+    lastSyncedAt: new Date(),
+    rawData: { source: "SSO", basicInfo: basic, stats: input.stats ?? null } as object,
+  };
+  return prisma.duprProfile.upsert({ where: { userId }, create: { userId, ...data }, update: data });
+}
+
+export async function unlinkDuprProfile(userId: string) {
+  await prisma.duprProfile.deleteMany({ where: { userId } });
 }
 
 /** 若已有 DUPR ID，從 API 重新同步 */

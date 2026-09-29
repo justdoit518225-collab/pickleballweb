@@ -100,6 +100,18 @@ export const ACTIVITY_TYPE_LABELS = {
   DUPR: "DUPR",
 } as const;
 
+export const TENANT_ROLE_LABELS = {
+  TENANT_ADMIN: "場館管理員",
+  VENUE_MANAGER: "館別經理",
+  STAFF: "員工",
+} as const;
+
+export type TenantRoleKey = keyof typeof TENANT_ROLE_LABELS;
+
+export function isTenantRoleKey(value: string): value is TenantRoleKey {
+  return value in TENANT_ROLE_LABELS;
+}
+
 /** 管理後台／列表用活動類型標籤 */
 export function adminActivityKindLabel(type: string, requiresDupr: boolean) {
   if (requiresDupr) return ACTIVITY_TYPE_LABELS.DUPR;

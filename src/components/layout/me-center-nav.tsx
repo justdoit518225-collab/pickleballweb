@@ -8,6 +8,7 @@ const nav = [
   { href: ROUTES.me, label: "總覽" },
   { href: ROUTES.meBookings, label: "我的預約" },
   { href: ROUTES.meInbox, label: "通知收件匣" },
+  { href: ROUTES.meDupr, label: "DUPR" },
   { href: ROUTES.meProfile, label: "個人資料" },
   { href: ROUTES.meAccounts, label: "登入方式" },
 ] as const;

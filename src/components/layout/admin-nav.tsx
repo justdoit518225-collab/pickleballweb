@@ -1,19 +1,23 @@
 import Link from "next/link";
 import { ROUTES } from "@/lib/constants";
 
-const links = (slug: string) => [
+const links = (slug: string, isTenantAdmin: boolean) => [
   { href: ROUTES.tenantAdmin(slug), label: "總覽" },
   { href: ROUTES.tenantAdminDuprEvents(slug), label: "DUPR 對戰" },
   { href: ROUTES.tenantAdminVenues(slug), label: "場館/球場" },
   { href: ROUTES.tenantAdminMembers(slug), label: "會員" },
-  { href: ROUTES.tenantAdminStaff(slug), label: "員工權限" },
-  { href: ROUTES.tenantAdminSettings(slug), label: "設定" },
+  ...(isTenantAdmin
+    ? [
+        { href: ROUTES.tenantAdminStaff(slug), label: "員工權限" },
+        { href: ROUTES.tenantAdminSettings(slug), label: "設定" },
+      ]
+    : []),
 ];
 
-export function AdminNav({ tenantSlug }: { tenantSlug: string }) {
+export function AdminNav({ tenantSlug, isTenantAdmin }: { tenantSlug: string; isTenantAdmin: boolean }) {
   return (
     <nav className="flex flex-wrap gap-2 border-b border-slate-200 pb-4">
-      {links(tenantSlug).map((l) => (
+      {links(tenantSlug, isTenantAdmin).map((l) => (
         <Link
           key={l.href}
           href={l.href}

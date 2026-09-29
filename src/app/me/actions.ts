@@ -5,7 +5,14 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { auth } from "@/auth";
 import { readAvatarDataUrl } from "@/lib/avatar-upload";
-import { importDuprProfileFromApi, linkDuprProfile, syncDuprFromApi } from "@/lib/dupr";
+import {
+  importDuprProfileFromApi,
+  linkDuprProfile,
+  linkDuprProfileViaSso,
+  syncDuprFromApi,
+  unlinkDuprProfile,
+} from "@/lib/dupr";
+import { getDuprSsoConfig } from "@/lib/dupr-sso";
 import { prisma } from "@/lib/prisma";
 import { ROUTES } from "@/lib/constants";
 import { revokeTenantAccess } from "@/lib/tenant-access";
@@ -101,29 +108,61 @@ export async function importDuprFromApiAction(formData: FormData) {
 
   try {
     await importDuprProfileFromApi(user.id, duprId);
-    revalidatePath(ROUTES.meDupr);
-    revalidatePath(ROUTES.me);
-    redirect(`${ROUTES.meDupr}?imported=1`);
   } catch (e) {
     redirect(
       `${ROUTES.meDupr}?error=${encodeURIComponent(e instanceof Error ? e.message : "帶入失敗")}`,
     );
   }
+  revalidatePath(ROUTES.meDupr);
+  revalidatePath(ROUTES.me);
+  redirect(`${ROUTES.meDupr}?imported=1`);
 }
 
 export async function syncDuprAction() {
   const user = await requireUser();
+  let result: Awaited<ReturnType<typeof syncDuprFromApi>>;
   try {
-    const result = await syncDuprFromApi(user.id);
-    revalidatePath(ROUTES.meDupr);
-    revalidatePath(ROUTES.me);
-    const q = result.synced ? "synced=1" : `synced=0&message=${encodeURIComponent(result.message)}`;
-    redirect(`${ROUTES.meDupr}?${q}`);
+    result = await syncDuprFromApi(user.id);
   } catch (e) {
     redirect(
       `${ROUTES.meDupr}?error=${encodeURIComponent(e instanceof Error ? e.message : "同步失敗")}`,
     );
   }
+  revalidatePath(ROUTES.meDupr);
+  revalidatePath(ROUTES.me);
+  const q = result.synced ? "synced=1" : `synced=0&message=${encodeURIComponent(result.message)}`;
+  redirect(`${ROUTES.meDupr}?${q}`);
+}
+
+const duprSsoSchema = z.object({
+  userToken: z.string().min(1),
+  stats: z.unknown().optional(),
+});
+
+export type DuprSsoResult = { ok: true } | { ok: false; error: string };
+
+export async function connectDuprSso(input: unknown): Promise<DuprSsoResult> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "請先登入" };
+  if (!getDuprSsoConfig()) return { ok: false, error: "DUPR 登入連結尚未開通" };
+  const parsed = duprSsoSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, error: "DUPR 登入資料不完整，請重新登入" };
+  try {
+    await linkDuprProfileViaSso(session.user.id, parsed.data);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "連結 DUPR 失敗" };
+  }
+  revalidatePath(ROUTES.meDupr);
+  revalidatePath(ROUTES.me);
+  return { ok: true };
+}
+
+export async function unlinkDuprAction() {
+  const user = await requireUser();
+  await unlinkDuprProfile(user.id);
+  revalidatePath(ROUTES.meDupr);
+  revalidatePath(ROUTES.me);
+  redirect(`${ROUTES.meDupr}?unlinked=1`);
 }
 
 export async function updateNotificationPrefs(formData: FormData) {
