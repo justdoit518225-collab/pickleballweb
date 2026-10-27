@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, KeyboardEvent, useEffect, useEffectEvent, useRef, useState } from "react";
+import { FormEvent, KeyboardEvent, useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, Send, X } from "lucide-react";
 import {
   formatContactTime,
@@ -30,7 +30,7 @@ export function ContactThreadChat({
     () => initialMessages ?? [],
   );
   const [statusNow, setStatusNow] = useState(status);
-  const [who, setWho] = useState(title ?? "訪客");
+  const [who, setWho] = useState(title ?? "");
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,13 +38,13 @@ export function ContactThreadChat({
   const listRef = useRef<HTMLDivElement>(null);
   const seqRef = useRef(0);
 
-  const scrollToBottom = useEffectEvent(() => {
+  function scrollToBottom() {
     const el = listRef.current;
     if (!el) return;
     el.scrollTop = el.scrollHeight;
-  });
+  }
 
-  const load = useEffectEvent(async () => {
+  const load = useCallback(async () => {
     const seq = ++seqRef.current;
     try {
       const res = await fetch(`/api/platform/contact/${threadId}`, {
@@ -75,27 +75,16 @@ export function ContactThreadChat({
       if (seq !== seqRef.current) return;
       setBooted(true);
     }
-  });
+  }, [threadId, booted]);
 
   useEffect(() => {
-    seqRef.current += 1;
-    if (initialMessages && initialMessages.length > 0) {
-      setMessages(initialMessages);
-      setBooted(true);
-    }
-    setStatusNow(status);
-    if (title) setWho(title);
-    setError(null);
-    void load();
+    const initial = window.setTimeout(() => void load(), 0);
     const t = window.setInterval(() => void load(), 3000);
-    return () => window.clearInterval(t);
-    // threadId is the conversation identity; do not reset on new [] props
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [threadId]);
-
-  useEffect(() => {
-    if (title) setWho(title);
-  }, [title]);
+    return () => {
+      window.clearTimeout(initial);
+      window.clearInterval(t);
+    };
+  }, [load]);
 
   useEffect(() => {
     scrollToBottom();
@@ -152,30 +141,28 @@ export function ContactThreadChat({
     <div
       ref={listRef}
       aria-live="polite"
-      className={`min-h-0 flex-1 overflow-y-auto ${compact ? "bg-slate-50 p-3" : "p-4"}`}
+      className={`min-h-0 flex-1 overflow-y-auto ${compact ? "bg-[var(--bg)] p-3" : "bg-[var(--bg)] p-5"}`}
     >
       <div className="space-y-3">
         {!booted && messages.length === 0 ? (
-          <p className="py-6 text-center text-xs text-slate-400">載入中…</p>
+          <p className="py-6 text-center text-[14px] text-[var(--muted)]">載入中…</p>
         ) : messages.length === 0 ? (
-          <p className="py-6 text-center text-xs text-slate-500">尚無訊息</p>
+          <p className="py-6 text-center text-[14px] text-[var(--muted)]">尚無訊息</p>
         ) : (
           messages.map((m) => {
             const admin = m.senderKind === "ADMIN";
             return (
               <div
                 key={m.id}
-                className={`rounded-xl px-3 py-2 text-sm ${
+                className={`px-4 py-3 text-[14px] ${
                   admin
-                    ? "ml-8 rounded-br-md bg-brand-navy text-white"
-                    : compact
-                      ? "mr-8 rounded-bl-md border border-slate-200 bg-white text-slate-700"
-                      : "mr-8 border border-slate-100 bg-slate-50 text-slate-700"
+                    ? "ml-8 bg-brand-navy text-white"
+                    : "mr-8 bg-white text-brand-navy"
                 }`}
               >
-                <div className="mb-1 flex justify-between gap-2 text-[10px] opacity-70">
-                  <span>{admin ? "你" : "訪客"}</span>
-                  <time>{formatContactTime(m.createdAt)}</time>
+                <div className="mb-1 flex justify-between gap-2 text-[14px] opacity-80">
+                  <span className="font-bold">{admin ? "你" : "訪客"}</span>
+                  <time className="font-mono">{formatContactTime(m.createdAt)}</time>
                 </div>
                 <p className="whitespace-pre-wrap leading-relaxed">{m.body}</p>
               </div>
@@ -188,8 +175,8 @@ export function ContactThreadChat({
 
   const composer =
     statusNow === "OPEN" ? (
-      <form onSubmit={onSubmit} className="shrink-0 space-y-2 border-t border-slate-100 bg-white p-3">
-        {error ? <p className="text-xs text-rose-600">{error}</p> : null}
+      <form onSubmit={onSubmit} className="shrink-0 space-y-2 border-t border-[var(--line)] bg-white p-4">
+        {error ? <p className="text-[14px] font-bold text-[#B42318]">{error}</p> : null}
         <div className={compact ? "flex items-end gap-2" : "space-y-2"}>
           <textarea
             value={draft}
@@ -198,13 +185,13 @@ export function ContactThreadChat({
             rows={compact ? 2 : 3}
             maxLength={2000}
             placeholder="輸入回覆…（Enter 送出）"
-            className="w-full resize-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-teal"
+            className="w-full resize-none bg-[var(--bg)] px-4 py-2.5 text-[14px] text-brand-navy outline-none"
           />
           {compact ? (
             <button
               type="submit"
               disabled={sending || !draft.trim()}
-              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-navy text-white disabled:opacity-40"
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center bg-brand-navy text-white disabled:opacity-40"
               aria-label="送出回覆"
             >
               <Send className="h-4 w-4" />
@@ -217,14 +204,14 @@ export function ContactThreadChat({
         </div>
       </form>
     ) : (
-      <p className="shrink-0 border-t border-slate-100 px-4 py-3 text-sm text-slate-500">
+      <p className="shrink-0 border-t border-[var(--line)] bg-white px-4 py-3 text-[14px] text-[var(--muted)]">
         對話已關閉，重新開啟後可再回覆。
       </p>
     );
 
   if (!compact) {
     return (
-      <div className="mt-6 flex h-[min(36rem,calc(100vh-16rem))] min-h-0 flex-col overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <div className="mt-4 flex h-[min(36rem,calc(100vh-16rem))] min-h-0 flex-col overflow-hidden bg-white">
         {list}
         {composer}
       </div>
@@ -237,18 +224,18 @@ export function ContactThreadChat({
         {onBack ? (
           <button
             type="button"
-            className="rounded-lg p-1.5 hover:bg-white/10"
+            className="p-1.5 hover:bg-white/10"
             aria-label="返回對話列表"
             onClick={onBack}
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
         ) : null}
-        <p className="min-w-0 flex-1 truncate px-1 text-sm font-semibold">{who}</p>
+        <p className="min-w-0 flex-1 truncate px-1 text-[14px] font-black">{who || title || "訪客"}</p>
         {onClose ? (
           <button
             type="button"
-            className="rounded-lg p-1.5 hover:bg-white/10"
+            className="p-1.5 hover:bg-white/10"
             aria-label="關閉對話"
             onClick={onClose}
           >

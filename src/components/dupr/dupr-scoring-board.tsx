@@ -120,24 +120,29 @@ export function DuprScoringBoard({
   const teamNames = (t: [number, number]) => t.map((s) => ({ seq: s, name: names.get(s) ?? `#${s}` }));
 
   return (
-    <div className="space-y-4">
-      <div className="sticky top-0 z-10 -mx-4 space-y-2 border-b border-slate-200 bg-slate-50/95 px-4 py-3 backdrop-blur">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-sm text-slate-600">
-            已確認 <b className="text-emerald-700">{doneCount}</b> / {matches.length} 場
+    <div className="space-y-5" data-ui>
+      <div className="sticky top-0 z-10 space-y-3 bg-brand-navy p-4 text-white">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-base font-bold text-white tabular-nums">
+            已確認 <b className="text-brand-lime">{doneCount}</b> / {matches.length} 場
           </p>
           <div className="flex items-center gap-3">
-            <label className="flex items-center gap-1.5 text-sm text-slate-600">
-              <input type="checkbox" checked={hideDone} onChange={(e) => setHideDone(e.target.checked)} className="h-4 w-4" />
+            <label className="flex cursor-pointer items-center gap-1.5 text-sm font-semibold text-white/90">
+              <input
+                type="checkbox"
+                checked={hideDone}
+                onChange={(e) => setHideDone(e.target.checked)}
+                className="h-4 w-4 accent-brand-lime"
+              />
               隱藏已完成
             </label>
             <button
               type="button"
               onClick={() => router.refresh()}
-              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm text-slate-600"
+              className="inline-flex items-center gap-1.5 bg-white px-3 py-1.5 text-sm font-bold text-brand-navy hover:bg-brand-lime"
             >
               <RefreshCw className="h-3.5 w-3.5" />
-              更新
+              更新比分
             </button>
           </div>
         </div>
@@ -148,8 +153,10 @@ export function DuprScoringBoard({
                 key={c}
                 type="button"
                 onClick={() => setCourt(c)}
-                className={`rounded-full px-3 py-1 text-sm font-medium ${
-                  court === c ? "bg-indigo-600 text-white" : "bg-white text-slate-600 ring-1 ring-slate-200"
+                className={`px-3.5 py-1.5 text-sm font-bold ${
+                  court === c
+                    ? "bg-brand-lime text-brand-navy"
+                    : "bg-[#163560] text-white hover:bg-brand-teal"
                 }`}
               >
                 {c === "all" ? "全部場地" : `${c} 號場`}
@@ -159,7 +166,11 @@ export function DuprScoringBoard({
         )}
       </div>
 
-      {visible.length === 0 && <p className="py-8 text-center text-sm text-slate-500">沒有符合的場次</p>}
+      {visible.length === 0 && (
+        <div className="bg-white p-8 text-center">
+          <p className="text-base font-semibold text-[var(--muted)]">沒有符合的場次</p>
+        </div>
+      )}
 
       {visible.map((m) => {
         const idx = matches.findIndex((x) => x.id === m.id);
@@ -179,58 +190,58 @@ export function DuprScoringBoard({
           <article
             key={m.id}
             ref={isCurrent ? currentRef : undefined}
-            className={`overflow-hidden rounded-2xl border bg-white shadow-sm ${
-              m.confirmed
-                ? "border-emerald-300 ring-1 ring-emerald-100"
-                : isCurrent
-                  ? "border-indigo-400 ring-2 ring-indigo-200"
-                  : "border-slate-200"
-            }`}
+            className="bg-white"
           >
-            <header className="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-4 py-2.5">
-              <h3 className="font-bold text-slate-800">
+            <header
+              className={`flex items-center justify-between px-5 py-3 ${
+                m.confirmed
+                  ? "bg-[#1B6B73] text-white"
+                  : isCurrent
+                    ? "bg-brand-navy text-white"
+                    : "bg-[var(--surface-alt)] text-brand-navy"
+              }`}
+            >
+              <h3 className="text-base font-extrabold tabular-nums">
                 第 {String(m.seq).padStart(2, "0")} 場
                 {multiCourt && (
-                  <span className="ml-2 text-sm font-medium text-slate-500">
+                  <span className="ml-2 text-sm font-semibold opacity-85">
                     第 {m.round} 輪 · {m.court} 號場
                   </span>
                 )}
               </h3>
               {m.confirmed ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                <span className="inline-flex items-center gap-1 bg-brand-lime px-2.5 py-0.5 text-xs font-extrabold text-brand-navy">
                   <Lock className="h-3.5 w-3.5" />
                   四人已確認
                 </span>
               ) : scored ? (
-                <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
+                <span className="bg-amber-200 px-2.5 py-0.5 text-xs font-extrabold text-brand-navy tabular-nums">
                   待確認 {m.confirmedSeqs.length}/4
                 </span>
               ) : isCurrent ? (
-                <span className="rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-semibold text-indigo-700">
+                <span className="bg-brand-lime px-2.5 py-0.5 text-xs font-extrabold text-brand-navy">
                   進行中
                 </span>
               ) : null}
             </header>
 
-            <div className="space-y-3 p-4">
+            <div className="space-y-4 p-5">
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-                <TeamBox color="sky" label="隊伍 A" members={teamNames(m.teamA)} />
-                <div className="flex flex-col items-center gap-1.5">
+                <TeamBox color="teal" label="隊伍 A" members={teamNames(m.teamA)} />
+                <div className="flex flex-col items-center gap-2">
                   <div className="flex items-center gap-1.5">
                     <ScoreInput
                       value={shownA}
                       disabled={locked || busy}
                       onChange={(v) => setDraft(m, "a", v)}
                       label={`第 ${m.seq} 場 隊伍 A 分數`}
-                      color="sky"
                     />
-                    <span className="text-lg font-bold text-slate-400">:</span>
+                    <span className="text-xl font-black text-[var(--muted)]">:</span>
                     <ScoreInput
                       value={shownB}
                       disabled={locked || busy}
                       onChange={(v) => setDraft(m, "b", v)}
                       label={`第 ${m.seq} 場 隊伍 B 分數`}
-                      color="orange"
                     />
                   </div>
                   {editable && !m.confirmed && (dirty || !scored) && (
@@ -238,19 +249,27 @@ export function DuprScoringBoard({
                       type="button"
                       disabled={busy || !dirty}
                       onClick={() => saveScore(m)}
-                      className="w-full rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700 disabled:bg-slate-300"
+                      className="btn-brand w-full px-3 py-2 text-sm font-bold text-white disabled:opacity-40"
                     >
-                      {busy ? <Loader2 className="mx-auto h-4 w-4 animate-spin" /> : scored ? "更新分數" : "送出分數"}
+                      {busy ? (
+                        <Loader2 className="mx-auto h-4 w-4 animate-spin" />
+                      ) : scored ? (
+                        "更新分數"
+                      ) : (
+                        "送出分數"
+                      )}
                     </button>
                   )}
                 </div>
-                <TeamBox color="orange" label="隊伍 B" members={teamNames(m.teamB)} />
+                <TeamBox color="navy" label="隊伍 B" members={teamNames(m.teamB)} />
               </div>
 
               {scored && !dirty && (
-                <div className="rounded-xl bg-slate-50 p-3">
-                  <p className="mb-2 text-xs font-medium text-slate-500">
-                    {m.confirmed ? "四位球員皆已確認比分" : "請四位球員各自點自己的名字確認比分"}
+                <div className="bg-[var(--bg)] p-4">
+                  <p className="mb-2.5 text-sm font-bold text-brand-navy">
+                    {m.confirmed
+                      ? "四位球員皆已確認比分"
+                      : "請四位球員各自點選自己的名字確認比分"}
                   </p>
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                     {[...m.teamA, ...m.teamB].map((seq) => {
@@ -261,14 +280,14 @@ export function DuprScoringBoard({
                           type="button"
                           disabled={!editable || busy || m.confirmed}
                           onClick={() => run(m.id, () => setConfirmation(m.id, seq, !ok))}
-                          className={`flex min-h-12 items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-sm font-semibold transition ${
+                          className={`flex min-h-12 items-center justify-center gap-1.5 px-3 py-2 text-sm font-extrabold transition ${
                             ok
-                              ? "bg-emerald-600 text-white"
-                              : "bg-white text-slate-700 ring-1 ring-slate-300 hover:ring-emerald-400"
+                              ? "bg-[#1B6B73] text-white"
+                              : "bg-white text-brand-navy hover:bg-brand-lime"
                           } disabled:cursor-default`}
                         >
                           {ok && <CheckCircle2 className="h-4 w-4 shrink-0" />}
-                          <span className="truncate">
+                          <span className="truncate tabular-nums">
                             {seq}. {names.get(seq)}
                           </span>
                         </button>
@@ -278,11 +297,15 @@ export function DuprScoringBoard({
                 </div>
               )}
 
-              {errors[m.id] && <p className="text-sm text-red-600">{errors[m.id]}</p>}
+              {errors[m.id] && (
+                <p className="bg-rose-100 px-3 py-2 text-sm font-bold text-rose-900">
+                  {errors[m.id]}
+                </p>
+              )}
 
               {carry.length > 0 && (
-                <p className="inline-flex items-center gap-1 text-xs text-slate-500">
-                  <Repeat className="h-3.5 w-3.5 text-indigo-500" />
+                <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--muted)]">
+                  <Repeat className="h-4 w-4 text-[#1D6D75]" />
                   連打：{carry.map((s) => `${s}.${names.get(s) ?? ""}`).join("、")}
                 </p>
               )}
@@ -299,18 +322,25 @@ function TeamBox({
   label,
   members,
 }: {
-  color: "sky" | "orange";
+  color: "teal" | "navy";
   label: string;
   members: { seq: number; name: string }[];
 }) {
   const tone =
-    color === "sky" ? "bg-sky-50 ring-sky-200 text-sky-700" : "bg-orange-50 ring-orange-200 text-orange-700";
+    color === "teal"
+      ? "bg-[#e3ecec] text-[#1D6D75]"
+      : "bg-[var(--surface-alt)] text-brand-navy";
   return (
-    <div className={`min-w-0 rounded-xl px-2 py-2.5 text-center ring-1 ${tone}`}>
-      <p className="text-[11px] font-semibold tracking-wide">{label}</p>
+    <div className={`min-w-0 p-3 text-center ${tone}`}>
+      <p className="text-xs font-extrabold">{label}</p>
       {members.map((p) => (
-        <p key={p.seq} className="mt-1 break-words text-base font-bold leading-snug text-slate-900">
-          <span className="mr-1 text-sm text-slate-400">{p.seq}</span>
+        <p
+          key={p.seq}
+          className="mt-1 break-words text-base font-extrabold leading-snug text-brand-navy"
+        >
+          <span className="mr-1 text-sm text-[var(--muted)] tabular-nums">
+            {p.seq}
+          </span>
           {p.name}
         </p>
       ))}
@@ -323,13 +353,11 @@ function ScoreInput({
   disabled,
   onChange,
   label,
-  color,
 }: {
   value: string;
   disabled: boolean;
   onChange: (value: string) => void;
   label: string;
-  color: "sky" | "orange";
 }) {
   return (
     <input
@@ -341,9 +369,7 @@ function ScoreInput({
       onChange={(e) => onChange(e.target.value)}
       placeholder="-"
       aria-label={label}
-      className={`h-14 w-14 rounded-xl border bg-white text-center text-2xl font-bold tabular-nums text-slate-900 outline-none focus:ring-2 focus:ring-indigo-400 disabled:bg-slate-100 disabled:text-slate-700 ${
-        color === "sky" ? "border-sky-300" : "border-orange-300"
-      }`}
+      className="h-14 w-14 bg-[var(--bg)] text-center text-2xl font-black text-brand-navy tabular-nums outline-none focus:outline-2 focus:outline-brand-teal disabled:opacity-60"
     />
   );
 }

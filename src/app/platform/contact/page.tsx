@@ -20,16 +20,18 @@ export default async function PlatformContactPage() {
   });
 
   return (
-    <div>
+    <div className="space-y-6">
       <ContactInboxRefresher />
-      <h1 className="text-xl font-bold text-brand-navy">站內聯繫</h1>
-      <p className="mt-1 text-sm text-slate-600">
-        訪客從右下角浮框留言。你也可以直接點右下角圖示，點進每位訪客的視窗回覆。
-      </p>
+      <div>
+        <h2 className="text-[24px] font-black text-brand-navy">站內聯繫</h2>
+        <p className="mt-1 text-[14px] text-[var(--muted)]">
+          每位訪客／會員對管理員只有一則對話。你也可以直接點右下角圖示，點進該則一對一視窗回覆。
+        </p>
+      </div>
 
-      <ul className="mt-6 divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-200 bg-white">
+      <ul className="divide-y divide-[var(--line)] bg-white">
         {threads.length === 0 ? (
-          <li className="px-4 py-8 text-center text-sm text-slate-500">
+          <li className="px-6 py-8 text-center text-[14px] text-[var(--muted)]">
             尚無聯繫訊息
           </li>
         ) : (
@@ -45,29 +47,29 @@ export default async function PlatformContactPage() {
               <li key={t.id}>
                 <Link
                   href={ROUTES.platformContactThread(t.id)}
-                  className="flex items-start justify-between gap-3 px-4 py-3 hover:bg-slate-50"
+                  className="flex items-start justify-between gap-3 px-6 py-4 transition-colors hover:bg-[var(--bg)]"
                 >
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium text-slate-800">{who}</span>
+                      <span className="text-[16px] font-black text-brand-navy">{who}</span>
                       {t.adminUnread > 0 ? (
-                        <span className="rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-white">
+                        <span className="bg-[#FCECE9] px-2 py-0.5 text-[14px] font-black text-[#B42318]">
                           {t.adminUnread}
                         </span>
                       ) : null}
                       {t.status === "CLOSED" ? (
-                        <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-500">
+                        <span className="bg-[var(--surface-alt)] px-2 py-0.5 text-[14px] font-bold text-[var(--muted)]">
                           已關閉
                         </span>
                       ) : null}
                     </div>
-                    <p className="mt-0.5 truncate text-sm text-slate-500">
+                    <p className="mt-1 truncate text-[14px] text-[var(--muted)]">
                       {last
                         ? `${last.senderKind === "ADMIN" ? "你：" : ""}${last.body}`
                         : "（無訊息）"}
                     </p>
                   </div>
-                  <time className="shrink-0 text-xs text-slate-400">
+                  <time className="shrink-0 font-mono text-[14px] text-[var(--muted)]">
                     {t.lastMessageAt.toLocaleString("zh-TW")}
                   </time>
                 </Link>

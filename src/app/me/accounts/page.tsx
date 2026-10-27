@@ -74,12 +74,12 @@ export default async function MeAccountsPage({
   return (
     <div className="space-y-6">
       {successMessage && (
-        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <p className="bg-brand-lime-soft px-4 py-3 text-sm font-bold text-brand-navy">
           {successMessage}
         </p>
       )}
       {errorMessage && (
-        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <p className="bg-amber-100 px-4 py-3 text-sm font-bold text-amber-950">
           {errorMessage}
         </p>
       )}
@@ -90,8 +90,8 @@ export default async function MeAccountsPage({
         configuredProviders={configuredProviders}
       />
 
-      <p className="text-sm text-slate-500">
-        <Link href={ROUTES.me} className="text-brand-navy hover:underline">
+      <p className="text-sm">
+        <Link href={ROUTES.me} className="font-bold text-[#1D6D75] hover:text-brand-navy">
           ← 返回會員中心總覽
         </Link>
       </p>

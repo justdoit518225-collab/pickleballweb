@@ -12,13 +12,26 @@ export default async function AdminLayout({
   const { tenant, isTenantAdmin } = await requireTenantStaff(tenantSlug);
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <h1 className="text-xl font-bold text-slate-800">{tenant.displayName}</h1>
-      <p className="text-sm text-slate-500">管理後台</p>
-      <div className="mt-4">
-        <AdminNav tenantSlug={tenantSlug} isTenantAdmin={isTenantAdmin} />
+    <div data-ui className="min-h-[100svh] bg-[var(--bg)]">
+      <section className="bg-brand-navy text-white">
+        <div className="page-wrap mx-auto w-full max-w-[1600px] px-5 py-8 sm:px-8 lg:px-11">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <h1 className="text-[28px] font-black tracking-tight text-white">
+              {tenant.displayName}
+            </h1>
+            <p className="text-[14px] font-bold text-[#C8D8E4]">
+              場館管理後台 · 活動、球場、會員與 DUPR 對戰
+            </p>
+          </div>
+          <div className="mt-6">
+            <AdminNav tenantSlug={tenantSlug} isTenantAdmin={isTenantAdmin} />
+          </div>
+        </div>
+      </section>
+
+      <div className="page-wrap mx-auto w-full max-w-[1600px] px-5 py-8 sm:px-8 lg:px-11">
+        {children}
       </div>
-      <div className="mt-6">{children}</div>
     </div>
   );
 }

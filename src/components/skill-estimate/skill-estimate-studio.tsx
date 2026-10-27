@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { SkillEstimateUpload } from "@/components/skill-estimate/skill-estimate-upload";
 import { ROUTES } from "@/lib/constants";
+import { SkillTrainingDonate } from "@/components/skill-estimate/skill-training-donate";
 import {
   SKILL_ESTIMATE_DISCLAIMER,
   type SkillAnalysisStatus,
@@ -13,6 +14,7 @@ import {
   type SkillMetrics,
   type SkillPoint,
 } from "@/lib/skill-estimate";
+import type { SkillTrainingSamplePayload } from "@/lib/skill-training";
 
 type OfficialDupr = {
   linked: boolean;
@@ -49,6 +51,7 @@ export type SkillEstimateClientPayload = {
   videoUrl: string | null;
   previewUrl: string | null;
   officialDupr: OfficialDupr;
+  trainingSample: SkillTrainingSamplePayload | null;
   error?: string;
 };
 
@@ -119,21 +122,25 @@ export function SkillEstimateStudio({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 bg-white p-6">
         <div>
-          <h2 className="text-lg font-semibold text-slate-800">估算實力等級</h2>
-          <p className="mt-1 text-sm text-slate-500">{job.originalFilename ?? job.id}</p>
+          <h2 className="text-[20px] font-black text-brand-navy">估算實力等級</h2>
+          <p className="mt-1 text-[14px] text-[var(--muted)]">{job.originalFilename ?? job.id}</p>
         </div>
         <Badge variant={statusVariant(job.status)}>{job.statusLabel}</Badge>
       </div>
 
-      <p className="text-xs text-slate-500">{SKILL_ESTIMATE_DISCLAIMER}</p>
+      <p className="text-[14px] text-[var(--muted)]">{SKILL_ESTIMATE_DISCLAIMER}</p>
 
       {job.status === "CREATED" && !data.videoUrl && (
-        <SkillEstimateUpload analyzerConfigured existingJobId={job.id} />
+        <div className="bg-white p-6">
+          <SkillEstimateUpload analyzerConfigured existingJobId={job.id} />
+        </div>
       )}
       {job.status === "CREATED" && data.videoUrl && (
-        <p className="text-sm text-slate-600">影片已上傳，正在偵測畫面中的球員…</p>
+        <p className="bg-white p-6 text-[14px] text-[var(--muted)]">
+          影片已上傳，正在偵測畫面中的球員…
+        </p>
       )}
 
       {(data.videoUrl || data.previewUrl) && (
@@ -157,21 +164,21 @@ export function SkillEstimateStudio({
       )}
 
       {canSelect && (
-        <section className="rounded-xl border border-slate-200 bg-white p-4 text-sm">
-          <p className="font-medium text-slate-800">
+        <section className="bg-white p-6 text-[14px]">
+          <p className="font-black text-brand-navy">
             {step === "player"
               ? "步驟 1：在畫面中點選要分析的球員"
               : `步驟 2：依序點球場四角（已點 ${courtQuad.length}/4）`}
           </p>
-          <ol className="mt-2 list-decimal space-y-1 pl-5 text-slate-600">
+          <ol className="mt-2 list-decimal space-y-1 pl-5 text-[var(--muted)]">
             {COURT_LABELS.map((label, i) => (
-              <li key={label} className={courtQuad[i] ? "text-brand-teal" : ""}>
+              <li key={label} className={courtQuad[i] ? "font-bold text-[#1B6B73]" : ""}>
                 {label}
                 {courtQuad[i] ? " ✓" : ""}
               </li>
             ))}
           </ol>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap gap-2">
             <button
               type="button"
               className="btn-brand-outline"
@@ -197,25 +204,37 @@ export function SkillEstimateStudio({
       )}
 
       {(job.status === "QUEUED" || job.status === "PROCESSING") && (
-        <div>
-          <p className="text-sm text-slate-600">分析進行中，請稍候（短片約數分鐘）。</p>
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
-            <div className="h-full bg-brand-teal transition-all" style={{ width: `${job.progress}%` }} />
+        <div className="bg-white p-6">
+          <p className="text-[14px] font-bold text-brand-navy">分析進行中，請稍候（短片約數分鐘）。</p>
+          <div className="mt-3 h-2 overflow-hidden bg-[var(--bg)]">
+            <div className="h-full bg-[#1B6B73] transition-all" style={{ width: `${job.progress}%` }} />
           </div>
         </div>
       )}
 
       {job.status === "FAILED" && (
-        <p className="text-sm text-red-600">{job.errorMessage ?? "分析失敗"}</p>
+        <p className="bg-[#FCECE9] p-4 text-[14px] font-bold text-[#B42318]">
+          {job.errorMessage ?? "分析失敗"}
+        </p>
       )}
 
       {job.report && data.officialDupr && (
-        <SkillEstimateReport report={job.report} officialDupr={data.officialDupr} />
+        <SkillEstimateReport
+          jobId={job.id}
+          report={job.report}
+          officialDupr={data.officialDupr}
+          trainingSample={data.trainingSample}
+        />
       )}
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && (
+        <p className="bg-[#FCECE9] p-4 text-[14px] font-bold text-[#B42318]">{error}</p>
+      )}
 
-      <Link href={ROUTES.meSkillEstimate} className="inline-block text-sm text-brand-navy">
+      <Link
+        href={ROUTES.meSkillEstimate}
+        className="inline-block text-[14px] font-black text-[#1B6B73] hover:text-brand-navy"
+      >
         ← 回到列表
       </Link>
     </div>
@@ -358,7 +377,7 @@ function VideoAnnotator({
   }
 
   return (
-    <div ref={wrapRef} className="relative overflow-hidden rounded-xl border border-slate-200 bg-black">
+    <div ref={wrapRef} className="relative overflow-hidden bg-black">
       {videoUrl ? (
         <video
           ref={videoRef}
@@ -412,70 +431,192 @@ function nearestBox(point: SkillPoint, boxes: SkillDetectionBox[]) {
 }
 
 function SkillEstimateReport({
+  jobId,
   report,
   officialDupr,
+  trainingSample,
 }: {
+  jobId: string;
   report: NonNullable<JobPayload["report"]>;
   officialDupr: OfficialDupr;
+  trainingSample: SkillTrainingSamplePayload | null;
 }) {
   const metrics = report.metrics ?? { errorRate: 0, kitchenPct: 0, smoothness: 0 };
+  const match = metrics.rubricMatch;
+  const copy = match?.copy;
+  const dims = match ? Object.keys(match.dimensionLabels) : [];
+  const levelScores = match
+    ? Object.entries(match.levelScores).sort((a, b) => Number(a[0]) - Number(b[0]))
+    : [];
+
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5">
-      <h3 className="font-semibold text-slate-800">估算結果</h3>
-      <p className="mt-2 text-3xl font-bold text-brand-navy">
+    <section className="bg-white p-6">
+      <h3 className="text-[20px] font-black text-brand-navy">估算結果</h3>
+      <p className="mt-2 font-mono text-[32px] font-black text-brand-navy">
         {fmt(report.estimatedLow)} – {fmt(report.estimatedHigh)}
-        <span className="ml-2 text-base font-medium text-slate-500">中間值 {fmt(report.estimatedMid)}</span>
+        <span className="ml-2 text-[16px] font-bold text-[var(--muted)]">
+          中間值 {fmt(report.estimatedMid)}
+        </span>
       </p>
-      <p className="mt-2 text-xs text-slate-500">{report.disclaimer}</p>
-      <dl className="mt-4 grid gap-3 sm:grid-cols-3 text-sm">
-        <Metric label="非受迫性失誤（代理）" value={pct(metrics.errorRate)} />
-        <Metric label="廚房區停留比例" value={pct(metrics.kitchenPct)} />
-        <Metric label="擊球動作流暢度" value={pct(metrics.smoothness)} />
-      </dl>
+      {match ? (
+        <p className="mt-1 text-[14px] text-[var(--muted)]">
+          最近等級剖面：<span className="font-black text-brand-navy">{match.nearestLabel}</span>
+          {metrics.confidence != null ? ` · 匹配信心 ${pct(metrics.confidence)}` : ""}
+        </p>
+      ) : null}
+      <p className="mt-2 text-[14px] text-[var(--muted)]">{report.disclaimer}</p>
+      <p className="mt-1 text-[14px] text-[var(--muted)]">
+        目前用影片特徵對齊公開技能定義。確認官方 DUPR 後，這支影片可進入監督訓練集。
+      </p>
+
+      {copy ? (
+        <dl className="mt-4 grid gap-3 text-[14px] sm:grid-cols-2">
+          <CopyCard title="這個等級該做到" text={copy.can} />
+          <CopyCard title="通常還做不到" text={copy.notYet} />
+          <CopyCard title="腳步" text={copy.footwork} />
+          <CopyCard title="認知／決策" text={copy.cognition} />
+        </dl>
+      ) : null}
+
+      {dims.length > 0 && match ? (
+        <div className="mt-5">
+          <h4 className="text-[16px] font-black text-brand-navy">影片特徵 vs 該級期望</h4>
+          <ul className="mt-3 space-y-3">
+            {dims.map((dim) => (
+              <DimensionBar
+                key={dim}
+                label={match.dimensionLabels[dim] ?? dim}
+                observed={match.observed[dim] ?? 0}
+                expected={match.expected[dim] ?? 0}
+              />
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <dl className="mt-4 grid gap-3 text-[14px] sm:grid-cols-3">
+          <Metric label="非受迫性失誤（代理）" value={pct(metrics.errorRate)} />
+          <Metric label="廚房區停留比例" value={pct(metrics.kitchenPct)} />
+          <Metric label="擊球動作流暢度" value={pct(metrics.smoothness)} />
+        </dl>
+      )}
+
+      {levelScores.length > 0 ? (
+        <div className="mt-5">
+          <h4 className="text-[16px] font-black text-brand-navy">各等級匹配度</h4>
+          <ul className="mt-2 flex flex-wrap gap-2">
+            {levelScores.map(([level, score]) => (
+              <li
+                key={level}
+                className={`px-3 py-1 font-mono text-[14px] font-black ${
+                  Number(level) === match?.nearestLevel
+                    ? "bg-brand-lime text-brand-navy"
+                    : "bg-[var(--bg)] text-brand-navy"
+                }`}
+              >
+                {Number(level).toFixed(1)} · {pct(score)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {match?.gaps?.length ? (
+        <p className="mt-3 text-[14px] text-[var(--muted)]">
+          相對「{match.nearestLabel}」較弱：{match.gaps.join("、")}
+        </p>
+      ) : null}
+
       {metrics.notes?.length ? (
-        <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-slate-600">
+        <ul className="mt-3 list-disc space-y-1 pl-5 text-[14px] text-[var(--muted)]">
           {metrics.notes.map((note) => (
             <li key={note}>{note}</li>
           ))}
         </ul>
       ) : null}
-      <p className="mt-3 text-xs text-slate-400">模型 {report.modelVersion}</p>
 
-      <div className="mt-5 rounded-lg bg-brand-navy-soft p-4">
-        <h4 className="text-sm font-semibold text-brand-navy">官方 DUPR 對照</h4>
+      {match?.sources?.length ? (
+        <p className="mt-3 text-[14px] text-[var(--muted)]">依據：{match.sources.join("；")}</p>
+      ) : null}
+      <p className="mt-2 font-mono text-[14px] text-[var(--muted)]">模型 {report.modelVersion}</p>
+
+      <div className="mt-5 bg-[var(--bg)] p-5">
+        <h4 className="text-[16px] font-black text-brand-navy">官方 DUPR 對照</h4>
         {officialDupr.linked ? (
-          <dl className="mt-2 space-y-1 text-sm">
+          <dl className="mt-2 space-y-1 text-[14px]">
             <div className="flex justify-between">
-              <dt>名稱</dt>
-              <dd>{officialDupr.name ?? "—"}</dd>
+              <dt className="text-[var(--muted)]">名稱</dt>
+              <dd className="font-bold text-brand-navy">{officialDupr.name ?? "—"}</dd>
             </div>
             <div className="flex justify-between">
-              <dt>單打</dt>
-              <dd>{officialDupr.singles ?? "—"}</dd>
+              <dt className="text-[var(--muted)]">單打</dt>
+              <dd className="font-mono font-bold text-brand-navy">{officialDupr.singles ?? "—"}</dd>
             </div>
             <div className="flex justify-between">
-              <dt>雙打</dt>
-              <dd>{officialDupr.doubles ?? "—"}</dd>
+              <dt className="text-[var(--muted)]">雙打</dt>
+              <dd className="font-mono font-bold text-brand-navy">{officialDupr.doubles ?? "—"}</dd>
             </div>
           </dl>
         ) : (
-          <p className="mt-2 text-sm text-slate-600">
+          <p className="mt-2 text-[14px] text-[var(--muted)]">
             尚未連結官方 DUPR。
-            <Link href={ROUTES.meDupr} className="ml-1 text-brand-navy">
+            <Link href={ROUTES.meDupr} className="ml-1 font-bold text-brand-navy underline">
               前往設定
             </Link>
           </p>
         )}
       </div>
+
+      <SkillTrainingDonate jobId={jobId} officialDupr={officialDupr} initial={trainingSample} />
     </section>
+  );
+}
+
+function CopyCard({ title, text }: { title: string; text: string }) {
+  return (
+    <div className="bg-[var(--bg)] p-4">
+      <dt className="text-[14px] font-bold text-[#1B6B73]">{title}</dt>
+      <dd className="mt-1 text-[14px] text-brand-navy">{text}</dd>
+    </div>
+  );
+}
+
+function DimensionBar({
+  label,
+  observed,
+  expected,
+}: {
+  label: string;
+  observed: number;
+  expected: number;
+}) {
+  return (
+    <li>
+      <div className="mb-1 flex justify-between text-[14px] font-bold text-brand-navy">
+        <span>{label}</span>
+        <span className="font-mono text-[var(--muted)]">
+          影片 {pct(observed)} · 期望 {pct(expected)}
+        </span>
+      </div>
+      <div className="relative h-2 bg-[var(--bg)]">
+        <div
+          className="h-full bg-[#1B6B73]"
+          style={{ width: `${Math.round(Math.min(1, Math.max(0, observed)) * 100)}%` }}
+        />
+        <span
+          className="absolute top-1/2 h-3 w-0.5 -translate-y-1/2 bg-brand-navy"
+          style={{ left: `${Math.round(Math.min(1, Math.max(0, expected)) * 100)}%` }}
+          title="該級期望"
+        />
+      </div>
+    </li>
   );
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg bg-slate-50 p-3">
-      <dt className="text-xs text-slate-500">{label}</dt>
-      <dd className="mt-1 text-lg font-semibold text-slate-800">{value}</dd>
+    <div className="bg-[var(--bg)] p-4">
+      <dt className="text-[14px] font-bold text-[var(--muted)]">{label}</dt>
+      <dd className="mt-1 font-mono text-[20px] font-black text-brand-navy">{value}</dd>
     </div>
   );
 }

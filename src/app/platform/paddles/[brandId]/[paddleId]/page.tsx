@@ -22,29 +22,31 @@ export default async function PlatformPaddleEditPage({
   if (!paddle) notFound();
 
   return (
-    <>
-      <Link
-        href={ROUTES.platformPaddleBrand(brandId)}
-        className="text-sm text-slate-600 hover:text-brand-navy"
-      >
-        ← 返回 {paddle.brand.name}
-      </Link>
-      <h1 className="mt-1 text-2xl font-bold text-slate-800">編輯球拍</h1>
-      <p className="mt-1 text-sm text-slate-600">{paddle.nameZh}</p>
+    <div className="space-y-6">
+      <div>
+        <Link
+          href={ROUTES.platformPaddleBrand(brandId)}
+          className="text-[14px] font-black text-[#1B6B73] hover:text-brand-navy"
+        >
+          ← 返回 {paddle.brand.name}
+        </Link>
+        <h2 className="mt-1 text-[24px] font-black text-brand-navy">編輯球拍</h2>
+        <p className="mt-1 text-[14px] text-[var(--muted)]">{paddle.nameZh}</p>
+      </div>
 
       {saved && (
-        <p className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+        <p className="bg-[var(--surface-tint)] px-4 py-3 text-[14px] font-bold text-[#1B6B73]">
           已儲存
         </p>
       )}
       {error && (
-        <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+        <p className="bg-[#FCECE9] px-4 py-3 text-[14px] font-bold text-[#B42318]">{error}</p>
       )}
 
-      <section className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="bg-white p-6">
         <form
           action={updatePaddle.bind(null, brandId, paddleId)}
-          className="grid gap-3 sm:grid-cols-2"
+          className="grid gap-4 sm:grid-cols-2"
         >
           <Field label="中文全名" name="nameZh" required defaultValue={paddle.nameZh} />
           <Field label="英文全名" name="nameEn" required defaultValue={paddle.nameEn} />
@@ -95,10 +97,10 @@ export default async function PlatformPaddleEditPage({
             defaultValue={paddle.memberPriceNote ?? ""}
           />
           <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-slate-700">
+            <label className="block text-[14px] font-bold text-brand-navy">
               詳細介紹
             </label>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-[14px] text-[var(--muted)]">
               可用工具列設定粗體、標題與列表。
             </p>
             <PaddleRichEditor
@@ -108,7 +110,7 @@ export default async function PlatformPaddleEditPage({
             />
           </div>
           <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-slate-700" htmlFor="highlights">
+            <label className="block text-[14px] font-bold text-brand-navy" htmlFor="highlights">
               特點（逗號或換行分隔）
             </label>
             <textarea
@@ -116,23 +118,23 @@ export default async function PlatformPaddleEditPage({
               name="highlights"
               rows={2}
               defaultValue={paddle.highlights.join("\n")}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              className="mt-1 w-full bg-[var(--bg)] px-4 py-2.5 text-[14px] text-brand-navy"
             />
           </div>
 
-          <div className="sm:col-span-2 space-y-2">
-            <p className="text-sm font-medium text-slate-700">目前縮圖</p>
+          <div className="space-y-2 sm:col-span-2">
+            <p className="text-[14px] font-bold text-brand-navy">目前縮圖</p>
             {paddle.imageDataUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={paddle.imageDataUrl}
                 alt=""
-                className="h-32 w-32 rounded-lg object-cover"
+                className="h-32 w-32 object-cover"
               />
             ) : (
-              <p className="text-sm text-slate-500">尚無縮圖</p>
+              <p className="text-[14px] text-[var(--muted)]">尚無縮圖</p>
             )}
-            <label className="block text-sm font-medium text-slate-700" htmlFor="image">
+            <label className="block text-[14px] font-bold text-brand-navy" htmlFor="image">
               更換縮圖（JPG／PNG／WebP，&lt; 1MB）
             </label>
             <input
@@ -140,33 +142,30 @@ export default async function PlatformPaddleEditPage({
               name="image"
               type="file"
               accept="image/jpeg,image/png,image/webp"
-              className="mt-1 block w-full text-sm"
+              className="mt-1 block w-full text-[14px]"
             />
             {paddle.imageDataUrl ? (
-              <label className="mt-2 flex items-center gap-2 text-sm text-slate-700">
+              <label className="mt-2 flex items-center gap-2 text-[14px] font-bold text-brand-navy">
                 <input type="checkbox" name="clearImage" value="1" />
                 清除現有縮圖
               </label>
             ) : null}
           </div>
 
-          <div className="flex flex-wrap gap-2 sm:col-span-2">
-            <button
-              type="submit"
-              className="rounded-lg bg-brand-navy px-4 py-2 text-sm font-medium text-white hover:opacity-90"
-            >
+          <div className="flex flex-wrap gap-3 sm:col-span-2">
+            <button type="submit" className="btn-brand">
               儲存
             </button>
             <Link
               href={ROUTES.paddle(paddle.slug)}
-              className="rounded-lg border border-slate-200 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50"
+              className="bg-[var(--bg)] px-5 py-2.5 text-[14px] font-bold text-brand-navy hover:bg-[var(--surface-alt)]"
             >
               查看前台
             </Link>
           </div>
         </form>
       </section>
-    </>
+    </div>
   );
 }
 
@@ -189,7 +188,7 @@ function Field({
 }) {
   return (
     <div className={className}>
-      <label className="block text-sm font-medium text-slate-700" htmlFor={name}>
+      <label className="block text-[14px] font-bold text-brand-navy" htmlFor={name}>
         {label}
       </label>
       <input
@@ -199,7 +198,7 @@ function Field({
         defaultValue={defaultValue}
         placeholder={placeholder}
         inputMode={inputMode}
-        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+        className="mt-1 w-full bg-[var(--bg)] px-4 py-2.5 text-[14px] text-brand-navy"
       />
     </div>
   );

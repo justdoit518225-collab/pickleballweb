@@ -40,7 +40,7 @@ export function LeaveClubButton({
       type="button"
       disabled={pending}
       onClick={onLeave}
-      className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-60"
+      className="bg-rose-100 px-3.5 py-2 text-sm font-bold text-rose-900 transition-colors hover:bg-rose-200 disabled:opacity-60"
     >
       {pending ? "退出中…" : "退出俱樂部"}
     </button>

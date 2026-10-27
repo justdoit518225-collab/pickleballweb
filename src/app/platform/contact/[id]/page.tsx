@@ -41,17 +41,17 @@ export default async function PlatformContactThreadPage({
     "訪客";
 
   return (
-    <div>
+    <div className="space-y-4">
       <Link
         href={ROUTES.platformContact}
-        className="text-sm text-brand-teal hover:underline"
+        className="inline-block text-[14px] font-black text-[#1B6B73] hover:text-brand-navy"
       >
         ← 全部聯繫
       </Link>
-      <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3 bg-white p-6">
         <div>
-          <h1 className="text-xl font-bold text-brand-navy">{who}</h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <h2 className="text-[24px] font-black text-brand-navy">{who}</h2>
+          <p className="mt-1 text-[14px] text-[var(--muted)]">
             {[thread.contactEmail, thread.user?.email]
               .filter(Boolean)
               .filter((v, i, a) => a.indexOf(v) === i)
@@ -69,7 +69,7 @@ export default async function PlatformContactThreadPage({
         >
           <button
             type="submit"
-            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-50"
+            className="bg-[var(--bg)] px-4 py-2 text-[14px] font-black text-brand-navy hover:bg-brand-lime"
           >
             {thread.status === "OPEN" ? "關閉對話" : "重新開啟"}
           </button>

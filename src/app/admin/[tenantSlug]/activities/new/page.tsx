@@ -31,10 +31,10 @@ export default async function NewActivityPage({
         : "活動";
 
   return (
-    <div className="max-w-2xl">
-      <h2 className="text-xl font-bold text-slate-800">建立{title}</h2>
+    <div className="max-w-3xl bg-white p-6 sm:p-8">
+      <h2 className="text-[24px] font-black text-brand-navy">建立{title}</h2>
       {duprMode && (
-        <p className="mt-2 text-sm text-slate-600">
+        <p className="mt-2 text-[14px] text-[var(--muted)]">
           會員須已於會員中心連結 DUPR 才能報名此活動。
         </p>
       )}

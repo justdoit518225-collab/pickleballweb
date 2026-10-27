@@ -22,7 +22,6 @@ export default async function TenantAccessPage({
   ]);
 
   if (!tenant) {
-    // 常見情況：把邀請碼誤當 slug（例如 /t/1234/access）
     redirect(
       `${ROUTES.home}?privateError=${encodeURIComponent("找不到此俱樂部，請在首頁輸入邀請碼")}#private-club`,
     );
@@ -41,42 +40,39 @@ export default async function TenantAccessPage({
   const loginHref = ROUTES.loginWithCallback(ROUTES.tenantAccess(tenantSlug));
 
   return (
-    <div className="mx-auto max-w-md px-4 py-16">
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex items-center gap-2">
-          <h1 className="text-xl font-bold text-slate-800">{tenant.displayName}</h1>
-          <Badge variant="default">私人俱樂部</Badge>
+    <div className="page-wrap py-16 sm:py-24">
+      <div className="mx-auto max-w-lg bg-brand-navy p-8 text-white sm:p-10">
+        <div className="flex flex-wrap items-center gap-3">
+          <Badge variant="success">PRIVATE CLUB · 私人俱樂部</Badge>
         </div>
-        <p className="mt-3 text-sm text-slate-600">
-          此俱樂部僅限受邀會員進入。請先以 Google 或 LINE 登入，再輸入場館提供的邀請碼。
+        <h1 className="type-head mt-4 text-white">{tenant.displayName}</h1>
+        <p className="mt-3 text-base leading-relaxed text-white/80">
+          此俱樂部僅限受邀會員進入。請先以 Google 或 LINE 登入，再輸入場館提供的通行邀請碼。
         </p>
 
         {!loggedIn ? (
-          <div className="mt-6 space-y-3">
-            <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-              訪客無法直接加入。請先登入成為會員。
+          <div className="mt-8 space-y-4">
+            <p className="bg-white/10 px-4 py-3 text-sm font-semibold text-brand-lime">
+              訪客無法直接加入，請先登入成為會員。
             </p>
-            <Link
-              href={loginHref}
-              className="flex w-full items-center justify-center rounded-lg bg-brand-navy px-4 py-2.5 text-sm font-medium text-white hover:opacity-90"
-            >
-              使用 Google / LINE 登入
+            <Link href={loginHref} className="btn-brand-lime w-full">
+              使用 Google / LINE 登入 →
             </Link>
           </div>
         ) : (
           <>
             {error ? (
-              <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+              <p className="mt-4 bg-rose-950/90 px-4 py-2.5 text-sm font-bold text-rose-200">
                 {error}
               </p>
             ) : null}
-            <form action={submit} className="mt-6 space-y-4">
+            <form action={submit} className="mt-8 space-y-4">
               <div>
                 <label
-                  className="block text-sm font-medium text-slate-700"
+                  className="block text-xs font-extrabold tracking-wide text-brand-lime"
                   htmlFor="accessCode"
                 >
-                  邀請碼
+                  俱樂部邀請碼
                 </label>
                 <input
                   id="accessCode"
@@ -84,20 +80,20 @@ export default async function TenantAccessPage({
                   required
                   autoComplete="off"
                   placeholder="請輸入邀請碼"
-                  className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono uppercase tracking-wider"
+                  className="mt-2 w-full bg-white px-4 py-3 text-base font-bold tracking-widest text-brand-navy uppercase placeholder:font-normal placeholder:tracking-normal placeholder:text-[#4a5d73]"
                 />
               </div>
-              <button
-                type="submit"
-                className="w-full rounded-lg bg-brand-navy px-4 py-2.5 text-sm font-medium text-white hover:opacity-90"
-              >
-                驗證並加入
+              <button type="submit" className="btn-brand-lime w-full">
+                驗證邀請碼並加入 →
               </button>
             </form>
           </>
         )}
 
-        <Link href={ROUTES.home} className="mt-6 inline-block text-sm text-brand-teal">
+        <Link
+          href={ROUTES.home}
+          className="mt-8 inline-block text-sm font-bold text-white/75 hover:text-brand-lime"
+        >
           ← 返回首頁探索其他俱樂部
         </Link>
       </div>

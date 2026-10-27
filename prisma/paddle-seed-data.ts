@@ -431,4 +431,36 @@ export const SEED_PADDLES = [
     description: "Boomstik 亞洲版禮盒，性能大致對齊 LABS Boomstik 平台。",
     highlights: ["Boomstik", "亞洲版", "禮盒"],
   },
+  // ── PIKA 2026.10.01 價格表補齊 ──
+  {
+    slug: "bread-and-butter-loco2",
+    brand: "BREAD & BUTTER",
+    series: "Loco 2",
+    variant: "-",
+    nameZh: "Loco 2",
+    nameEn: "Loco 2",
+    description: "Bread & Butter Loco 2 雙密度全泡沫拍，搭配 Space Dust 耐用旋貼，兼具頂級旋轉與進攻力量。",
+    highlights: ["Loco 2", "Space Dust", "雙密度泡沫", "16mm"],
+  },
+  {
+    slug: "11six24-power2",
+    brand: "11SIX24",
+    series: "Power 2",
+    variant: "-",
+    nameZh: "Power 2",
+    nameEn: "Power 2 Series",
+    description: "11SIX24 Power 2 Gen 4 全泡沫 MPP 浮動核心力量拍，搭載 HexGrit 耐用旋貼。",
+    highlights: ["Power 2", "Gen4", "MPP", "HexGrit"],
+  },
+  {
+    slug: "11six24-jelly-bean2",
+    brand: "11SIX24",
+    series: "Jelly Bean 2",
+    variant: "-",
+    nameZh: "Jelly Bean 2",
+    nameEn: "Jelly Bean 2 Series",
+    description: "11SIX24 Jelly Bean 2 Gen 4 一體成型軟質 EMA 全泡沫控制拍，搭載 HexGrit 耐用旋貼與超大甜蜜點。",
+    highlights: ["Jelly Bean 2", "Gen4", "EMA泡沫", "HexGrit", "控制"],
+  },
 ] as const;
+

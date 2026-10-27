@@ -1,15 +1,15 @@
 import type { ReactNode } from "react";
 
 const variants = {
-  default: "bg-zinc-100 text-zinc-700",
-  success: "bg-brand-lime-soft text-brand-navy",
-  course: "bg-emerald-100 text-emerald-800",
-  warning: "bg-amber-100 text-amber-800",
-  dupr: "bg-blue-100 text-blue-800",
-  /** 活動狀態（管理後台），與類型標籤區隔 */
-  published: "bg-violet-100 text-violet-800",
-  draft: "bg-slate-200 text-slate-700",
-  cancelled: "bg-rose-100 text-rose-800",
+  default: "bg-[var(--surface-alt)] text-[var(--ink)]",
+  success: "bg-brand-lime text-brand-navy",
+  course: "bg-brand-teal text-white",
+  warning: "bg-amber-200 text-amber-950",
+  dupr: "bg-brand-navy text-white",
+  /** 活動狀態（管理後台），與類型標籤區隔，嚴格遵循無紫/靛色規範 */
+  published: "bg-brand-lime-soft text-brand-navy",
+  draft: "bg-[var(--surface-alt)] text-[var(--muted)]",
+  cancelled: "bg-rose-100 text-rose-900",
 } as const;
 
 export function Badge({
@@ -20,7 +20,9 @@ export function Badge({
   variant?: keyof typeof variants;
 }) {
   return (
-    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${variants[variant]}`}>
+    <span
+      className={`inline-flex items-center px-2.5 py-0.5 text-xs font-bold tracking-tight ${variants[variant]}`}
+    >
       {children}
     </span>
   );

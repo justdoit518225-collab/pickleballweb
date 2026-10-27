@@ -50,8 +50,14 @@ next-env.d.ts
 /services/skill-analyzer/.venv
 /services/skill-analyzer/__pycache__
 /services/skill-analyzer/**/__pycache__
+/services/skill-analyzer/models
 *.pt
 /tools/cloudflared.exe
 
 .vercel
 .env*
+
+.taste-skill/
+
+*.traineddata
+scripts/_*

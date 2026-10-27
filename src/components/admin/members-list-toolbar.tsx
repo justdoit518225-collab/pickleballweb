@@ -22,16 +22,16 @@ export function MembersListToolbar({
   const pageNumbers = buildPageNumbers(page, totalPages);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <form
         method="get"
-        className="flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4"
+        className="flex flex-wrap items-end gap-3 bg-white p-5"
       >
         <input type="hidden" name="page" value="1" />
         {view === "scroll" && <input type="hidden" name="view" value="scroll" />}
 
-        <div>
-          <label htmlFor="members-q" className="block text-xs font-medium text-slate-600">
+        <div className="min-w-[200px] flex-1">
+          <label htmlFor="members-q" className="block text-[14px] font-bold text-brand-navy">
             搜尋
           </label>
           <input
@@ -40,19 +40,19 @@ export function MembersListToolbar({
             type="search"
             defaultValue={q}
             placeholder="姓名、Email、暱稱、LINE ID…"
-            className="mt-1 w-full min-w-[160px] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+            className="mt-1 w-full bg-[var(--bg)] px-4 py-2 text-[14px] text-brand-navy"
           />
         </div>
 
         <div>
-          <label htmlFor="members-pageSize" className="block text-xs font-medium text-slate-600">
+          <label htmlFor="members-pageSize" className="block text-[14px] font-bold text-brand-navy">
             顯示筆數
           </label>
           <select
             id="members-pageSize"
             name="pageSize"
             defaultValue={pageSize}
-            className="mt-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+            className="mt-1 bg-[var(--bg)] px-4 py-2 text-[14px] font-bold text-brand-navy"
           >
             {MEMBER_PAGE_SIZES.map((n) => (
               <option key={n} value={n}>
@@ -63,14 +63,14 @@ export function MembersListToolbar({
         </div>
 
         <div>
-          <label htmlFor="members-view" className="block text-xs font-medium text-slate-600">
+          <label htmlFor="members-view" className="block text-[14px] font-bold text-brand-navy">
             顯示方式
           </label>
           <select
             id="members-view"
             name="view"
             defaultValue={view}
-            className="mt-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+            className="mt-1 bg-[var(--bg)] px-4 py-2 text-[14px] font-bold text-brand-navy"
           >
             <option value="paginate">分頁</option>
             <option value="scroll">固定高度（捲動）</option>
@@ -79,7 +79,7 @@ export function MembersListToolbar({
 
         <button
           type="submit"
-          className="rounded-lg bg-brand-navy px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+          className="bg-brand-navy px-5 py-2 text-[14px] font-black text-white hover:bg-brand-lime hover:text-brand-navy"
         >
           套用
         </button>
@@ -87,16 +87,16 @@ export function MembersListToolbar({
         {(q || view !== "paginate" || pageSize !== 25) && (
           <Link
             href={ROUTES.tenantAdminMembers(tenantSlug)}
-            className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600 hover:bg-slate-50"
+            className="bg-[var(--bg)] px-4 py-2 text-[14px] font-bold text-brand-navy hover:bg-[var(--surface-alt)]"
           >
             重設
           </Link>
         )}
       </form>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-slate-600">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-[14px] font-bold text-brand-navy">
         <p>
-          共 <span className="font-medium text-slate-800">{total}</span> 位會員
+          共 <span className="font-mono font-black">{total}</span> 位會員
           {view === "paginate" && totalPages > 1 && (
             <>
               {" "}
@@ -104,7 +104,7 @@ export function MembersListToolbar({
             </>
           )}
           {view === "scroll" && (
-            <span className="text-slate-500"> · 顯示前 {Math.min(pageSize, total)} 筆（可捲動）</span>
+            <span className="text-[var(--muted)]"> · 顯示前 {Math.min(pageSize, total)} 筆（可捲動）</span>
           )}
         </p>
 
@@ -113,29 +113,29 @@ export function MembersListToolbar({
             {page > 1 ? (
               <Link
                 href={pageLink(page - 1)}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 hover:bg-slate-50"
+                className="bg-white px-3 py-1.5 font-bold text-brand-navy hover:bg-brand-lime"
               >
                 上一頁
               </Link>
             ) : (
-              <span className="rounded-lg border border-slate-100 px-3 py-1.5 text-slate-400">
+              <span className="bg-[var(--surface-alt)] px-3 py-1.5 text-[var(--muted)]">
                 上一頁
               </span>
             )}
 
             {pageNumbers.map((n, i) =>
               n === "…" ? (
-                <span key={`ellipsis-${i}`} className="px-2 text-slate-400">
+                <span key={`ellipsis-${i}`} className="px-2 text-[var(--muted)]">
                   …
                 </span>
               ) : (
                 <Link
                   key={n}
                   href={pageLink(n)}
-                  className={`min-w-[2.25rem] rounded-lg border px-3 py-1.5 text-center ${
+                  className={`min-w-[2.25rem] px-3 py-1.5 text-center font-mono font-black ${
                     n === page
-                      ? "border-brand-navy bg-brand-navy text-white"
-                      : "border-slate-200 bg-white hover:bg-slate-50"
+                      ? "bg-brand-navy text-white"
+                      : "bg-white text-brand-navy hover:bg-brand-lime"
                   }`}
                   aria-current={n === page ? "page" : undefined}
                 >
@@ -147,12 +147,12 @@ export function MembersListToolbar({
             {page < totalPages ? (
               <Link
                 href={pageLink(page + 1)}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 hover:bg-slate-50"
+                className="bg-white px-3 py-1.5 font-bold text-brand-navy hover:bg-brand-lime"
               >
                 下一頁
               </Link>
             ) : (
-              <span className="rounded-lg border border-slate-100 px-3 py-1.5 text-slate-400">
+              <span className="bg-[var(--surface-alt)] px-3 py-1.5 text-[var(--muted)]">
                 下一頁
               </span>
             )}

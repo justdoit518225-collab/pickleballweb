@@ -56,32 +56,40 @@ export default async function TenantAdminPage({
   });
 
   return (
-    <div>
+    <div data-ui className="space-y-8">
       {batchCreated && (
-        <p className="mb-6 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <p className="bg-[var(--surface-tint)] px-4 py-3 text-[14px] font-bold text-[#1B6B73]">
           已批次建立 {batchCreated} 場活動
         </p>
       )}
-      <section className="grid gap-4 sm:grid-cols-2">
+      <section className="grid gap-4 sm:grid-cols-3">
         <Link
           href={ROUTES.tenantAdminActivityNew(tenantSlug, "open-play")}
-          className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-5 shadow-sm hover:border-emerald-200"
+          className="bg-brand-lime p-6 text-brand-navy transition-colors hover:bg-[#9BD35A]"
         >
-          <h2 className="font-semibold text-emerald-800">＋ 球敘活動</h2>
+          <h2 className="text-[20px] font-black text-brand-navy">＋ 球敘活動</h2>
+          <p className="mt-1 text-[14px] font-bold text-brand-navy">友善球敘、固定揪團</p>
+        </Link>
+        <Link
+          href={ROUTES.tenantAdminActivityNew(tenantSlug, "course")}
+          className="bg-brand-navy p-6 text-white transition-colors hover:bg-[#133463]"
+        >
+          <h2 className="text-[20px] font-black text-white">＋ 課程活動</h2>
+          <p className="mt-1 text-[14px] font-bold text-[#C8D8E4]">教練教學、團體培訓班</p>
         </Link>
         <Link
           href={ROUTES.tenantAdminActivityNew(tenantSlug, "dupr")}
-          className="rounded-xl border border-indigo-100 bg-indigo-50/50 p-5 shadow-sm hover:border-indigo-200"
+          className="bg-[#1B6B73] p-6 text-white transition-colors hover:bg-[#15575E]"
         >
-          <h2 className="font-semibold text-indigo-800">＋ DUPR 活動</h2>
-          <p className="mt-1 text-xs text-indigo-600/90">需連結 DUPR 才可報名</p>
+          <h2 className="text-[20px] font-black text-white">＋ DUPR 活動</h2>
+          <p className="mt-1 text-[14px] font-bold text-[#DCEBEC]">需連結 DUPR 才可報名</p>
         </Link>
       </section>
 
-      <section className="mt-10">
+      <section className="bg-white p-6">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-semibold text-slate-800">活動列表</h2>
-          <p className="text-sm text-slate-500">
+          <h2 className="text-[20px] font-black text-brand-navy">活動列表</h2>
+          <p className="text-[14px] font-bold tabular-nums text-[var(--muted)]">
             共 {activityTotal} 筆
             {activityTotal > LIST_LIMIT && `（顯示前 ${LIST_LIMIT} 筆，請縮小篩選）`}
           </p>
@@ -94,30 +102,32 @@ export default async function TenantAdminPage({
         />
 
         {activities.length === 0 ? (
-          <p className="mt-6 text-sm text-slate-500">沒有符合條件的活動，請調整篩選或建立新活動。</p>
+          <p className="mt-6 bg-[var(--bg)] p-6 text-[14px] text-[var(--muted)]">
+            沒有符合條件的活動，請調整篩選或建立新活動。
+          </p>
         ) : (
-          <ul className="mt-4 space-y-2">
+          <ul className="mt-5 space-y-2">
             {activities.map((a) => (
               <li
                 key={a.id}
-                className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm"
+                className="flex flex-wrap items-center gap-3 bg-[var(--bg)] px-5 py-4 text-[14px] transition-colors hover:bg-[var(--surface-alt)]"
               >
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex shrink-0 items-center gap-3">
                   <Badge variant={activityKindBadgeVariant(a.type, a.requiresDupr)}>
                     {adminActivityKindLabel(a.type, a.requiresDupr)}
                   </Badge>
-                  <span className="min-w-[3.5rem] text-center text-slate-600 tabular-nums">
+                  <span className="min-w-[3.5rem] text-center font-black tabular-nums text-brand-navy">
                     {sumPartySize(a.bookings)}/{a.capacity}
                   </span>
                 </div>
                 <div className="min-w-0 flex-1">
                   <Link
                     href={`/admin/${tenantSlug}/activities/${a.id}/edit`}
-                    className="font-medium text-slate-800 hover:text-emerald-600"
+                    className="text-[16px] font-black text-brand-navy hover:text-[#1B6B73]"
                   >
                     {a.title}
                   </Link>
-                  <p className="mt-0.5 text-xs text-slate-500">
+                  <p className="mt-0.5 text-[14px] text-[var(--muted)]">
                     {formatAdminActivityDateTime(a.startAt)}
                     {" · "}
                     {a.venue.name}

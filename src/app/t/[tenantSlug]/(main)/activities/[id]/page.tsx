@@ -90,87 +90,101 @@ export default async function ActivityDetailPage({
       : null;
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
-      <Link href={ROUTES.tenantActivities(tenantSlug)} className="text-sm text-emerald-600">
-        ← 活動列表
-      </Link>
-
-      <header className="mt-4">
-        <div className="flex flex-wrap gap-2">
-          <Badge variant={activityKindBadgeVariant(activity.type, activity.requiresDupr)}>
-            {adminActivityKindLabel(activity.type, activity.requiresDupr)}
-          </Badge>
-        </div>
-        <h1 className="mt-2 text-2xl font-bold text-slate-800">{activity.title}</h1>
-        <p className="mt-2 text-slate-600">
-          {formatActivityDateTime(activity.startAt)} —{" "}
-          {formatActivityTime(activity.endAt)}
-        </p>
-        <p className="text-slate-600">
-          {activity.venue.name}
-          {activity.court ? ` · ${activity.court.name}` : ""}
-        </p>
-        <p className="mt-2 text-sm text-slate-500">
-          名額 {confirmedHeads} / {activity.capacity}
-        </p>
-        {activity.description && (
-          <p className="mt-4 whitespace-pre-wrap text-sm text-slate-700">
-            {activity.description}
-          </p>
-        )}
-        <p className="mt-3 text-sm text-slate-500">取消規則：{formatCancelPolicy(activity)}</p>
-        {activity.requiresDupr && (
-          <p className="mt-2 rounded-lg bg-blue-50 px-3 py-2 text-sm text-blue-800">
-            {duprProfile?.linkStatus === "LINKED" ? (
-              <>
-                已帶入 DUPR：{duprProfile.duprName}（單打{" "}
-                {duprProfile.singlesRating?.toString() ?? "—"} / 雙打{" "}
-                {duprProfile.doublesRating?.toString() ?? "—"}）
-              </>
-            ) : (
-              <>
-                DUPR 專場：請先{" "}
-                <Link href="/me/dupr" className="underline">
-                  連結 DUPR
-                </Link>{" "}
-                再預約
-              </>
-            )}
-          </p>
-        )}
-      </header>
-
-      <div className="mt-6">
-        {!session?.user ? (
+    <div>
+      <section className="bg-brand-navy py-10 text-white sm:py-12">
+        <div className="page-wrap">
           <Link
-            href="/login"
-            className="inline-block rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white"
+            href={ROUTES.tenantActivities(tenantSlug)}
+            className="text-xs font-bold text-brand-lime hover:underline"
           >
-            登入後預約
+            ← 返回 {tenant.displayName} 活動列表
           </Link>
-        ) : (
-          <BookingActions
-            activityId={activity.id}
-            hasJoined={hasJoined}
-            isFull={isFull}
-            canCancel={canCancel}
-            onWaitlist={onWaitlist}
-            waitlistPosition={waitlistEntry?.position}
-            allowPartySize={allowPartySize}
-            maxPartySize={maxPartySize}
-            joinedPartySize={userBooking?.partySize ?? 1}
-            activityStartAt={activity.startAt.toISOString()}
-            activityEndAt={activity.endAt.toISOString()}
-          />
-        )}
-      </div>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <Badge variant={activityKindBadgeVariant(activity.type, activity.requiresDupr)}>
+              {adminActivityKindLabel(activity.type, activity.requiresDupr)}
+            </Badge>
+            <span className="text-xs font-bold text-white/80 tabular-nums">
+              名額 {confirmedHeads} / {activity.capacity} 人
+            </span>
+          </div>
+          <h1 className="type-head mt-3 text-white">{activity.title}</h1>
+          <p className="mt-3 text-base font-semibold text-brand-lime tabular-nums">
+            {formatActivityDateTime(activity.startAt)} — {formatActivityTime(activity.endAt)}
+          </p>
+          <p className="mt-1 text-sm text-white/80">
+            {activity.venue.name}
+            {activity.court ? ` · ${activity.court.name}` : ""}
+          </p>
+        </div>
+      </section>
 
-      <div className="mt-8">
-        <ParticipantList
-          participants={participants}
-          capacity={activity.capacity}
-          headCount={confirmedHeads}
-        />
+      <div className="page-wrap py-12">
+        <div className="grid gap-10 lg:grid-cols-12 lg:items-start">
+          <div className="space-y-6 lg:col-span-7">
+            {activity.description && (
+              <div className="bg-[var(--surface)] p-6">
+                <h2 className="text-sm font-extrabold text-brand-navy">活動說明</h2>
+                <p className="mt-3 whitespace-pre-wrap text-base leading-relaxed text-brand-navy">
+                  {activity.description}
+                </p>
+              </div>
+            )}
+
+            <div className="bg-[var(--surface-alt)] px-5 py-4 text-sm font-semibold text-brand-navy">
+              取消規則：{formatCancelPolicy(activity)}
+            </div>
+
+            {activity.requiresDupr && (
+              <div className="border-l-4 border-brand-teal bg-brand-teal-soft px-5 py-4 text-sm font-bold text-brand-navy">
+                {duprProfile?.linkStatus === "LINKED" ? (
+                  <>
+                    已帶入 DUPR：{duprProfile.duprName}（單打{" "}
+                    {duprProfile.singlesRating?.toString() ?? "—"} / 雙打{" "}
+                    {duprProfile.doublesRating?.toString() ?? "—"}）
+                  </>
+                ) : (
+                  <>
+                    DUPR 專場：請先{" "}
+                    <Link href="/me/dupr" className="text-brand-teal underline">
+                      連結 DUPR 積分帳號
+                    </Link>{" "}
+                    再預約
+                  </>
+                )}
+              </div>
+            )}
+
+            <div>
+              {!session?.user ? (
+                <Link href="/login" className="btn-brand">
+                  登入會員後立即預約 →
+                </Link>
+              ) : (
+                <BookingActions
+                  activityId={activity.id}
+                  hasJoined={hasJoined}
+                  isFull={isFull}
+                  canCancel={canCancel}
+                  onWaitlist={onWaitlist}
+                  waitlistPosition={waitlistEntry?.position}
+                  allowPartySize={allowPartySize}
+                  maxPartySize={maxPartySize}
+                  joinedPartySize={userBooking?.partySize ?? 1}
+                  activityStartAt={activity.startAt.toISOString()}
+                  activityEndAt={activity.endAt.toISOString()}
+                />
+              )}
+            </div>
+          </div>
+
+          <div className="lg:col-span-5">
+            <ParticipantList
+              participants={participants}
+              capacity={activity.capacity}
+              headCount={confirmedHeads}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

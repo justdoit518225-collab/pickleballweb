@@ -14,10 +14,26 @@ export default async function PlatformLayout({
     _sum: { adminUnread: true },
   });
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <p className="mb-2 text-sm font-medium tracking-wide text-brand-teal">平台管理</p>
-      <PlatformNav contactUnread={unread._sum.adminUnread ?? 0} />
-      {children}
+    <div data-ui className="min-h-[100svh] bg-[var(--bg)]">
+      <section className="bg-brand-navy text-white">
+        <div className="page-wrap mx-auto w-full max-w-[1600px] px-5 py-8 sm:px-8 lg:px-11">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <h1 className="text-[28px] font-black tracking-tight text-white">
+              平台總管理中心
+            </h1>
+            <p className="text-[14px] font-bold text-[#C8D8E4]">
+              租戶俱樂部、球拍目錄、實力訓練集與站內聯繫
+            </p>
+          </div>
+          <div className="mt-6">
+            <PlatformNav contactUnread={unread._sum.adminUnread ?? 0} />
+          </div>
+        </div>
+      </section>
+
+      <div className="page-wrap mx-auto w-full max-w-[1600px] px-5 py-8 sm:px-8 lg:px-11">
+        {children}
+      </div>
     </div>
   );
 }

@@ -61,73 +61,108 @@ export default async function MeOverviewPage({
     : [...new Map(staffRoles.map((r) => [r.tenant.id, r.tenant])).values()];
 
   return (
-    <div className="space-y-6">
-      <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <div className="flex items-center gap-4">
-          <Avatar src={session!.user!.image} name={session!.user!.name ?? "會員"} />
-          <div>
-            <p className="font-semibold">{session!.user!.name}</p>
-            <p className="text-sm text-slate-500">{session!.user!.email}</p>
+    <div className="space-y-8">
+      <div className="grid gap-6 lg:grid-cols-12">
+        <section className="bg-white p-6 sm:p-8 lg:col-span-6">
+          <div className="flex items-center gap-4">
+            <Avatar src={session!.user!.image} name={session!.user!.name ?? "會員"} size="lg" />
+            <div>
+              <h2 className="text-xl font-extrabold text-brand-navy">
+                {session!.user!.name}
+              </h2>
+              <p className="text-sm font-medium text-[var(--muted)]">
+                {session!.user!.email ?? "LINE 快速登入帳號"}
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="mt-4 flex flex-col gap-1 text-sm">
-          <Link href={ROUTES.meAccounts} className="font-medium text-brand-navy">
-            → 登入方式（連結 Google / LINE）
-          </Link>
-          {session!.user!.platformRole === "SUPER_ADMIN" && (
-            <>
-              <Link href={ROUTES.platformAdmin} className="font-medium text-brand-teal">
-                → 平台管理（租戶）
-              </Link>
-              <Link href={ROUTES.platformPaddles} className="font-medium text-brand-teal">
-                → 匹克球拍管理
-              </Link>
-            </>
-          )}
-          {adminTenants.map((t) => (
+          <div className="mt-6 flex flex-wrap gap-2 text-sm">
             <Link
-              key={t.id}
-              href={ROUTES.tenantAdmin(t.slug)}
-              className="font-medium text-brand-teal"
+              href={ROUTES.meAccounts}
+              className="btn-brand-outline bg-[var(--bg)] px-4 py-2 text-sm font-bold text-brand-navy hover:bg-[var(--surface-alt)]"
             >
-              {`${"→"} ${t.displayName} 管理後台`}
+              管理登入方式（Google / LINE）→
             </Link>
-          ))}
-        </div>
-      </section>
-
-      <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <div className="flex items-baseline justify-between gap-2">
-          <h2 className="text-lg font-semibold text-slate-900">DUPR</h2>
-          <Link href={ROUTES.meDupr} className="text-sm font-medium text-brand-navy">
-            {duprLinked ? "管理 →" : "連結 DUPR →"}
-          </Link>
-        </div>
-        {duprLinked && dupr ? (
-          <div className="mt-3">
-            <DuprRatingCard profile={dupr} />
+            {session!.user!.platformRole === "SUPER_ADMIN" && (
+              <>
+                <Link
+                  href={ROUTES.platformAdmin}
+                  className="btn-brand px-4 py-2 text-sm font-bold text-white"
+                >
+                  平台租戶管理 →
+                </Link>
+                <Link
+                  href={ROUTES.platformPaddles}
+                  className="btn-brand px-4 py-2 text-sm font-bold text-white"
+                >
+                  球拍目錄管理 →
+                </Link>
+              </>
+            )}
           </div>
-        ) : (
-          <p className="mt-2 text-sm text-slate-500">尚未連結 DUPR，登入 DUPR 帳號後即可在這裡看到你的積分。</p>
-        )}
-      </section>
+          {adminTenants.length > 0 && (
+            <div className="mt-6 bg-[var(--bg)] p-4">
+              <p className="text-sm font-extrabold text-brand-navy">
+                場主與管理員權限入口
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {adminTenants.map((t) => (
+                  <Link
+                    key={t.id}
+                    href={ROUTES.tenantAdmin(t.slug)}
+                    className="bg-brand-navy px-3.5 py-2 text-sm font-bold text-white hover:bg-brand-teal"
+                  >
+                    {t.displayName} 管理後台 →
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5">
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900">已加入的場館</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              共 {memberships.length} 個場館
-            </p>
+        <section className="bg-white p-6 sm:p-8 lg:col-span-6">
+          <div className="flex items-baseline justify-between gap-2">
+            <h2 className="text-xl font-extrabold text-brand-navy">DUPR 積分檔案</h2>
+            <Link
+              href={ROUTES.meDupr}
+              className="text-sm font-extrabold text-[#1D6D75] hover:text-brand-navy"
+            >
+              {duprLinked ? "管理積分 →" : "連結 DUPR →"}
+            </Link>
           </div>
+          {duprLinked && dupr ? (
+            <div className="mt-4">
+              <DuprRatingCard profile={dupr} />
+            </div>
+          ) : (
+            <div className="mt-4 bg-[var(--bg)] p-5">
+              <p className="text-base text-[var(--muted)]">
+                尚未連結 DUPR 帳號。完成連結後即可顯示單打與雙打官方積分，並直接報名 DUPR 分級賽事。
+              </p>
+              <Link
+                href={ROUTES.meDupr}
+                className="btn-brand mt-4 inline-flex px-4 py-2 text-sm font-bold text-white"
+              >
+                前往設定 DUPR →
+              </Link>
+            </div>
+          )}
+        </section>
+      </div>
+
+      <section className="bg-white p-6 sm:p-8">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-2xl font-extrabold text-brand-navy">已加入的俱樂部場館</h2>
+          <p className="text-base font-bold text-[#1D6D75] tabular-nums">
+            共 {memberships.length} 間俱樂部
+          </p>
         </div>
         {left ? (
-          <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+          <p className="mt-4 bg-brand-lime-soft px-4 py-3 text-sm font-bold text-brand-navy">
             已退出「{left}」
           </p>
         ) : null}
         {error ? (
-          <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          <p className="mt-4 bg-rose-100 px-4 py-3 text-sm font-bold text-rose-900">
             {error}
           </p>
         ) : null}

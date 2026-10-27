@@ -4,7 +4,18 @@ from typing import Any
 import numpy as np
 
 from skill_analyzer.pipeline.ball import detect_ball
-from skill_analyzer.pipeline.court import homography, image_to_court, in_court, in_kitchen, near_net
+from skill_analyzer.pipeline.court import (
+    NET_Y,
+    detect_court_quad_from_video,
+    homography,
+    image_to_court,
+    in_backcourt,
+    in_court,
+    in_kitchen,
+    in_transition,
+    near_net,
+    opponent_kitchen,
+)
 from skill_analyzer.pipeline.preprocess import transcode_clip
 from skill_analyzer.pipeline.score import infer_skill
 
@@ -21,15 +32,30 @@ def run_full_analysis(
     video_path: Path,
     work_dir: Path,
     *,
-    player_click: dict[str, float],
-    selected_track_id: int | None,
-    court_quad: list[dict[str, float]],
+    player_click: dict[str, float] | None = None,
+    selected_track_id: int | None = None,
+    court_quad: list[dict[str, float]] | None = None,
     max_duration_sec: int,
+    auto: bool = False,
     progress_cb=None,
 ) -> dict[str, Any]:
     processed = transcode_clip(video_path, work_dir / "processed.mp4", max_duration_sec)
     if progress_cb:
         progress_cb(15)
+
+    if auto or court_quad is None:
+        court_quad = detect_court_quad_from_video(processed)
+    if auto or not player_click:
+        import cv2
+
+        cap = cv2.VideoCapture(str(processed))
+        ok, frame0 = cap.read()
+        cap.release()
+        if ok:
+            h, w = frame0.shape[:2]
+            player_click = {"x": w / 2.0, "y": h * 0.78}
+        else:
+            player_click = player_click or {"x": 640.0, "y": 560.0}
 
     matrix = homography(court_quad)
     model = _load_yolo()
@@ -41,7 +67,9 @@ def run_full_analysis(
         (player_click["x"], player_click["y"]) if player_click else None
     )
     player_court: list[tuple[float, float]] = []
+    player_aligned: list[tuple[float, float] | None] = []
     wrists: list[tuple[float, float]] = []
+    wrist_in_kitchen: list[tuple[float, float]] = []
     ball_court: list[tuple[float, float] | None] = []
     frames_with_target = 0
     total_frames = 0
@@ -61,17 +89,22 @@ def run_full_analysis(
         frame = result.orig_img
         tracks = _tracks_from_result(result)
         target = _pick_target(tracks, target_id, last_center)
+        player_xy: tuple[float, float] | None = None
         if target:
             target_id = target["id"]
             last_center = target["center"]
             frames_with_target += 1
             foot = target["foot"]
             try:
-                player_court.append(image_to_court(matrix, foot[0], foot[1]))
+                player_xy = image_to_court(matrix, foot[0], foot[1])
+                player_court.append(player_xy)
             except Exception:  # noqa: BLE001
-                pass
+                player_xy = None
             if target["wrist"]:
                 wrists.append(target["wrist"])
+                if player_xy and in_kitchen(*player_xy):
+                    wrist_in_kitchen.append(target["wrist"])
+        player_aligned.append(player_xy)
 
         ball = detect_ball(frame) if frame is not None else None
         if ball:
@@ -95,11 +128,12 @@ def run_full_analysis(
     smoothness = _smoothness(wrists)
     error_rate, shot_count, notes = _error_proxy(ball_court)
     coverage = frames_with_target / total_frames if total_frames else 0.0
+    extras = _rubric_features(player_aligned, ball_court, wrist_in_kitchen)
 
     if coverage < 0.15:
         notes.append("目標球員追蹤較不穩定，區間已加寬")
     if ball_hits < 15:
-        notes.append("球軌偵測偏少，失誤率僅供參考")
+        notes.append("球軌偵測偏少，第三球／reset 僅供參考")
 
     metrics = {
         "errorRate": round(error_rate, 3),
@@ -109,9 +143,14 @@ def run_full_analysis(
         "trackCoverage": round(coverage, 3),
         "ballDetections": ball_hits,
         "notes": notes,
+        **{key: round(value, 3) for key, value in extras.items()},
     }
-    mid, low, high, confidence = infer_skill(metrics)
+    mid, low, high, confidence, match = infer_skill(metrics)
     metrics["confidence"] = round(confidence, 3)
+    metrics["rubricMatch"] = match
+    if match.get("gaps"):
+        notes.append("相對「" + match["nearestLabel"] + "」較弱：" + "、".join(match["gaps"]))
+    metrics["notes"] = notes
 
     return {
         "estimatedMid": mid,
@@ -121,13 +160,15 @@ def run_full_analysis(
         "overlaySummary": {
             "frames": total_frames,
             "targetTrackId": target_id,
+            "nearestLevel": match.get("nearestLevel"),
+            "observed": match.get("observed"),
             "playerSamples": (
                 [[round(x, 2), round(y, 2)] for x, y in player_court[:: max(1, len(player_court) // 40)]]
                 if player_court
                 else []
             ),
         },
-        "modelVersion": "heuristic-v1",
+        "modelVersion": "rubric-match-v1",
     }
 
 
@@ -228,3 +269,74 @@ def _error_proxy(ball_court: list[tuple[float, float] | None]) -> tuple[float, i
         return 0.22, 0, notes
     rate = min(0.8, events / max(shots / 18, 1))
     return float(rate), shots, notes
+
+
+def _rubric_features(
+    player_court: list[tuple[float, float] | None],
+    ball_court: list[tuple[float, float] | None],
+    wrist_in_kitchen: list[tuple[float, float]],
+) -> dict[str, float]:
+    known = [p for p in player_court if p is not None]
+    if not known:
+        return {
+            "kitchenApproach": 0.2,
+            "dropSuccess": 0.15,
+            "resetScore": 0.15,
+            "dinkPatience": 0.2,
+            "handSpeed": 0.3,
+            "lateralMobility": 0.3,
+        }
+
+    ys = np.array([p[1] for p in known], dtype=np.float32)
+    xs = np.array([p[0] for p in known], dtype=np.float32)
+    near_side = float(np.mean(ys)) < NET_Y
+    split = max(1, len(ys) // 5)
+    first = float(np.mean(ys[:split]))
+    last = float(np.mean(ys[-split:]))
+    approach = abs(last - NET_Y) < abs(first - NET_Y)
+    approach_score = 0.75 if approach else 0.28
+    if abs(last - NET_Y) <= 8:
+        approach_score = max(approach_score, 0.62)
+
+    drops = 0
+    drop_ok = 0
+    resets = 0
+    n = min(len(player_court), len(ball_court))
+    for i in range(n):
+        player = player_court[i]
+        ball = ball_court[i]
+        if player is None or ball is None:
+            continue
+        px, py = player
+        if in_backcourt(px, py, near_side):
+            drops += 1
+            if opponent_kitchen(ball[1], near_side):
+                drop_ok += 1
+        if in_transition(px, py) and in_kitchen(*ball):
+            resets += 1
+    drop_success = drop_ok / drops if drops else 0.18
+    reset_score = min(0.95, resets / max(8, n / 40))
+
+    kitchen_xy = [p for p in known if in_kitchen(*p)]
+    if len(kitchen_xy) > 12:
+        karr = np.array(kitchen_xy, dtype=np.float32)
+        step = np.linalg.norm(np.diff(karr, axis=0), axis=1)
+        patience = float(np.clip(1.0 / (1.0 + float(np.mean(step)) * 2.2), 0.1, 0.95))
+    else:
+        patience = 0.22
+
+    hand_speed = _smoothness(wrist_in_kitchen) if len(wrist_in_kitchen) > 6 else 0.32
+    if len(wrist_in_kitchen) > 6:
+        wv = np.linalg.norm(np.diff(np.array(wrist_in_kitchen, dtype=np.float32), axis=0), axis=1)
+        hand_speed = float(np.clip(np.mean(wv) / 18.0, 0.1, 0.95))
+
+    lateral = float(np.clip(np.std(xs) / 6.5, 0.1, 0.95)) if len(xs) > 8 else 0.3
+
+    return {
+        "kitchenApproach": approach_score,
+        "dropSuccess": float(drop_success),
+        "resetScore": float(reset_score),
+        "dinkPatience": patience,
+        "handSpeed": hand_speed,
+        "lateralMobility": lateral,
+    }

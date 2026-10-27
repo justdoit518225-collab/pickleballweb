@@ -64,13 +64,23 @@ export default async function TenantRentalsPage({
   }));
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <Link href={ROUTES.tenant(tenantSlug)} className="text-sm text-emerald-600">
-        ← {tenant.displayName}
-      </Link>
-      <h1 className="mt-4 text-2xl font-bold text-slate-800">場地租借</h1>
-      <p className="mt-2 text-sm text-slate-600">未來 30 天各球場時段一覽（可橫向捲動）</p>
-      <div className="mt-8">
+    <div>
+      <section className="bg-brand-navy py-10 text-white sm:py-12">
+        <div className="page-wrap">
+          <Link
+            href={ROUTES.tenant(tenantSlug)}
+            className="text-xs font-bold text-brand-lime hover:underline"
+          >
+            ← 返回 {tenant.displayName}
+          </Link>
+          <h1 className="type-head mt-3 text-white">場地租借（30 天時段表）</h1>
+          <p className="mt-2 text-sm text-white/80">
+            未來 30 天各球場開放租借時段一覽，支援橫向捲動與球拍加租。
+          </p>
+        </div>
+      </section>
+
+      <div className="page-wrap py-12">
         <RentalCalendar slots={views} loggedIn={Boolean(session?.user)} />
       </div>
     </div>

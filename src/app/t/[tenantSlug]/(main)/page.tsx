@@ -25,42 +25,55 @@ export default async function TenantHomePage({
   const day = parseDayParam(dateParam);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <header className="mb-6 flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">{tenant.displayName}</h1>
-          {tenant.description && (
-            <p className="mt-1 text-sm text-slate-600">{tenant.description}</p>
-          )}
+    <div>
+      {/* Club Header Band */}
+      <section className="bg-brand-navy py-10 text-white sm:py-12">
+        <div className="page-wrap flex flex-wrap items-end justify-between gap-6">
+          <div>
+            <Link
+              href={ROUTES.home}
+              className="text-xs font-bold text-brand-lime hover:underline"
+            >
+              ← PlayPlayPlay 俱樂部總覽
+            </Link>
+            <h1 className="type-head mt-2 text-white">{tenant.displayName}</h1>
+            {tenant.description ? (
+              <p className="mt-2 max-w-2xl text-sm text-white/80">
+                {tenant.description}
+              </p>
+            ) : null}
+          </div>
+          <nav className="flex flex-wrap gap-2 text-sm font-bold">
+            <Link
+              href={ROUTES.tenantActivities(tenantSlug, "course")}
+              className="bg-brand-teal px-4 py-2.5 text-white transition-colors hover:bg-brand-lime hover:text-brand-navy"
+            >
+              教練課程
+            </Link>
+            <Link
+              href={ROUTES.meBookings}
+              className="bg-white/10 px-4 py-2.5 text-white transition-colors hover:bg-white hover:text-brand-navy"
+            >
+              我的報名
+            </Link>
+            <Link
+              href={ROUTES.tenantAbout(tenantSlug)}
+              className="bg-white/10 px-4 py-2.5 text-white transition-colors hover:bg-white hover:text-brand-navy"
+            >
+              關於場館與評價
+            </Link>
+          </nav>
         </div>
-        <nav className="flex flex-wrap gap-2 text-sm">
-          <Link
-            href={ROUTES.tenantActivities(tenantSlug, "course")}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-50"
-          >
-            課程
-          </Link>
-          <Link
-            href={ROUTES.meBookings}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-50"
-          >
-            我的報名
-          </Link>
-          <Link
-            href={ROUTES.tenantAbout(tenantSlug)}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-50"
-          >
-            關於場館
-          </Link>
-        </nav>
-      </header>
+      </section>
 
-      <LohoBoardBody
-        tenantId={tenant.id}
-        tenantSlug={tenantSlug}
-        day={day}
-        basePath={ROUTES.tenant(tenantSlug)}
-      />
+      <div className="page-wrap py-10">
+        <LohoBoardBody
+          tenantId={tenant.id}
+          tenantSlug={tenantSlug}
+          day={day}
+          basePath={ROUTES.tenant(tenantSlug)}
+        />
+      </div>
     </div>
   );
 }

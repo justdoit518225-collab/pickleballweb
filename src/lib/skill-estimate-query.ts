@@ -6,6 +6,7 @@ import {
   signJobToken,
   uploadUrl,
 } from "@/lib/skill-estimate";
+import { ensureTrainingCandidate, serializeTrainingSample } from "@/lib/skill-training";
 
 export async function getSkillEstimatePayload(userId: string, jobId: string) {
   const job = await prisma.skillAnalysisJob.findFirst({
@@ -25,6 +26,9 @@ export async function getSkillEstimatePayload(userId: string, jobId: string) {
   });
 
   const token = isSkillAnalyzerConfigured() ? signJobToken(job.id) : null;
+  const sample =
+    job.status === "COMPLETED" ? await ensureTrainingCandidate(job.id, userId) : null;
+
   return {
     job: serializeJob(job),
     uploadUrl: token && job.status === "CREATED" ? uploadUrl(job.id, token) : null,
@@ -38,5 +42,6 @@ export async function getSkillEstimatePayload(userId: string, jobId: string) {
           doubles: dupr.doublesRating?.toString() ?? null,
         }
       : { linked: false, name: null, singles: null, doubles: null },
+    trainingSample: sample ? serializeTrainingSample(sample) : null,
   };
 }

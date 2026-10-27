@@ -21,7 +21,7 @@ export function DeleteActivityButton({
     >
       <button
         type="submit"
-        className="rounded-lg border border-red-200 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+        className="bg-[#FCECE9] px-4 py-2 text-[14px] font-black text-[#B42318] hover:bg-[#F8D7D1]"
       >
         刪除活動
       </button>

@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import {
   findVisitorThread,
   getOrCreateGuestKey,
+  getOrCreateVisitorThread,
   guestCookieOptions,
   listThreadMessages,
   notifyAdminsNewContact,
@@ -49,6 +50,12 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const session = await auth();
+  if (session?.user?.platformRole === "SUPER_ADMIN") {
+    return NextResponse.json(
+      { error: "管理員請從右下角訪客訊息回覆" },
+      { status: 400 },
+    );
+  }
   const userId = session?.user?.id ?? null;
   const json = (await req.json().catch(() => null)) as {
     body?: string;
@@ -70,40 +77,14 @@ export async function POST(req: Request) {
   const existingGuest = await readGuestKeyFromCookies();
   const guestKey = userId ? existingGuest : await getOrCreateGuestKey(existingGuest);
 
-  let thread = await findVisitorThread({ userId, guestKey });
-  if (!thread) {
-    thread = await prisma.contactThread.create({
-      data: {
-        userId: userId ?? undefined,
-        guestKey: userId ? undefined : guestKey,
-        displayName:
-          displayName ??
-          session?.user?.name?.slice(0, 40) ??
-          null,
-        contactEmail:
-          contactEmail ??
-          session?.user?.email?.slice(0, 120) ??
-          null,
-      },
-    });
-  } else {
-    const patch: {
-      displayName?: string;
-      contactEmail?: string;
-      userId?: string;
-      status?: "OPEN";
-    } = {};
-    if (displayName) patch.displayName = displayName;
-    if (contactEmail) patch.contactEmail = contactEmail;
-    if (userId && !thread.userId) patch.userId = userId;
-    if (thread.status === "CLOSED") patch.status = "OPEN";
-    if (Object.keys(patch).length) {
-      thread = await prisma.contactThread.update({
-        where: { id: thread.id },
-        data: patch,
-      });
-    }
-  }
+  const thread = await getOrCreateVisitorThread({
+    userId,
+    guestKey,
+    displayName:
+      displayName ?? session?.user?.name?.slice(0, 40) ?? null,
+    contactEmail:
+      contactEmail ?? session?.user?.email?.slice(0, 120) ?? null,
+  });
 
   const message = await prisma.contactMessage.create({
     data: {

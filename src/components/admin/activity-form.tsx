@@ -18,8 +18,8 @@ type Props = {
 };
 
 const inputClass =
-  "mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800";
-const labelClass = "block text-sm font-medium text-slate-700";
+  "mt-1 w-full bg-[var(--bg)] px-4 py-2.5 text-[14px] text-brand-navy focus:outline-none";
+const labelClass = "block text-[14px] font-bold text-brand-navy";
 
 const WEEKDAYS: { value: number; label: string }[] = [
   { value: 0, label: "日" },
@@ -47,23 +47,29 @@ export function ActivityForm({
     ? updateActivity.bind(null, tenantSlug, activity!.id)
     : createActivity.bind(null, tenantSlug);
 
-  const defaultStart = activity
-    ? toDatetimeLocalValue(activity.startAt)
-    : toDatetimeLocalValue(new Date(Date.now() + 3 * 24 * 60 * 60 * 1000));
-  const defaultEnd = activity
-    ? toDatetimeLocalValue(activity.endAt)
-    : toDatetimeLocalValue(new Date(Date.now() + 3 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000));
-
-  const defaultCancelDeadline =
-    activity?.cancelDeadlineAt != null
-      ? toDatetimeLocalValue(activity.cancelDeadlineAt)
-      : defaultStart;
-
-  const today = toDatetimeLocalValue(new Date()).slice(0, 10);
-  const monthLater = toDatetimeLocalValue(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)).slice(
-    0,
-    10,
-  );
+  const [initialDates] = useState(() => {
+    const now = Date.now();
+    const start = activity
+      ? toDatetimeLocalValue(activity.startAt)
+      : toDatetimeLocalValue(new Date(now + 3 * 24 * 60 * 60 * 1000));
+    const end = activity
+      ? toDatetimeLocalValue(activity.endAt)
+      : toDatetimeLocalValue(new Date(now + 3 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000));
+    const cancelDeadline =
+      activity?.cancelDeadlineAt != null
+        ? toDatetimeLocalValue(activity.cancelDeadlineAt)
+        : start;
+    const todayStr = toDatetimeLocalValue(new Date(now)).slice(0, 10);
+    const monthLaterStr = toDatetimeLocalValue(new Date(now + 30 * 24 * 60 * 60 * 1000)).slice(0, 10);
+    return {
+      defaultStart: start,
+      defaultEnd: end,
+      defaultCancelDeadline: cancelDeadline,
+      today: todayStr,
+      monthLater: monthLaterStr,
+    };
+  });
+  const { defaultStart, defaultEnd, defaultCancelDeadline, today, monthLater } = initialDates;
 
   const [batchEnabled, setBatchEnabled] = useState(false);
   const [batchDeadlineAtStart, setBatchDeadlineAtStart] = useState(true);
@@ -81,9 +87,9 @@ export function ActivityForm({
   }, [cancelPolicyType, startAt]);
 
   return (
-    <form action={action} className="space-y-5 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+    <form action={action} className="space-y-5">
       {error && (
-        <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+        <p className="bg-[#FCECE9] px-4 py-2.5 text-[14px] font-bold text-[#B42318]">{error}</p>
       )}
 
       <div>
@@ -121,7 +127,7 @@ export function ActivityForm({
             <>
               <input type="hidden" name="type" value={defaultType} />
               {duprMode && <input type="hidden" name="requiresDupr" value="on" />}
-              <p className="mt-1 text-sm text-slate-600">
+              <p className="mt-1 bg-[var(--bg)] px-4 py-2.5 text-[14px] font-bold text-brand-navy">
                 {duprMode
                   ? "DUPR 專場"
                   : defaultType === "OPEN_PLAY"
@@ -195,18 +201,17 @@ export function ActivityForm({
       </div>
 
       {allowBatch && !isEdit && (
-        <fieldset className="rounded-lg border border-emerald-100 bg-emerald-50/40 p-4">
-          <label className="flex items-center gap-2 text-sm font-medium text-emerald-900">
+        <fieldset className="bg-[var(--surface-tint)] p-5">
+          <label className="flex items-center gap-2 text-[14px] font-black text-brand-navy">
             <input
               type="checkbox"
               name="batchEnabled"
               checked={batchEnabled}
               onChange={(e) => setBatchEnabled(e.target.checked)}
-              className="rounded border-slate-300"
             />
             批次建立重複場次
           </label>
-          <p className="mt-1 text-xs text-emerald-800/80">
+          <p className="mt-1 text-[14px] text-[#1B6B73]">
             適合每週固定課程或球敘，可一次建立一個月內的多個場次。
           </p>
 
@@ -223,7 +228,7 @@ export function ActivityForm({
                     type="date"
                     required={batchEnabled}
                     defaultValue={today}
-                    className={inputClass}
+                    className="mt-1 w-full bg-white px-4 py-2 text-[14px] text-brand-navy"
                   />
                 </div>
                 <div>
@@ -236,7 +241,7 @@ export function ActivityForm({
                     type="date"
                     required={batchEnabled}
                     defaultValue={monthLater}
-                    className={inputClass}
+                    className="mt-1 w-full bg-white px-4 py-2 text-[14px] text-brand-navy"
                   />
                 </div>
                 <div>
@@ -249,7 +254,7 @@ export function ActivityForm({
                     type="time"
                     required={batchEnabled}
                     defaultValue="19:00"
-                    className={inputClass}
+                    className="mt-1 w-full bg-white px-4 py-2 text-[14px] text-brand-navy"
                   />
                 </div>
                 <div>
@@ -262,7 +267,7 @@ export function ActivityForm({
                     type="time"
                     required={batchEnabled}
                     defaultValue="21:00"
-                    className={inputClass}
+                    className="mt-1 w-full bg-white px-4 py-2 text-[14px] text-brand-navy"
                   />
                 </div>
               </div>
@@ -270,13 +275,12 @@ export function ActivityForm({
                 <span className={labelClass}>重複星期</span>
                 <div className="mt-2 flex flex-wrap gap-3">
                   {WEEKDAYS.map((d) => (
-                    <label key={d.value} className="flex items-center gap-1.5 text-sm">
+                    <label key={d.value} className="flex items-center gap-1.5 bg-white px-3 py-1.5 text-[14px] font-bold text-brand-navy">
                       <input
                         type="checkbox"
                         name="repeatDays"
                         value={d.value}
                         defaultChecked={d.value === 3}
-                        className="rounded border-slate-300"
                       />
                       週{d.label}
                     </label>
@@ -285,17 +289,16 @@ export function ActivityForm({
               </div>
 
               {cancelPolicyType === "DEADLINE" && (
-                <div className="space-y-3 border-t border-emerald-200/80 pt-4">
-                  <p className="text-sm font-medium text-emerald-900">批次取消截止</p>
+                <div className="space-y-3 border-t border-[#1B6B73]/20 pt-4">
+                  <p className="text-[14px] font-black text-brand-navy">批次取消截止</p>
                   <input type="hidden" name="batchDeadlineAtStart" value="off" />
-                  <label className="flex items-center gap-2 text-sm text-emerald-900">
+                  <label className="flex items-center gap-2 text-[14px] font-bold text-brand-navy">
                     <input
                       type="checkbox"
                       name="batchDeadlineAtStart"
                       value="on"
                       checked={batchDeadlineAtStart}
                       onChange={(e) => setBatchDeadlineAtStart(e.target.checked)}
-                      className="rounded border-slate-300"
                     />
                     各場截止時間 = 該場活動開始時間
                   </label>
@@ -311,7 +314,7 @@ export function ActivityForm({
                           type="number"
                           min={0}
                           defaultValue={0}
-                          className={inputClass}
+                          className="mt-1 w-full bg-white px-4 py-2 text-[14px] text-brand-navy"
                         />
                       </div>
                       <div>
@@ -323,12 +326,12 @@ export function ActivityForm({
                           name="batchCancelDeadlineTime"
                           type="time"
                           defaultValue="18:00"
-                          className={inputClass}
+                          className="mt-1 w-full bg-white px-4 py-2 text-[14px] text-brand-navy"
                         />
                       </div>
                     </div>
                   )}
-                  <p className="text-xs text-emerald-800/80">勾選時，每場活動的取消截止會自動設為該場開始時間。</p>
+                  <p className="text-[14px] text-[#1B6B73]">勾選時，每場活動的取消截止會自動設為該場開始時間。</p>
                 </div>
               )}
             </div>
@@ -383,8 +386,8 @@ export function ActivityForm({
         />
       </div>
 
-      <fieldset className="rounded-lg border border-slate-100 p-4">
-        <legend className="text-sm font-medium text-slate-700">取消政策</legend>
+      <fieldset className="bg-[var(--bg)] p-5">
+        <legend className="text-[14px] font-black text-brand-navy">取消政策</legend>
         <div className="mt-2">
           <label className={labelClass} htmlFor="cancelPolicyType">
             取消規則
@@ -394,7 +397,7 @@ export function ActivityForm({
             name="cancelPolicyType"
             value={cancelPolicyType}
             onChange={(e) => setCancelPolicyType(e.target.value as "HOURS_BEFORE" | "DEADLINE")}
-            className={inputClass}
+            className="mt-1 w-full bg-white px-4 py-2.5 text-[14px] text-brand-navy"
           >
             <option value="HOURS_BEFORE">活動開始前 N 小時內不可取消</option>
             <option value="DEADLINE">指定截止時間前可取消</option>
@@ -410,7 +413,7 @@ export function ActivityForm({
             type="number"
             min={0}
             defaultValue={activity?.cancelHoursBefore ?? 4}
-            className={inputClass}
+            className="mt-1 w-full bg-white px-4 py-2.5 text-[14px] text-brand-navy"
           />
         </div>
         {!batchEnabled && cancelPolicyType === "DEADLINE" && (
@@ -427,22 +430,24 @@ export function ActivityForm({
                 deadlineTouched.current = true;
                 setCancelDeadlineAt(e.target.value);
               }}
-              className={inputClass}
+              className="mt-1 w-full bg-white px-4 py-2.5 text-[14px] text-brand-navy"
             />
-            <p className="mt-1 text-xs text-slate-500">預設與活動開始時間相同，可自行調整。</p>
+            <p className="mt-1 text-[14px] text-[var(--muted)]">預設與活動開始時間相同，可自行調整。</p>
           </div>
         )}
         {batchEnabled && cancelPolicyType === "DEADLINE" && (
-          <p className="mt-3 text-xs text-slate-500">批次建立時，請在上方「批次建立重複場次」區塊設定取消截止。</p>
+          <p className="mt-3 text-[14px] text-[var(--muted)]">
+            批次建立時，請在上方「批次建立重複場次」區塊設定取消截止。
+          </p>
         )}
       </fieldset>
 
       {showDuprFields && (
-        <div className="rounded-lg border border-indigo-100 bg-indigo-50/40 p-4 space-y-3">
+        <div className="space-y-3 bg-[var(--surface-tint)] p-5">
           {isEdit && activity?.requiresDupr && (
             <input type="hidden" name="requiresDupr" value="on" />
           )}
-          <p className="text-sm font-medium text-indigo-900">DUPR 設定</p>
+          <p className="text-[14px] font-black text-brand-navy">DUPR 設定</p>
           <div>
             <label className={labelClass} htmlFor="duprEventName">
               DUPR 活動名稱
@@ -452,18 +457,15 @@ export function ActivityForm({
               name="duprEventName"
               placeholder="例：Friday DUPR Social"
               defaultValue={activity?.duprEventName ?? ""}
-              className={inputClass}
+              className="mt-1 w-full bg-white px-4 py-2.5 text-[14px] text-brand-navy"
             />
-            <p className="mt-1 text-xs text-indigo-800/80">選填，方便對照 DUPR 平台上的賽事名稱。</p>
+            <p className="mt-1 text-[14px] text-[#1B6B73]">選填，方便對照 DUPR 平台上的賽事名稱。</p>
           </div>
         </div>
       )}
 
       <div className="flex flex-wrap gap-3 pt-2">
-        <button
-          type="submit"
-          className="rounded-lg bg-brand-navy px-5 py-2 text-sm font-medium text-white hover:opacity-90"
-        >
+        <button type="submit" className="btn-brand">
           {isEdit ? "儲存" : batchEnabled ? "批次建立活動" : "建立活動"}
         </button>
       </div>

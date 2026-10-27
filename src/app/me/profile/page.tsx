@@ -33,13 +33,25 @@ export default async function MeProfilePage({
 
   return (
     <div className="space-y-6">
-      {saved && <p className="text-sm text-brand-teal">已儲存</p>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {saved && (
+        <p className="bg-brand-lime-soft px-4 py-3 text-sm font-bold text-brand-navy">
+          已儲存個人資料
+        </p>
+      )}
+      {error && (
+        <p className="bg-rose-100 px-4 py-3 text-sm font-bold text-rose-900">
+          {error}
+        </p>
+      )}
 
       {memberships.length === 0 ? (
-        <p className="text-sm text-slate-500">尚無場館會員資料，預約任一活動後會自動建立</p>
+        <div className="bg-white p-8">
+          <p className="text-base text-[var(--muted)]">
+            尚無場館會員資料，預約任一俱樂部活動後會自動建立專屬名片。
+          </p>
+        </div>
       ) : (
-        <div className="space-y-6">
+        <div className="grid gap-6 lg:grid-cols-2">
           {memberships.map((m) => {
             const display = resolveMemberDisplay(accountForDisplay, m);
             const nicknameDefault = m.nickname ?? "";

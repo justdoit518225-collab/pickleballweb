@@ -2,7 +2,7 @@ import { createHmac } from "crypto";
 import { z } from "zod";
 
 export const SKILL_ESTIMATE_DISCLAIMER =
-  "此評級係基於個人技術動作估算，非正式 DUPR，亦非雙打團隊戰績。";
+  "此分數是把影片特徵對齊公開技能等級定義後的 Estimated Skill Level，非正式 DUPR 對戰積分。官方 DUPR 只看比賽結果與對手強度。";
 
 export const SKILL_MAX_DURATION_SEC = 5 * 60;
 export const SKILL_MAX_BYTES = 200 * 1024 * 1024;
@@ -41,6 +41,25 @@ export type SkillDetections = {
   boxes: SkillDetectionBox[];
 };
 
+export type SkillRubricCopy = {
+  can: string;
+  notYet: string;
+  footwork: string;
+  cognition: string;
+};
+
+export type SkillRubricMatch = {
+  nearestLevel: number;
+  nearestLabel: string;
+  levelScores: Record<string, number>;
+  observed: Record<string, number>;
+  expected: Record<string, number>;
+  dimensionLabels: Record<string, string>;
+  copy: SkillRubricCopy;
+  gaps: string[];
+  sources: string[];
+};
+
 export type SkillMetrics = {
   errorRate: number;
   kitchenPct: number;
@@ -48,7 +67,15 @@ export type SkillMetrics = {
   shotCount?: number;
   trackCoverage?: number;
   ballDetections?: number;
+  kitchenApproach?: number;
+  dropSuccess?: number;
+  resetScore?: number;
+  dinkPatience?: number;
+  handSpeed?: number;
+  lateralMobility?: number;
+  confidence?: number;
   notes?: string[];
+  rubricMatch?: SkillRubricMatch;
 };
 
 const pointSchema = z.object({

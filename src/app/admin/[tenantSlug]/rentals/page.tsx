@@ -59,28 +59,28 @@ export default async function AdminRentalsPage({
 
   return (
     <div className="space-y-8">
-      <p className="text-sm text-slate-600">
+      <p className="text-[14px] font-bold text-brand-navy">
         未來 30 天共 {upcoming} 個時段 ·{" "}
-        <Link href={ROUTES.tenantRentals(tenantSlug)} className="text-emerald-600">
-          前台月曆
+        <Link href={ROUTES.tenantRentals(tenantSlug)} className="text-[#1B6B73] underline">
+          前台月曆 →
         </Link>
       </p>
-      {created && <p className="text-sm text-emerald-600">已新增 {created} 個開放時段</p>}
-      {deleted && <p className="text-sm text-emerald-600">已刪除 {deleted} 個時段</p>}
-      {blocked && <p className="text-sm text-amber-700">已封鎖 {blocked} 個時段</p>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {created && <p className="bg-[var(--surface-tint)] px-4 py-2 text-[14px] font-bold text-[#1B6B73]">已新增 {created} 個開放時段</p>}
+      {deleted && <p className="bg-[var(--surface-tint)] px-4 py-2 text-[14px] font-bold text-[#1B6B73]">已刪除 {deleted} 個時段</p>}
+      {blocked && <p className="bg-[#FFF4E5] px-4 py-2 text-[14px] font-bold text-[#9A5B00]">已封鎖 {blocked} 個時段</p>}
+      {error && <p className="bg-[#FCECE9] px-4 py-2 text-[14px] font-bold text-[#B42318]">{error}</p>}
 
       <form
         action={createRentalSlots.bind(null, tenantSlug)}
-        className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm space-y-4"
+        className="space-y-4 bg-white p-6"
       >
-        <h2 className="font-semibold text-slate-800">批次建立開放時段</h2>
+        <h2 className="text-[20px] font-black text-brand-navy">批次建立開放時段</h2>
         <fieldset>
-          <legend className="text-sm font-medium text-slate-700">球場（可多選）</legend>
+          <legend className="text-[14px] font-bold text-brand-navy">球場（可多選）</legend>
           <div className="mt-2 flex flex-wrap gap-3">
             {courts.map((c) => (
-              <label key={c.id} className="flex items-center gap-2 text-sm">
-                <input type="checkbox" name="courtIds" value={c.id} className="rounded" />
+              <label key={c.id} className="flex items-center gap-2 bg-[var(--bg)] px-3 py-2 text-[14px] font-bold text-brand-navy">
+                <input type="checkbox" name="courtIds" value={c.id} />
                 {c.venue.name} · {c.name}
               </label>
             ))}
@@ -88,27 +88,27 @@ export default async function AdminRentalsPage({
         </fieldset>
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="block text-sm font-medium text-slate-700">開始日期</label>
-            <input type="date" name="startDate" required defaultValue={today} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+            <label className="block text-[14px] font-bold text-brand-navy">開始日期</label>
+            <input type="date" name="startDate" required defaultValue={today} className="mt-1 w-full bg-[var(--bg)] px-4 py-2 text-[14px] text-brand-navy" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700">結束日期</label>
-            <input type="date" name="endDate" required defaultValue={monthLater} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+            <label className="block text-[14px] font-bold text-brand-navy">結束日期</label>
+            <input type="date" name="endDate" required defaultValue={monthLater} className="mt-1 w-full bg-[var(--bg)] px-4 py-2 text-[14px] text-brand-navy" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700">每日開始</label>
-            <input type="time" name="slotStart" required defaultValue="08:00" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+            <label className="block text-[14px] font-bold text-brand-navy">每日開始</label>
+            <input type="time" name="slotStart" required defaultValue="08:00" className="mt-1 w-full bg-[var(--bg)] px-4 py-2 text-[14px] text-brand-navy" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700">每日結束</label>
-            <input type="time" name="slotEnd" required defaultValue="10:00" className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+            <label className="block text-[14px] font-bold text-brand-navy">每日結束</label>
+            <input type="time" name="slotEnd" required defaultValue="10:00" className="mt-1 w-full bg-[var(--bg)] px-4 py-2 text-[14px] text-brand-navy" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700">取消：開始前幾小時</label>
-            <input type="number" name="cancelHoursBefore" min={0} defaultValue={4} className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+            <label className="block text-[14px] font-bold text-brand-navy">取消：開始前幾小時</label>
+            <input type="number" name="cancelHoursBefore" min={0} defaultValue={4} className="mt-1 w-full bg-[var(--bg)] px-4 py-2 text-[14px] text-brand-navy" />
           </div>
         </div>
-        <button type="submit" className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white">
+        <button type="submit" className="btn-brand">
           建立時段
         </button>
       </form>
@@ -120,9 +120,9 @@ export default async function AdminRentalsPage({
         defaultEndDate={monthLater}
       />
 
-      <section>
-        <h2 className="font-semibold text-slate-800">近期時段</h2>
-        <p className="mt-1 text-sm text-slate-500">
+      <section className="bg-white p-6">
+        <h2 className="text-[20px] font-black text-brand-navy">近期時段</h2>
+        <p className="mt-1 text-[14px] text-[var(--muted)]">
           顯示未來 30 天內最多 100 筆；可勾選後批量刪除／封鎖，或使用上方「依區間批量刪除」。
         </p>
         <RentalSlotsList tenantSlug={tenantSlug} slots={slotRows} />

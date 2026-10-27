@@ -33,10 +33,10 @@ export default async function AdminBoardPage({
   const dateNav = (
     <form
       method="get"
-      className="flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4"
+      className="flex flex-wrap items-end gap-3 bg-white p-5"
     >
       <div>
-        <label htmlFor="admin-board-date" className="block text-xs font-medium text-slate-600">
+        <label htmlFor="admin-board-date" className="block text-[14px] font-bold text-brand-navy">
           選擇日期
         </label>
         <input
@@ -44,25 +44,25 @@ export default async function AdminBoardPage({
           type="date"
           name="date"
           defaultValue={dateValue}
-          className="mt-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+          className="mt-1 bg-[var(--bg)] px-4 py-2 text-[14px] font-bold text-brand-navy"
         />
       </div>
       <button
         type="submit"
-        className="rounded-lg bg-brand-navy px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+        className="bg-brand-navy px-4 py-2 text-[14px] font-black text-white hover:bg-brand-lime hover:text-brand-navy"
       >
         查看
       </button>
-      <div className="flex gap-2 text-sm">
+      <div className="flex gap-2 text-[14px]">
         <Link
           href={`${base}?date=${toDateInputValue(prev)}`}
-          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-600 hover:bg-slate-50"
+          className="bg-[var(--bg)] px-4 py-2 font-bold text-brand-navy hover:bg-[var(--surface-alt)]"
         >
           前一天
         </Link>
         <Link
           href={`${base}?date=${toDateInputValue(next)}`}
-          className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-600 hover:bg-slate-50"
+          className="bg-[var(--bg)] px-4 py-2 font-bold text-brand-navy hover:bg-[var(--surface-alt)]"
         >
           後一天
         </Link>

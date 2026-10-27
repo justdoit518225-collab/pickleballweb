@@ -4,7 +4,6 @@ import { useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   CheckCircle2,
-  ClipboardList,
   Coffee,
   Eraser,
   ImagePlus,
@@ -112,7 +111,6 @@ export function DoublesSchedulerApp() {
     ensureScores(playerCount, templates.length);
 
     try {
-      // 背景存檔；失敗不顯示於介面（後端會寄信通知管理員）
       await fetch("/api/doubles-scheduler/save-roster", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -147,7 +145,7 @@ export function DoublesSchedulerApp() {
   }
 
   return (
-    <div className="mx-auto max-w-lg px-4 py-6 sm:py-8">
+    <div className="page-wrap mx-auto max-w-3xl px-5 py-10 sm:px-8 sm:py-14" data-ui>
       {step === "register" ? (
         <RegisterStep
           names={names}
@@ -218,7 +216,6 @@ function RegisterStep({
         },
       });
 
-      // 單一文字區塊（接龍名單）辨識較穩
       await worker.setParameters({
         tessedit_pageseg_mode: PSM.SINGLE_BLOCK,
         preserve_interword_spaces: "1",
@@ -251,20 +248,16 @@ function RegisterStep({
 
   return (
     <div className="space-y-6">
-      <header className="space-y-2">
-        <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
-          <ClipboardList className="h-3.5 w-3.5" />
-          報名設定
-        </div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+      <header className="bg-brand-navy p-6 text-white sm:p-8">
+        <h1 className="type-head font-extrabold text-white">
           匹克球動態雙打賽程產生器
         </h1>
-        <p className="text-sm text-slate-600">
-          輸入 4～8 位球員，或上傳 Line 接龍截圖自動填入名單。
+        <p className="mt-2 text-base text-white/85">
+          輸入 4 至 8 位球員，或上傳 LINE 接龍截圖自動填入名單。
         </p>
       </header>
 
-      <div className="rounded-2xl border border-dashed border-emerald-300 bg-emerald-50/50 p-4">
+      <div className="bg-white p-6">
         <input
           ref={fileRef}
           type="file"
@@ -276,7 +269,7 @@ function RegisterStep({
           type="button"
           disabled={ocrBusy}
           onClick={() => fileRef.current?.click()}
-          className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-4 py-3.5 text-sm font-semibold text-emerald-800 shadow-sm ring-1 ring-emerald-200 transition hover:bg-emerald-50 disabled:cursor-wait disabled:opacity-70"
+          className="btn-brand-outline flex w-full items-center justify-center gap-2 bg-[var(--bg)] py-3.5 text-base font-bold text-brand-navy hover:bg-[var(--surface-alt)] disabled:opacity-60"
         >
           {ocrBusy ? (
             <>
@@ -286,82 +279,80 @@ function RegisterStep({
           ) : (
             <>
               <ImagePlus className="h-4 w-4" />
-              選相片讀取 Line 接龍
+              選相片讀取 LINE 接龍名單
             </>
           )}
         </button>
-        <p className="mt-2 text-center text-xs text-slate-500">
-          請截取含「1. 姓名、2. 姓名…」的黃色接龍泡泡（少帶背景較準）
+        <p className="mt-2 text-center text-sm text-[var(--muted)]">
+          請截取含「1. 姓名、2. 姓名…」的接龍泡泡（少帶背景較準）
         </p>
         {ocrMessage && (
-          <p
-            className={`mt-2 text-center text-xs ${
-              ocrMessage.includes("失敗") || ocrMessage.includes("不到")
-                ? "text-amber-700"
-                : "text-emerald-700"
-            }`}
-          >
+          <p className="mt-2 text-center text-sm font-bold text-brand-navy">
             {ocrMessage}
           </p>
         )}
       </div>
 
-      <div className="flex items-center justify-between rounded-2xl border border-emerald-100 bg-gradient-to-r from-emerald-50 to-lime-50 px-4 py-3">
-        <div className="flex items-center gap-2 text-sm font-medium text-slate-700">
-          <Users className="h-4 w-4 text-emerald-600" />
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#e3ecec] px-5 py-4">
+        <div className="flex items-center gap-2 text-base font-bold text-brand-navy">
+          <Users className="h-5 w-5 text-[#1D6D75]" />
           目前人數：
-          <span className="text-lg font-bold text-emerald-700">{playerCount}</span>
-          <span className="text-slate-500">人</span>
+          <span className="text-xl font-black text-brand-navy tabular-nums">
+            {playerCount}
+          </span>
+          <span>人</span>
         </div>
         <div className="flex gap-2">
           <button
             type="button"
             onClick={onClear}
-            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs text-slate-600 hover:bg-slate-50"
+            className="inline-flex items-center gap-1.5 bg-white px-3.5 py-2 text-sm font-bold text-brand-navy hover:bg-[var(--surface-alt)]"
           >
-            <Eraser className="h-3.5 w-3.5" />
+            <Eraser className="h-4 w-4" />
             清空
           </button>
           <button
             type="button"
             onClick={onSample}
-            className="inline-flex items-center gap-1 rounded-lg border border-emerald-200 bg-white px-2.5 py-1.5 text-xs text-emerald-700 hover:bg-emerald-50"
+            className="inline-flex items-center gap-1.5 bg-brand-lime px-3.5 py-2 text-sm font-extrabold text-brand-navy hover:bg-[#9ccc65]"
           >
-            <Sparkles className="h-3.5 w-3.5" />
-            測試範例
+            <Sparkles className="h-4 w-4" />
+            填入測試範例
           </button>
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         {names.map((name, i) => (
-          <label key={i} className="block">
-            <span className="mb-1 block text-xs font-medium text-slate-500">
+          <label key={i} className="block bg-white p-4">
+            <span className="mb-1.5 block text-sm font-bold text-brand-navy tabular-nums">
               球員 #{i + 1}
             </span>
             <input
               type="text"
               value={name}
               onChange={(e) => onNameChange(i, e.target.value)}
-              placeholder={`球員 #${i + 1}`}
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 outline-none ring-emerald-500/30 placeholder:text-slate-400 focus:border-emerald-400 focus:ring-2"
+              placeholder={`輸入球員 #${i + 1} 姓名`}
+              className="w-full bg-[var(--bg)] px-4 py-3 text-base font-semibold text-brand-navy outline-none placeholder:font-normal placeholder:text-[var(--muted)] focus:outline-2 focus:outline-brand-teal"
               autoComplete="off"
             />
           </label>
         ))}
       </div>
 
-      <div className="sticky bottom-4 space-y-2">
+      <div className="sticky bottom-4 space-y-2 bg-[var(--bg)] pt-2">
         {!canStart && (
-          <p className="text-center text-sm text-amber-700">至少需 4 位球員</p>
+          <p className="text-center text-sm font-bold text-brand-navy">
+            請至少填入 4 位球員姓名以產生對戰表
+          </p>
         )}
         <button
           type="button"
           disabled={!canStart || generating}
           onClick={onStart}
-          className="w-full rounded-2xl bg-emerald-600 px-4 py-3.5 text-base font-semibold text-white shadow-lg shadow-emerald-600/25 transition enabled:hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
+          className="btn-brand w-full py-4 text-base font-extrabold text-white disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {generating ? "處理中…" : "產生賽程"}
+          {generating ? "處理中…" : "產生雙打對戰賽程 →"}
         </button>
       </div>
     </div>
@@ -384,20 +375,20 @@ function ScheduleStep({
   onToggleLock: (matchIndex: number) => void;
 }) {
   return (
-    <div className="space-y-5">
-      <header className="space-y-3">
+    <div className="space-y-6">
+      <header className="space-y-4">
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-slate-900"
+          className="inline-flex items-center gap-2 bg-white px-4 py-2 text-sm font-bold text-brand-navy hover:bg-brand-navy hover:text-white"
         >
           <ArrowLeft className="h-4 w-4" />
           返回修改名單
         </button>
-        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-          <p className="text-sm font-semibold text-slate-900">賽程表</p>
-          <p className="mt-1 text-sm text-slate-600">
-            總人數：{players.length} 人 / 共 {templates.length} 場賽事
+        <div className="bg-brand-navy p-6 text-white">
+          <h2 className="text-2xl font-extrabold text-white">雙打輪替賽程表</h2>
+          <p className="mt-1 text-base text-white/85 tabular-nums">
+            總人數：{players.length} 人 · 共 {templates.length} 場對戰
           </p>
         </div>
       </header>
@@ -439,41 +430,35 @@ function MatchCard({
   const restingNames = match.resting.map((i) => players[i]).filter(Boolean);
 
   return (
-    <article
-      className={`overflow-hidden rounded-2xl border bg-white shadow-sm transition ${
-        score.locked
-          ? "border-emerald-400 ring-1 ring-emerald-200"
-          : "border-slate-200"
-      }`}
-    >
-      <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-4 py-2.5">
-        <h3 className="text-sm font-bold text-slate-800">場次 #{index + 1}</h3>
+    <article className="bg-white">
+      <div className="flex items-center justify-between bg-brand-navy px-5 py-3 text-white">
+        <h3 className="text-base font-extrabold tabular-nums">
+          場次 #{index + 1}
+        </h3>
         {score.locked && (
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+          <span className="inline-flex items-center gap-1 bg-brand-lime px-2.5 py-0.5 text-xs font-extrabold text-brand-navy">
             <CheckCircle2 className="h-3.5 w-3.5" />
-            已鎖定
+            已鎖定比數
           </span>
         )}
       </div>
 
-      <div className="space-y-3 px-3 py-3 sm:px-4">
-        <div className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-3">
-          <div className="mb-2.5 flex items-center gap-1.5 text-sm font-bold text-sky-900">
-            <Swords className="h-4 w-4 shrink-0" />
-            上場對戰
+      <div className="space-y-4 p-5">
+        <div className="bg-[var(--bg)] p-4">
+          <div className="mb-3 flex items-center gap-1.5 text-sm font-extrabold text-brand-navy">
+            <Swords className="h-4 w-4 shrink-0 text-[#1D6D75]" />
+            上場對戰組合
           </div>
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3">
-            <div className="min-w-0 rounded-lg bg-white px-2 py-2 text-center shadow-sm ring-1 ring-sky-100">
-              <p className="text-[10px] font-semibold tracking-wide text-sky-600">
-                隊伍 A
-              </p>
-              <p className="mt-1 break-words text-sm font-semibold leading-snug text-slate-900">
+          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+            <div className="min-w-0 bg-white p-3 text-center">
+              <p className="text-xs font-bold text-[#1D6D75]">隊伍 A</p>
+              <p className="mt-1 break-words text-base font-extrabold text-brand-navy">
                 {teamA}
               </p>
             </div>
 
             <div className="flex shrink-0 flex-col items-center gap-1.5">
-              <span className="text-[11px] font-bold tracking-wider text-sky-700">VS</span>
+              <span className="text-xs font-extrabold text-brand-navy">VS</span>
               <div className="flex items-center gap-1.5">
                 <input
                   type="text"
@@ -483,10 +468,10 @@ function MatchCard({
                   disabled={score.locked}
                   onChange={(e) => onScoreChange(index, "scoreA", e.target.value)}
                   placeholder="-"
-                  className="h-11 w-11 rounded-xl border border-sky-200 bg-white text-center text-lg font-bold tabular-nums text-slate-900 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 disabled:bg-slate-100 disabled:text-slate-500"
+                  className="h-12 w-12 bg-white text-center text-xl font-black text-brand-navy tabular-nums outline-none focus:outline-2 focus:outline-brand-teal disabled:opacity-60"
                   aria-label={`場次 ${index + 1} 隊伍 A 分數`}
                 />
-                <span className="text-sm font-semibold text-slate-400">:</span>
+                <span className="text-base font-bold text-[var(--muted)]">:</span>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -495,17 +480,15 @@ function MatchCard({
                   disabled={score.locked}
                   onChange={(e) => onScoreChange(index, "scoreB", e.target.value)}
                   placeholder="-"
-                  className="h-11 w-11 rounded-xl border border-orange-200 bg-white text-center text-lg font-bold tabular-nums text-slate-900 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 disabled:bg-slate-100 disabled:text-slate-500"
+                  className="h-12 w-12 bg-white text-center text-xl font-black text-brand-navy tabular-nums outline-none focus:outline-2 focus:outline-brand-teal disabled:opacity-60"
                   aria-label={`場次 ${index + 1} 隊伍 B 分數`}
                 />
               </div>
             </div>
 
-            <div className="min-w-0 rounded-lg bg-white px-2 py-2 text-center shadow-sm ring-1 ring-orange-100">
-              <p className="text-[10px] font-semibold tracking-wide text-orange-600">
-                隊伍 B
-              </p>
-              <p className="mt-1 break-words text-sm font-semibold leading-snug text-slate-900">
+            <div className="min-w-0 bg-white p-3 text-center">
+              <p className="text-xs font-bold text-brand-navy">隊伍 B</p>
+              <p className="mt-1 break-words text-base font-extrabold text-brand-navy">
                 {teamB}
               </p>
             </div>
@@ -513,21 +496,21 @@ function MatchCard({
         </div>
 
         {restingNames.length === 0 ? (
-          <div className="flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2.5 text-sm font-medium text-emerald-800 ring-1 ring-emerald-100">
+          <div className="flex items-center gap-2 bg-brand-lime-soft px-4 py-3 text-sm font-bold text-brand-navy">
             <Users className="h-4 w-4 shrink-0" />
-            全體上場
+            本場全員上場
           </div>
         ) : (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5">
-            <div className="mb-2 flex items-center gap-1.5 text-sm font-bold text-amber-900">
+          <div className="bg-[var(--surface-alt)] px-4 py-3">
+            <div className="mb-2 flex items-center gap-1.5 text-sm font-bold text-brand-navy">
               <Coffee className="h-4 w-4 shrink-0" />
-              輪休球員
+              場邊輪休球員
             </div>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-2">
               {restingNames.map((name) => (
                 <span
                   key={name}
-                  className="inline-flex items-center rounded-full bg-white px-2.5 py-1 text-sm font-semibold text-amber-950 shadow-sm ring-1 ring-amber-200"
+                  className="inline-flex items-center bg-white px-3 py-1 text-sm font-bold text-brand-navy"
                 >
                   {name}
                 </span>
@@ -536,23 +519,23 @@ function MatchCard({
           </div>
         )}
 
-        <label className="flex cursor-pointer items-center gap-2 rounded-xl bg-slate-50 px-3 py-2.5 text-sm text-slate-700">
+        <label className="flex cursor-pointer items-center gap-2 bg-[var(--bg)] px-4 py-3 text-sm font-bold text-brand-navy">
           <input
             type="checkbox"
             checked={score.locked}
             onChange={() => onToggleLock(index)}
-            className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+            className="h-4 w-4 accent-brand-navy"
           />
-          <span className="inline-flex items-center gap-1.5 font-medium">
+          <span className="inline-flex items-center gap-1.5">
             {score.locked ? (
               <>
-                <Lock className="h-3.5 w-3.5 text-emerald-600" />
-                完成 / 鎖定比數
+                <Lock className="h-4 w-4 text-[#1D6D75]" />
+                已完成並鎖定比數
               </>
             ) : (
               <>
-                <Unlock className="h-3.5 w-3.5 text-slate-500" />
-                完成 / 鎖定比數
+                <Unlock className="h-4 w-4 text-[var(--muted)]" />
+                勾選以鎖定本場比數
               </>
             )}
           </span>

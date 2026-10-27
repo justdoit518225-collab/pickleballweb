@@ -36,11 +36,11 @@ export function CancelButton({
         type="button"
         disabled={loading}
         onClick={onClick}
-        className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+        className="bg-[var(--surface-alt)] px-3.5 py-2 text-sm font-bold text-brand-navy transition-colors hover:bg-rose-100 hover:text-rose-900 disabled:opacity-60"
       >
         {loading ? "處理中…" : label}
       </button>
-      {error && <p className="text-xs text-red-600">{error}</p>}
+      {error && <p className="text-xs font-bold text-rose-800">{error}</p>}
     </div>
   );
 }

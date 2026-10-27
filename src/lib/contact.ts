@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { randomUUID } from "node:crypto";
+import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { createInboxNotification } from "@/lib/inbox";
 import { sendEmail } from "@/lib/email";
@@ -49,30 +50,202 @@ export function guestCookieOptions(value: string) {
 }
 
 async function latestThread(where: { userId?: string; guestKey?: string }) {
-  const open = await prisma.contactThread.findFirst({
-    where: { ...where, status: "OPEN" },
-    orderBy: { lastMessageAt: "desc" },
-  });
-  if (open) return open;
   return prisma.contactThread.findFirst({
     where,
     orderBy: { lastMessageAt: "desc" },
   });
 }
 
-/** 找訪客／登入者目前的對話串（優先進行中，否則最近一筆含已關閉） */
+async function mergeThreadInto(fromId: string, intoId: string) {
+  if (fromId === intoId) return;
+  const [from, into] = await Promise.all([
+    prisma.contactThread.findUnique({ where: { id: fromId } }),
+    prisma.contactThread.findUnique({ where: { id: intoId } }),
+  ]);
+  if (!from || !into) return;
+
+  await prisma.contactMessage.updateMany({
+    where: { threadId: fromId },
+    data: { threadId: intoId },
+  });
+
+  // 先清掉來源的唯一鍵，避免 unique(userId/guestKey) 衝突
+  await prisma.contactThread.update({
+    where: { id: fromId },
+    data: { userId: null, guestKey: null },
+  });
+
+  await prisma.contactThread.update({
+    where: { id: intoId },
+    data: {
+      lastMessageAt:
+        from.lastMessageAt > into.lastMessageAt
+          ? from.lastMessageAt
+          : into.lastMessageAt,
+      adminUnread: into.adminUnread + from.adminUnread,
+      visitorUnread: into.visitorUnread + from.visitorUnread,
+      status: into.status === "OPEN" || from.status === "OPEN" ? "OPEN" : "CLOSED",
+      displayName: into.displayName || from.displayName,
+      contactEmail: into.contactEmail || from.contactEmail,
+      userId: into.userId || from.userId,
+      guestKey: into.guestKey || from.guestKey,
+    },
+  });
+  await prisma.contactThread.delete({ where: { id: fromId } });
+}
+
+/** 找訪客／登入者的唯一對話串（每位使用者對管理員只有一則） */
 export async function findVisitorThread(opts: {
   userId?: string | null;
   guestKey?: string | null;
 }) {
-  if (opts.userId) {
-    const byUser = await latestThread({ userId: opts.userId });
-    if (byUser) return byUser;
+  const userId = opts.userId ?? null;
+  const guestKey = opts.guestKey ?? null;
+  const byUser = userId ? await latestThread({ userId }) : null;
+  const byGuest = guestKey ? await latestThread({ guestKey }) : null;
+
+  if (byUser && byGuest && byUser.id !== byGuest.id) {
+    await mergeThreadInto(byGuest.id, byUser.id);
+    return prisma.contactThread.findUnique({ where: { id: byUser.id } });
   }
-  if (opts.guestKey) {
-    return latestThread({ guestKey: opts.guestKey });
+
+  const thread = byUser ?? byGuest;
+  if (thread && userId && !thread.userId) {
+    try {
+      return await prisma.contactThread.update({
+        where: { id: thread.id },
+        data: { userId },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        const existing = await latestThread({ userId });
+        if (existing) {
+          await mergeThreadInto(thread.id, existing.id);
+          return prisma.contactThread.findUnique({ where: { id: existing.id } });
+        }
+      } else {
+        throw error;
+      }
+    }
   }
-  return null;
+  return thread;
+}
+
+export async function mergeDuplicateContactThreads() {
+  const threads = await prisma.contactThread.findMany({
+    select: { id: true, userId: true, guestKey: true, createdAt: true },
+    orderBy: { createdAt: "asc" },
+  });
+  const byUser = new Map<string, string[]>();
+  const byGuest = new Map<string, string[]>();
+  for (const t of threads) {
+    if (t.userId) {
+      const list = byUser.get(t.userId) ?? [];
+      list.push(t.id);
+      byUser.set(t.userId, list);
+    }
+    if (t.guestKey) {
+      const list = byGuest.get(t.guestKey) ?? [];
+      list.push(t.id);
+      byGuest.set(t.guestKey, list);
+    }
+  }
+  for (const ids of [...byUser.values(), ...byGuest.values()]) {
+    if (ids.length < 2) continue;
+    const keep = ids[0];
+    for (const extra of ids.slice(1)) {
+      await mergeThreadInto(extra, keep);
+    }
+  }
+}
+
+export async function getOrCreateVisitorThread(opts: {
+  userId?: string | null;
+  guestKey?: string | null;
+  displayName?: string | null;
+  contactEmail?: string | null;
+}) {
+  const userId = opts.userId ?? null;
+  const guestKey = opts.guestKey ?? null;
+
+  let byUser = userId ? await latestThread({ userId }) : null;
+  let byGuest = guestKey ? await latestThread({ guestKey }) : null;
+
+  if (byUser && byGuest && byUser.id !== byGuest.id) {
+    await mergeThreadInto(byGuest.id, byUser.id);
+    byGuest = null;
+    byUser = await prisma.contactThread.findUnique({ where: { id: byUser.id } });
+  }
+
+  let thread = byUser ?? byGuest;
+  if (!thread) {
+    try {
+      thread = await prisma.contactThread.create({
+        data: {
+          userId: userId ?? undefined,
+          guestKey: userId ? undefined : guestKey ?? undefined,
+          displayName: opts.displayName,
+          contactEmail: opts.contactEmail,
+        },
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        thread = await findVisitorThread({ userId, guestKey });
+      } else {
+        throw error;
+      }
+    }
+  }
+
+  if (!thread) {
+    thread = await findVisitorThread({ userId, guestKey });
+  }
+  if (!thread) {
+    throw new Error("無法建立聯繫對話");
+  }
+
+  const patch: {
+    displayName?: string;
+    contactEmail?: string;
+    userId?: string;
+    guestKey?: string;
+    status?: "OPEN";
+  } = {};
+  if (opts.displayName) patch.displayName = opts.displayName;
+  if (opts.contactEmail) patch.contactEmail = opts.contactEmail;
+  if (userId && !thread.userId) patch.userId = userId;
+  if (guestKey && !thread.guestKey && !userId) patch.guestKey = guestKey;
+  if (thread.status === "CLOSED") patch.status = "OPEN";
+  if (Object.keys(patch).length) {
+    try {
+      thread = await prisma.contactThread.update({
+        where: { id: thread.id },
+        data: patch,
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+      ) {
+        const existing = await findVisitorThread({ userId, guestKey });
+        if (existing && existing.id !== thread.id) {
+          await mergeThreadInto(thread.id, existing.id);
+          thread = existing;
+        } else if (existing) {
+          thread = existing;
+        }
+      } else {
+        throw error;
+      }
+    }
+  }
+  return thread;
 }
 
 export function contactThreadWho(t: {

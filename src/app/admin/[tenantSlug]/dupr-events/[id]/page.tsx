@@ -76,45 +76,67 @@ export default async function AdminDuprEventPage({
 
   return (
     <div className="space-y-6">
-      <Link href={ROUTES.tenantAdminDuprEvents(tenantSlug)} className="text-sm text-emerald-600">
+      <Link
+        href={ROUTES.tenantAdminDuprEvents(tenantSlug)}
+        className="inline-block text-[14px] font-black text-[#1B6B73] hover:text-brand-navy"
+      >
         ← DUPR 對戰活動
       </Link>
 
-      {sp.error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{sp.error}</p>}
-      {sp.saved && <p className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{sp.saved}</p>}
+      {sp.error && (
+        <p className="bg-[#FCECE9] px-4 py-3 text-[14px] font-bold text-[#B42318]">{sp.error}</p>
+      )}
+      {sp.saved && (
+        <p className="bg-[var(--surface-tint)] px-4 py-3 text-[14px] font-bold text-[#1B6B73]">{sp.saved}</p>
+      )}
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="bg-white p-6">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant={statusVariant[event.status]}>{DUPR_EVENT_STATUS_LABELS[event.status]}</Badge>
           <Badge variant="dupr">{DUPR_EVENT_SOURCE_LABELS[event.source]}</Badge>
         </div>
-        <h2 className="mt-2 text-lg font-bold text-slate-800">{event.title}</h2>
-        <p className="mt-1 text-sm text-slate-500">
+        <h2 className="mt-3 text-[24px] font-black text-brand-navy">{event.title}</h2>
+        <p className="mt-1 text-[14px] text-[var(--muted)]">
           {formatTaipeiDateTime(event.startAt)}
           {event.endAt ? ` – ${formatTaipeiTime(event.endAt)}` : ""}
           {event.location ? ` · ${event.location}` : ""}
           {event.fitbookUrl && (
             <>
               {" · "}
-              <a href={event.fitbookUrl} target="_blank" rel="noreferrer" className="text-brand-teal">
+              <a href={event.fitbookUrl} target="_blank" rel="noreferrer" className="font-bold text-[#1B6B73]">
                 FitBook 場次 ↗
               </a>
             </>
           )}
         </p>
         {editable && (
-          <details className="mt-3">
-            <summary className="cursor-pointer text-sm text-slate-600">編輯活動資訊</summary>
-            <form action={updateDuprEventInfo.bind(null, tenantSlug, eventId)} className="mt-3 flex flex-wrap items-end gap-2">
-              <label className="min-w-[16rem] flex-1 text-sm">
-                <span className="mb-1 block text-xs text-slate-500">活動名稱</span>
-                <input name="title" defaultValue={event.title} required className="w-full rounded-lg border border-slate-200 px-3 py-2" />
+          <details className="mt-4">
+            <summary className="cursor-pointer text-[14px] font-bold text-brand-navy">編輯活動資訊</summary>
+            <form
+              action={updateDuprEventInfo.bind(null, tenantSlug, eventId)}
+              className="mt-3 flex flex-wrap items-end gap-3"
+            >
+              <label className="min-w-[16rem] flex-1 text-[14px]">
+                <span className="mb-1 block text-[14px] font-bold text-brand-navy">活動名稱</span>
+                <input
+                  name="title"
+                  defaultValue={event.title}
+                  required
+                  className="w-full bg-[var(--bg)] px-4 py-2 text-[14px] text-brand-navy"
+                />
               </label>
-              <label className="text-sm">
-                <span className="mb-1 block text-xs text-slate-500">地點</span>
-                <input name="location" defaultValue={event.location ?? ""} className="rounded-lg border border-slate-200 px-3 py-2" />
+              <label className="text-[14px]">
+                <span className="mb-1 block text-[14px] font-bold text-brand-navy">地點</span>
+                <input
+                  name="location"
+                  defaultValue={event.location ?? ""}
+                  className="bg-[var(--bg)] px-4 py-2 text-[14px] text-brand-navy"
+                />
               </label>
-              <button type="submit" className="rounded-lg border border-slate-200 px-3 py-2 text-sm hover:bg-slate-50">
+              <button
+                type="submit"
+                className="bg-brand-navy px-4 py-2 text-[14px] font-black text-white hover:bg-brand-lime hover:text-brand-navy"
+              >
                 儲存
               </button>
             </form>
@@ -122,81 +144,86 @@ export default async function AdminDuprEventPage({
         )}
       </section>
 
-      <section className="rounded-xl border border-indigo-100 bg-indigo-50/50 p-5 shadow-sm">
-        <h3 className="font-semibold text-indigo-900">現場平板計分</h3>
-        <div className="mt-3 flex flex-wrap items-center gap-6">
+      <section className="bg-brand-navy p-6 text-white">
+        <h3 className="text-[20px] font-black text-white">現場平板計分</h3>
+        <div className="mt-4 flex flex-wrap items-center gap-6">
           <div>
-            <p className="text-xs text-indigo-700">現場碼</p>
-            <p className="font-mono text-3xl font-bold tracking-[0.3em] text-indigo-900">{event.scoringPin}</p>
+            <p className="text-[14px] font-bold text-[#C8D8E4]">現場碼</p>
+            <p className="font-mono text-[32px] font-black tracking-[0.25em] text-brand-lime">{event.scoringPin}</p>
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs text-indigo-700">平板開啟網址</p>
-            <Link href={tabletPath} target="_blank" className="break-all font-mono text-sm text-indigo-900 underline">
+            <p className="text-[14px] font-bold text-[#C8D8E4]">平板開啟網址</p>
+            <Link href={tabletPath} target="_blank" className="break-all font-mono text-[14px] font-bold text-white underline">
               {tabletUrl}
             </Link>
-            <p className="mt-1 text-xs text-indigo-700/80">
+            <p className="mt-1 text-[14px] text-[#C8D8E4]">
               也可從「{tenant.displayName} → DUPR 計分」進入；平板輸入一次現場碼後 24 小時內免重新輸入。
             </p>
           </div>
           <form action={regenerateDuprScoringPin.bind(null, tenantSlug, eventId)}>
-            <button type="submit" className="rounded-lg border border-indigo-200 bg-white px-3 py-1.5 text-sm text-indigo-800 hover:bg-indigo-50">
+            <button
+              type="submit"
+              className="bg-white px-4 py-2 text-[14px] font-black text-brand-navy hover:bg-brand-lime"
+            >
               更換現場碼
             </button>
           </form>
         </div>
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section className="bg-white p-6">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h3 className="font-semibold text-slate-800">報名名單（{n} 人）</h3>
+          <h3 className="text-[20px] font-black text-brand-navy">報名名單（{n} 人）</h3>
           {missingDuprCount > 0 && (
-            <p className="text-xs text-amber-700">{missingDuprCount} 位尚未填 DUPR ID（上傳 DUPR 前需補齊）</p>
+            <p className="text-[14px] font-bold text-[#9A5B00]">
+              {missingDuprCount} 位尚未填 DUPR ID（上傳 DUPR 前需補齊）
+            </p>
           )}
         </div>
         {n === 0 ? (
-          <p className="mt-3 text-sm text-slate-500">尚無球員</p>
+          <p className="mt-3 text-[14px] text-[var(--muted)]">尚無球員</p>
         ) : (
-          <form action={saveDuprEventRoster.bind(null, tenantSlug, eventId)} className="mt-3">
+          <form action={saveDuprEventRoster.bind(null, tenantSlug, eventId)} className="mt-4">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[32rem] text-sm">
-                <thead className="bg-slate-50 text-slate-500">
+              <table className="w-full min-w-[32rem] text-[14px]">
+                <thead className="bg-brand-navy text-white">
                   <tr>
-                    <th className="w-14 px-3 py-2 text-left">編號</th>
-                    <th className="px-3 py-2 text-left">名稱</th>
-                    <th className="px-3 py-2 text-left">DUPR ID</th>
+                    <th className="w-16 px-3 py-2 text-left font-black">編號</th>
+                    <th className="px-3 py-2 text-left font-black">名稱</th>
+                    <th className="px-3 py-2 text-left font-black">DUPR ID</th>
                     {event.status === "DRAFT" && <th className="w-16 px-3 py-2" />}
                   </tr>
                 </thead>
                 <tbody>
                   {event.players.map((p) => (
-                    <tr key={p.id} className="border-t border-slate-100">
-                      <td className="px-3 py-1.5 font-bold tabular-nums text-slate-700">{p.seq}</td>
-                      <td className="px-3 py-1.5">
+                    <tr key={p.id} className="border-t border-[var(--line)]">
+                      <td className="px-3 py-2 font-mono font-black tabular-nums text-brand-navy">{p.seq}</td>
+                      <td className="px-3 py-2">
                         <input type="hidden" name="playerId" value={p.id} />
                         <input
                           name="name"
                           defaultValue={p.name}
                           disabled={!editable}
-                          className="w-full rounded-md border border-slate-200 px-2 py-1 disabled:bg-slate-50"
+                          className="w-full bg-[var(--bg)] px-3 py-1.5 text-[14px] font-bold text-brand-navy disabled:opacity-60"
                         />
                       </td>
-                      <td className="px-3 py-1.5">
+                      <td className="px-3 py-2">
                         <input
                           name="duprId"
                           defaultValue={p.duprId ?? ""}
                           disabled={!editable}
                           placeholder="未填"
-                          className={`w-full rounded-md border px-2 py-1 font-mono uppercase disabled:bg-slate-50 ${
-                            p.duprId ? "border-slate-200" : "border-amber-300 bg-amber-50/50"
+                          className={`w-full px-3 py-1.5 font-mono text-[14px] uppercase disabled:opacity-60 ${
+                            p.duprId ? "bg-[var(--bg)] text-brand-navy" : "bg-[#FFF4E5] text-[#9A5B00]"
                           }`}
                         />
                       </td>
                       {event.status === "DRAFT" && (
-                        <td className="px-3 py-1.5 text-right">
+                        <td className="px-3 py-2 text-right">
                           <button
                             type="submit"
                             formAction={removeDuprEventPlayer.bind(null, tenantSlug, eventId, p.id)}
-                            className="text-xs text-red-600 hover:underline"
+                            className="text-[14px] font-bold text-[#B42318] hover:underline"
                           >
                             移除
                           </button>
@@ -208,7 +235,7 @@ export default async function AdminDuprEventPage({
               </table>
             </div>
             {editable && (
-              <button type="submit" className="mt-3 rounded-lg bg-slate-800 px-4 py-2 text-sm text-white hover:bg-slate-900">
+              <button type="submit" className="btn-brand mt-4">
                 儲存名單
               </button>
             )}
@@ -216,48 +243,60 @@ export default async function AdminDuprEventPage({
         )}
 
         {event.status === "DRAFT" && (
-          <form action={addDuprEventPlayers.bind(null, tenantSlug, eventId)} className="mt-4 space-y-2">
-            <label className="block text-sm">
-              <span className="mb-1 block text-xs text-slate-500">新增球員（每行一位，可寫「名字, DUPR ID」）</span>
-              <textarea name="roster" rows={3} className="w-full rounded-lg border border-slate-200 px-3 py-2 font-mono text-sm" />
+          <form action={addDuprEventPlayers.bind(null, tenantSlug, eventId)} className="mt-6 space-y-2">
+            <label className="block text-[14px]">
+              <span className="mb-1 block text-[14px] font-bold text-brand-navy">
+                新增球員（每行一位，可寫「名字, DUPR ID」）
+              </span>
+              <textarea
+                name="roster"
+                rows={3}
+                className="w-full bg-[var(--bg)] px-4 py-2 font-mono text-[14px] text-brand-navy"
+              />
             </label>
-            <button type="submit" className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm hover:bg-slate-50">
+            <button
+              type="submit"
+              className="bg-brand-navy px-4 py-2 text-[14px] font-black text-white hover:bg-brand-lime hover:text-brand-navy"
+            >
               新增
             </button>
           </form>
         )}
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <h3 className="font-semibold text-slate-800">對戰表</h3>
+      <section className="bg-white p-6">
+        <h3 className="text-[20px] font-black text-brand-navy">對戰表</h3>
         {editable && !hasScores && (
-          <form action={generateDuprEventSchedule.bind(null, tenantSlug, eventId)} className="mt-3 flex flex-wrap items-end gap-3">
-            <label className="text-sm">
-              <span className="mb-1 block text-xs text-slate-500">同時使用場地數</span>
+          <form
+            action={generateDuprEventSchedule.bind(null, tenantSlug, eventId)}
+            className="mt-4 flex flex-wrap items-end gap-3"
+          >
+            <label className="text-[14px]">
+              <span className="mb-1 block text-[14px] font-bold text-brand-navy">同時使用場地數</span>
               <input
                 type="number"
                 name="courtCount"
                 min={1}
                 max={16}
                 defaultValue={event.courtCount}
-                className="w-24 rounded-lg border border-slate-200 px-3 py-2"
+                className="w-24 bg-[var(--bg)] px-4 py-2 text-[14px] font-bold text-brand-navy"
               />
             </label>
-            <label className="text-sm">
-              <span className="mb-1 block text-xs text-slate-500">輪數（空白＝自動）</span>
+            <label className="text-[14px]">
+              <span className="mb-1 block text-[14px] font-bold text-brand-navy">輪數（空白＝自動）</span>
               <input
                 type="number"
                 name="rounds"
                 min={1}
                 max={60}
                 placeholder={n >= MIN_PLAYERS ? String(defaultRoundCount(n, event.courtCount)) : ""}
-                className="w-28 rounded-lg border border-slate-200 px-3 py-2"
+                className="w-28 bg-[var(--bg)] px-4 py-2 text-[14px] font-bold text-brand-navy"
               />
             </label>
             <button
               type="submit"
               disabled={n < MIN_PLAYERS}
-              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700 disabled:bg-slate-300"
+              className="btn-brand disabled:opacity-40"
             >
               {event.matches.length > 0 ? "重新產生對戰表" : "產生對戰表"}
             </button>
@@ -265,12 +304,12 @@ export default async function AdminDuprEventPage({
               <button
                 type="submit"
                 formAction={resetDuprEventToDraft.bind(null, tenantSlug, eventId)}
-                className="rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-600 hover:bg-slate-50"
+                className="bg-[var(--bg)] px-4 py-2 text-[14px] font-bold text-brand-navy hover:bg-[var(--surface-alt)]"
               >
                 退回名單編輯
               </button>
             )}
-            <p className="w-full text-xs text-slate-500">
+            <p className="w-full text-[14px] text-[var(--muted)]">
               {n < MIN_PLAYERS
                 ? `至少需要 ${MIN_PLAYERS} 位球員`
                 : `${n} 人、${courts} 面場地：每輪 ${courts * 4} 人上場、${n - courts * 4} 人輪休。單一場地 4～8 人使用固定輪轉表，其餘以演算法讓每人搭檔、對手盡量不重複。`}
@@ -279,28 +318,30 @@ export default async function AdminDuprEventPage({
         )}
 
         {event.matches.length === 0 ? (
-          <p className="mt-3 text-sm text-slate-500">尚未產生對戰表</p>
+          <p className="mt-4 text-[14px] text-[var(--muted)]">尚未產生對戰表</p>
         ) : (
           <>
             <details className="mt-4">
-              <summary className="cursor-pointer text-sm text-slate-600">文字版對戰表（可複製貼到 LINE）</summary>
+              <summary className="cursor-pointer text-[14px] font-bold text-brand-navy">
+                文字版對戰表（可複製貼到 LINE）
+              </summary>
               <textarea
                 readOnly
                 value={scheduleText}
                 rows={Math.min(24, scheduleText.split("\n").length + 1)}
-                className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-sm"
+                className="mt-2 w-full bg-[var(--bg)] px-4 py-3 font-mono text-[14px] text-brand-navy"
               />
             </details>
             <div className="mt-4 overflow-x-auto">
-              <table className="w-full min-w-[48rem] text-sm">
-                <thead className="bg-slate-50 text-slate-500">
+              <table className="w-full min-w-[48rem] text-[14px]">
+                <thead className="bg-brand-navy text-white">
                   <tr>
-                    <th className="px-2 py-2 text-left">場次</th>
-                    <th className="px-2 py-2 text-left">隊伍 A</th>
-                    <th className="px-2 py-2 text-center">比分</th>
-                    <th className="px-2 py-2 text-left">隊伍 B</th>
-                    <th className="px-2 py-2 text-left">確認</th>
-                    <th className="px-2 py-2 text-left">管理</th>
+                    <th className="px-3 py-2 text-left font-black">場次</th>
+                    <th className="px-3 py-2 text-left font-black">隊伍 A</th>
+                    <th className="px-3 py-2 text-center font-black">比分</th>
+                    <th className="px-3 py-2 text-left font-black">隊伍 B</th>
+                    <th className="px-3 py-2 text-left font-black">確認</th>
+                    <th className="px-3 py-2 text-left font-black">管理</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -308,51 +349,86 @@ export default async function AdminDuprEventPage({
                     const confirmedSeqs = new Set(m.confirmations.map((c) => c.playerSeq));
                     const seqs = matchPlayerSeqs(m);
                     return (
-                      <tr key={m.id} className={`border-t border-slate-100 ${m.confirmedAt ? "bg-emerald-50/40" : ""}`}>
-                        <td className="whitespace-nowrap px-2 py-2 tabular-nums text-slate-600">
+                      <tr
+                        key={m.id}
+                        className={`border-t border-[var(--line)] ${
+                          m.confirmedAt ? "bg-[var(--surface-tint)]" : ""
+                        }`}
+                      >
+                        <td className="whitespace-nowrap px-3 py-2 font-mono font-bold tabular-nums text-brand-navy">
                           #{m.seq}
-                          {courts > 1 && <span className="ml-1 text-xs text-slate-400">R{m.round}·{m.court}號</span>}
+                          {courts > 1 && (
+                            <span className="ml-1 text-[14px] text-[var(--muted)]">
+                              R{m.round}·{m.court}號
+                            </span>
+                          )}
                         </td>
-                        <td className="px-2 py-2">{label(m.teamA1)} / {label(m.teamA2)}</td>
-                        <td className="px-2 py-2">
+                        <td className="px-3 py-2 font-bold text-brand-navy">
+                          {label(m.teamA1)} / {label(m.teamA2)}
+                        </td>
+                        <td className="px-3 py-2">
                           {event.status === "SCHEDULED" ? (
-                            <form action={adminSaveMatchScore.bind(null, tenantSlug, eventId)} className="flex items-center justify-center gap-1">
+                            <form
+                              action={adminSaveMatchScore.bind(null, tenantSlug, eventId)}
+                              className="flex items-center justify-center gap-1.5"
+                            >
                               <input type="hidden" name="matchId" value={m.id} />
-                              <input name="scoreA" defaultValue={m.scoreA ?? ""} inputMode="numeric" className="w-10 rounded border border-slate-200 px-1 py-0.5 text-center" />
+                              <input
+                                name="scoreA"
+                                defaultValue={m.scoreA ?? ""}
+                                inputMode="numeric"
+                                className="w-12 bg-[var(--bg)] px-2 py-1 text-center font-mono font-bold text-brand-navy"
+                              />
                               <span>:</span>
-                              <input name="scoreB" defaultValue={m.scoreB ?? ""} inputMode="numeric" className="w-10 rounded border border-slate-200 px-1 py-0.5 text-center" />
-                              <button type="submit" className="text-xs text-indigo-600 hover:underline">存</button>
+                              <input
+                                name="scoreB"
+                                defaultValue={m.scoreB ?? ""}
+                                inputMode="numeric"
+                                className="w-12 bg-[var(--bg)] px-2 py-1 text-center font-mono font-bold text-brand-navy"
+                              />
+                              <button
+                                type="submit"
+                                className="bg-brand-navy px-2.5 py-1 text-[14px] font-black text-white hover:bg-brand-lime hover:text-brand-navy"
+                              >
+                                存
+                              </button>
                             </form>
                           ) : (
-                            <p className="text-center font-semibold tabular-nums">
+                            <p className="text-center font-mono font-black tabular-nums text-brand-navy">
                               {m.scoreA ?? "-"} : {m.scoreB ?? "-"}
                             </p>
                           )}
                         </td>
-                        <td className="px-2 py-2">{label(m.teamB1)} / {label(m.teamB2)}</td>
-                        <td className="px-2 py-2 text-xs">
+                        <td className="px-3 py-2 font-bold text-brand-navy">
+                          {label(m.teamB1)} / {label(m.teamB2)}
+                        </td>
+                        <td className="px-3 py-2 text-[14px]">
                           {m.scoreA == null ? (
-                            <span className="text-slate-400">未開打</span>
+                            <span className="text-[var(--muted)]">未開打</span>
                           ) : m.confirmedAt ? (
-                            <span className="font-medium text-emerald-700">✓ 四人已確認</span>
+                            <span className="font-black text-[#1B6B73]">✓ 四人已確認</span>
                           ) : (
-                            <span className="text-amber-700">
+                            <span className="font-bold text-[#9A5B00]">
                               {confirmedSeqs.size}/4
                               {seqs.filter((s) => !confirmedSeqs.has(s)).length > 0 &&
                                 `（待 ${seqs.filter((s) => !confirmedSeqs.has(s)).join("、")}）`}
                             </span>
                           )}
                         </td>
-                        <td className="whitespace-nowrap px-2 py-2 text-xs">
+                        <td className="whitespace-nowrap px-3 py-2 text-[14px]">
                           {event.status === "SCHEDULED" && m.scoreA != null && (
                             <span className="flex gap-2">
                               {m.confirmations.length > 0 && (
                                 <form action={adminReopenMatch.bind(null, tenantSlug, eventId, m.id)}>
-                                  <button type="submit" className="text-amber-700 hover:underline">解除確認</button>
+                                  <button type="submit" className="font-bold text-[#9A5B00] hover:underline">
+                                    解除確認
+                                  </button>
                                 </form>
                               )}
                               <form action={adminClearMatchScore.bind(null, tenantSlug, eventId, m.id)}>
-                                <button type="submit" className="text-red-600 hover:underline">清除</button>
+                                <button type="submit" className="font-bold text-[#B42318] hover:underline">
+                                  清除
+                                </button>
                               </form>
                             </span>
                           )}
@@ -368,35 +444,49 @@ export default async function AdminDuprEventPage({
       </section>
 
       {event.matches.length > 0 && (
-        <section className="rounded-xl border border-emerald-200 bg-white p-5 shadow-sm">
-          <h3 className="font-semibold text-slate-800">負責人最終確認 · 整批匯入 DUPR</h3>
-          <ul className="mt-3 grid gap-2 text-sm sm:grid-cols-4">
-            <li className="rounded-lg bg-slate-50 px-3 py-2">已填分 <b>{readiness.scored}</b> 場</li>
-            <li className="rounded-lg bg-slate-50 px-3 py-2">四人確認 <b>{readiness.confirmed}</b> 場</li>
-            <li className="rounded-lg bg-slate-50 px-3 py-2">未開打 <b>{readiness.unscored}</b> 場（不上傳）</li>
-            <li className={`rounded-lg px-3 py-2 ${readiness.missingDupr.length ? "bg-amber-50 text-amber-800" : "bg-slate-50"}`}>
-              缺 DUPR ID <b>{readiness.missingDupr.length}</b> 人
+        <section className="bg-white p-6">
+          <h3 className="text-[20px] font-black text-brand-navy">負責人最終確認 · 整批匯入 DUPR</h3>
+          <ul className="mt-4 grid gap-3 text-[14px] sm:grid-cols-4">
+            <li className="bg-[var(--bg)] px-4 py-3 text-brand-navy">
+              已填分 <b className="font-mono font-black">{readiness.scored}</b> 場
+            </li>
+            <li className="bg-[var(--bg)] px-4 py-3 text-brand-navy">
+              四人確認 <b className="font-mono font-black">{readiness.confirmed}</b> 場
+            </li>
+            <li className="bg-[var(--bg)] px-4 py-3 text-brand-navy">
+              未開打 <b className="font-mono font-black">{readiness.unscored}</b> 場（不上傳）
+            </li>
+            <li
+              className={`px-4 py-3 ${
+                readiness.missingDupr.length ? "bg-[#FFF4E5] text-[#9A5B00]" : "bg-[var(--bg)] text-brand-navy"
+              }`}
+            >
+              缺 DUPR ID <b className="font-mono font-black">{readiness.missingDupr.length}</b> 人
             </li>
           </ul>
           {readiness.pendingConfirmation.length > 0 && (
-            <p className="mt-2 text-xs text-amber-700">待四人確認：第 {readiness.pendingConfirmation.join("、")} 場</p>
+            <p className="mt-3 text-[14px] font-bold text-[#9A5B00]">
+              待四人確認：第 {readiness.pendingConfirmation.join("、")} 場
+            </p>
           )}
           {readiness.missingDupr.length > 0 && (
-            <p className="mt-1 text-xs text-amber-700">
+            <p className="mt-1 text-[14px] font-bold text-[#9A5B00]">
               缺 DUPR ID：{readiness.missingDupr.map((p) => `#${p.seq} ${p.name}`).join("、")}
             </p>
           )}
 
           {event.submitError && event.status !== "SUBMITTED" && (
-            <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">上傳狀態：{event.submitError}</p>
+            <p className="mt-3 bg-[#FFF4E5] px-4 py-2 text-[14px] font-bold text-[#9A5B00]">
+              上傳狀態：{event.submitError}
+            </p>
           )}
           {event.status === "SUBMITTED" && event.submittedAt && (
-            <p className="mt-3 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+            <p className="mt-3 bg-[var(--surface-tint)] px-4 py-2 text-[14px] font-bold text-[#1B6B73]">
               已於 {formatTaipeiDateTime(event.submittedAt)} 匯入 DUPR
             </p>
           )}
 
-          <div className="mt-4 flex flex-wrap gap-2">
+          <div className="mt-4 flex flex-wrap gap-3">
             {event.status === "SCHEDULED" && (
               <ConfirmForm
                 action={finalizeDuprEvent.bind(null, tenantSlug, eventId)}
@@ -409,7 +499,7 @@ export default async function AdminDuprEventPage({
                     readiness.pendingConfirmation.length > 0 ||
                     readiness.missingDupr.length > 0
                   }
-                  className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 disabled:bg-slate-300"
+                  className="btn-brand disabled:opacity-40"
                 >
                   最終確認並匯入 DUPR（{readiness.confirmed} 場）
                 </button>
@@ -418,12 +508,15 @@ export default async function AdminDuprEventPage({
             {event.status === "FINALIZED" && (
               <>
                 <form action={retrySubmitDuprEvent.bind(null, tenantSlug, eventId)}>
-                  <button type="submit" className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+                  <button type="submit" className="btn-brand">
                     重新上傳 DUPR
                   </button>
                 </form>
                 <form action={reopenDuprEvent.bind(null, tenantSlug, eventId)}>
-                  <button type="submit" className="rounded-lg border border-slate-200 px-4 py-2 text-sm hover:bg-slate-50">
+                  <button
+                    type="submit"
+                    className="bg-[var(--bg)] px-4 py-2 text-[14px] font-bold text-brand-navy hover:bg-[var(--surface-alt)]"
+                  >
                     退回修改
                   </button>
                 </form>
@@ -432,7 +525,7 @@ export default async function AdminDuprEventPage({
             {readiness.confirmed > 0 && (
               <a
                 href={ROUTES.tenantAdminDuprEventCsv(tenantSlug, event.id)}
-                className="rounded-lg border border-slate-200 px-4 py-2 text-sm hover:bg-slate-50"
+                className="bg-[var(--bg)] px-4 py-2 text-[14px] font-bold text-brand-navy hover:bg-[var(--surface-alt)]"
               >
                 下載 DUPR 匯入 CSV
               </a>
@@ -449,7 +542,7 @@ export default async function AdminDuprEventPage({
         >
           <button
             type="submit"
-            className="rounded-lg border border-red-200 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+            className="bg-[#FCECE9] px-5 py-2.5 text-[14px] font-black text-[#B42318] hover:bg-[#F8D7D1]"
           >
             刪除此活動
           </button>

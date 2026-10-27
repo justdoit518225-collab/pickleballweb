@@ -11,9 +11,6 @@ export type LinkedAccountView = {
   providerAccountId: string;
 };
 
-const LINK_CLASS =
-  "rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50";
-
 export function LinkedAccountsPanel({
   email,
   linkedAccounts,
@@ -48,23 +45,28 @@ export function LinkedAccountsPanel({
 
   if (configuredProviders.length === 0) {
     return (
-      <p className="text-sm text-slate-500">目前未設定任何第三方登入，請聯絡管理員。</p>
+      <div className="bg-white p-6">
+        <p className="text-base text-[var(--muted)]">目前未設定任何第三方登入，請聯絡管理員。</p>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-4">
-      {email ? (
-        <p className="text-sm text-slate-600">
-          帳號主要信箱：<span className="font-medium text-slate-800">{email}</span>
-        </p>
-      ) : (
-        <p className="text-sm text-slate-600">
-          此帳號尚未記錄 Email（例如僅用 LINE 登入）。建議連結 Google 以便跨裝置識別。
-        </p>
-      )}
+    <div className="space-y-5 bg-white p-6 sm:p-8">
+      <div>
+        <h2 className="text-2xl font-extrabold text-brand-navy">綁定登入方式</h2>
+        {email ? (
+          <p className="mt-2 text-base text-[var(--muted)]">
+            帳號主要信箱：<span className="font-bold text-brand-navy">{email}</span>
+          </p>
+        ) : (
+          <p className="mt-2 text-base text-[var(--muted)]">
+            此帳號尚未記錄 Email（例如僅用 LINE 登入）。建議同時連結 Google 以便跨裝置識別。
+          </p>
+        )}
+      </div>
 
-      <ul className="divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white">
+      <ul className="space-y-3">
         {configuredProviders.map((provider) => {
           const linked = linkedMap.get(provider);
           const label = OAUTH_PROVIDER_LABELS[provider];
@@ -73,14 +75,14 @@ export function LinkedAccountsPanel({
           return (
             <li
               key={provider}
-              className="flex flex-wrap items-center justify-between gap-3 px-4 py-4"
+              className="flex flex-wrap items-center justify-between gap-3 bg-[var(--bg)] px-5 py-4"
             >
               <div>
-                <p className="font-medium text-slate-800">{label}</p>
+                <p className="text-lg font-extrabold text-brand-navy">{label}</p>
                 {linked ? (
-                  <p className="mt-0.5 text-xs text-slate-500">已連結</p>
+                  <p className="mt-0.5 text-sm font-bold text-[#1D6D75]">已連結綁定</p>
                 ) : (
-                  <p className="mt-0.5 text-xs text-slate-500">尚未連結</p>
+                  <p className="mt-0.5 text-sm text-[var(--muted)]">尚未連結</p>
                 )}
               </div>
               <div className="flex gap-2">
@@ -89,7 +91,7 @@ export function LinkedAccountsPanel({
                     type="button"
                     disabled={pending || !canUnlink}
                     onClick={() => handleUnlink(provider)}
-                    className="rounded-lg border border-red-200 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="bg-rose-100 px-4 py-2 text-sm font-bold text-rose-900 hover:bg-rose-200 disabled:cursor-not-allowed disabled:opacity-50"
                     title={
                       canUnlink ? undefined : "至少需保留一種登入方式，無法全部解除"
                     }
@@ -101,7 +103,7 @@ export function LinkedAccountsPanel({
                     type="button"
                     disabled={pending}
                     onClick={() => handleLink(provider)}
-                    className={LINK_CLASS}
+                    className="btn-brand px-4 py-2 text-sm font-bold text-white disabled:opacity-50"
                   >
                     連結 {label}
                   </button>

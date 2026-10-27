@@ -73,23 +73,23 @@ export default async function AdminMembersPage({
         params={{ ...listParams, page }}
       />
 
-      <section className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+      <section className="overflow-hidden bg-white">
         {members.length === 0 ? (
-          <p className="px-4 py-8 text-center text-sm text-slate-500">
+          <p className="px-6 py-8 text-center text-[14px] text-[var(--muted)]">
             {listParams.q ? "沒有符合搜尋條件的會員" : "尚無會員"}
           </p>
         ) : (
           <div className={tableWrapperClass}>
-            <table className="w-full min-w-[64rem] text-sm">
-              <thead className="sticky top-0 z-10 bg-slate-50 text-slate-500 shadow-[0_1px_0_0_rgb(226_232_240)]">
+            <table className="w-full min-w-[64rem] text-[14px]">
+              <thead className="sticky top-0 z-10 bg-brand-navy text-white">
                 <tr>
-                  <th className="px-4 py-2 text-left">會員</th>
-                  <th className="px-4 py-2 text-left">Email</th>
-                  <th className="px-4 py-2 text-left">暱稱</th>
-                  <th className="px-4 py-2 text-left">LINE 帳號 ID</th>
-                  <th className="px-4 py-2 text-left">加入日期</th>
-                  <th className="px-4 py-2 text-left">狀態</th>
-                  <th className="px-4 py-2 text-left">操作</th>
+                  <th className="px-4 py-3 text-left font-black">會員</th>
+                  <th className="px-4 py-3 text-left font-black">Email</th>
+                  <th className="px-4 py-3 text-left font-black">暱稱</th>
+                  <th className="px-4 py-3 text-left font-black">LINE 帳號 ID</th>
+                  <th className="px-4 py-3 text-left font-black">加入日期</th>
+                  <th className="px-4 py-3 text-left font-black">狀態</th>
+                  <th className="px-4 py-3 text-left font-black">操作</th>
                 </tr>
               </thead>
               <tbody>
@@ -99,28 +99,28 @@ export default async function AdminMembersPage({
                   return (
                     <tr
                       key={m.id}
-                      className={`border-t border-slate-100 ${m.isBanned ? "bg-red-50/60" : ""}`}
+                      className={`border-t border-[var(--line)] ${m.isBanned ? "bg-[#FCECE9]/60" : ""}`}
                     >
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <Avatar src={display.avatarUrl} name={display.displayName} size="sm" />
-                          <span className="font-medium text-slate-800">
+                          <span className="font-bold text-brand-navy">
                             {m.user.name?.trim() || "—"}
                           </span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-slate-600">{m.user.email?.trim() || "—"}</td>
-                      <td className="px-4 py-3">{m.nickname?.trim() || "—"}</td>
+                      <td className="px-4 py-3 text-[var(--muted)]">{m.user.email?.trim() || "—"}</td>
+                      <td className="px-4 py-3 font-bold text-brand-navy">{m.nickname?.trim() || "—"}</td>
                       <td className="px-4 py-3">
                         {lineUserId ? (
-                          <code className="break-all font-mono text-xs text-slate-700" title={lineUserId}>
+                          <code className="break-all font-mono text-[14px] text-brand-navy" title={lineUserId}>
                             {lineUserId}
                           </code>
                         ) : (
-                          <span className="text-slate-400">—</span>
+                          <span className="text-[var(--muted)]">—</span>
                         )}
                       </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-slate-600">
+                      <td className="whitespace-nowrap px-4 py-3 font-mono tabular-nums text-[var(--muted)]">
                         {m.joinedAt.toLocaleString("zh-TW", {
                           year: "numeric",
                           month: "2-digit",
@@ -131,11 +131,11 @@ export default async function AdminMembersPage({
                       </td>
                       <td className="whitespace-nowrap px-4 py-3">
                         {m.isBanned ? (
-                          <span className="inline-flex rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                          <span className="inline-flex bg-[#FCECE9] px-2.5 py-0.5 text-[14px] font-black text-[#B42318]">
                             已停權
                           </span>
                         ) : (
-                          <span className="inline-flex rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                          <span className="inline-flex bg-brand-lime px-2.5 py-0.5 text-[14px] font-black text-brand-navy">
                             正常
                           </span>
                         )}
@@ -146,7 +146,9 @@ export default async function AdminMembersPage({
                         >
                           <button
                             type="submit"
-                            className={`text-sm ${m.isBanned ? "text-emerald-600" : "text-red-600"}`}
+                            className={`text-[14px] font-black ${
+                              m.isBanned ? "text-[#1B6B73]" : "text-[#B42318]"
+                            }`}
                           >
                             {m.isBanned ? "解除停權" : "停權"}
                           </button>

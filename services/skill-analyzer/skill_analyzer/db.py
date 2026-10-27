@@ -113,6 +113,101 @@ def save_report(
                 (job_id,),
             )
         conn.commit()
+    snapshot_training_sample(
+        job_id,
+        metrics=metrics,
+        model_version=model_version,
+        estimated_mid=estimated_mid,
+    )
+
+
+def snapshot_training_sample(
+    job_id: str,
+    *,
+    metrics: dict[str, Any],
+    model_version: str,
+    estimated_mid: float,
+) -> None:
+    observed = (metrics.get("rubricMatch") or {}).get("observed")
+    if not isinstance(observed, dict):
+        return
+    try:
+        with connect() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    SELECT j."userId", j."storageKey",
+                           p."linkStatus", p."singlesRating", p."doublesRating",
+                           p."duprId", p."duprName", p."lastSyncedAt"
+                    FROM "SkillAnalysisJob" j
+                    LEFT JOIN "DuprProfile" p ON p."userId" = j."userId"
+                    WHERE j.id = %s
+                    """,
+                    (job_id,),
+                )
+                row = cur.fetchone()
+                if not row:
+                    return
+                user_id, storage_key, link_status, singles, doubles, dupr_id, dupr_name, synced_at = row
+                if link_status != "LINKED":
+                    return
+                if doubles is None and singles is None:
+                    return
+                fmt = "DOUBLES" if doubles is not None else "SINGLES"
+                label = doubles if doubles is not None else singles
+                cur.execute(
+                    """
+                    INSERT INTO "SkillTrainingSample" (
+                      id, "jobId", "userId", "storageKey", "featureVector", "rawMetrics",
+                      "labelRating", "officialSingles", "officialDoubles", "officialDuprId",
+                      "officialDuprName", "duprSyncedAt", format, status, "modelVersion",
+                      "estimatedMid", "createdAt", "updatedAt"
+                    ) VALUES (
+                      %s, %s, %s, %s, %s, %s,
+                      %s, %s, %s, %s,
+                      %s, %s, %s::"SkillMatchFormat", 'CANDIDATE'::"SkillTrainingStatus", %s,
+                      %s, NOW(), NOW()
+                    )
+                    ON CONFLICT ("jobId") DO UPDATE SET
+                      "featureVector" = EXCLUDED."featureVector",
+                      "rawMetrics" = EXCLUDED."rawMetrics",
+                      "modelVersion" = EXCLUDED."modelVersion",
+                      "estimatedMid" = EXCLUDED."estimatedMid",
+                      "updatedAt" = NOW(),
+                      "officialSingles" = CASE
+                        WHEN "SkillTrainingSample".status = 'CANDIDATE' THEN EXCLUDED."officialSingles"
+                        ELSE "SkillTrainingSample"."officialSingles" END,
+                      "officialDoubles" = CASE
+                        WHEN "SkillTrainingSample".status = 'CANDIDATE' THEN EXCLUDED."officialDoubles"
+                        ELSE "SkillTrainingSample"."officialDoubles" END,
+                      "labelRating" = CASE
+                        WHEN "SkillTrainingSample".status = 'CANDIDATE' THEN EXCLUDED."labelRating"
+                        ELSE "SkillTrainingSample"."labelRating" END,
+                      format = CASE
+                        WHEN "SkillTrainingSample".status = 'CANDIDATE' THEN EXCLUDED.format
+                        ELSE "SkillTrainingSample".format END
+                    """,
+                    (
+                        secrets.token_hex(12),
+                        job_id,
+                        user_id,
+                        storage_key,
+                        Json(observed),
+                        Json(metrics),
+                        f"{float(label):.2f}",
+                        f"{float(singles):.2f}" if singles is not None else None,
+                        f"{float(doubles):.2f}" if doubles is not None else None,
+                        dupr_id,
+                        dupr_name,
+                        synced_at,
+                        fmt,
+                        model_version,
+                        f"{estimated_mid:.2f}",
+                    ),
+                )
+            conn.commit()
+    except Exception as exc:  # noqa: BLE001
+        print(f"[skill-training] skip snapshot: {exc}")
 
 
 def mark_failed(job_id: str, message: str) -> None:

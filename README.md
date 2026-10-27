@@ -35,8 +35,7 @@ npm run dev
 ```
 
 - 首頁 http://localhost:3000
-- 場館前台 http://localhost:3000/t/active-pickleball
-- 管理後台 http://localhost:3000/admin/active-pickleball
+- 平台後台 http://localhost:3000/platform/tenants（超級管理員）
 
 ### 超級管理員
 

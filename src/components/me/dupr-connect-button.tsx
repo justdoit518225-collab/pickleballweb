@@ -70,31 +70,31 @@ export function DuprConnectButton({
           setError(null);
           setOpen(true);
         }}
-        className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-60"
+        className="btn-brand inline-flex items-center gap-2 px-5 py-2.5 text-sm font-extrabold text-white disabled:opacity-60"
       >
         {pending && <Loader2 className="h-4 w-4 animate-spin" />}
         {pending ? "連結中…" : label}
       </button>
-      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
+      {error && <p className="mt-2 text-sm font-bold text-rose-800">{error}</p>}
 
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-brand-navy/60 p-4"
           role="dialog"
           aria-modal="true"
           aria-label="登入 DUPR"
           onClick={() => setOpen(false)}
         >
           <div
-            className="relative w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-xl"
+            className="relative w-full max-w-md overflow-hidden bg-white"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-2">
-              <p className="text-sm font-semibold text-slate-700">登入 DUPR</p>
+            <div className="flex items-center justify-between bg-brand-navy px-4 py-3 text-white">
+              <p className="text-sm font-extrabold">登入 DUPR 官方帳號</p>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded p-1 text-slate-500 hover:bg-slate-100"
+                className="p-1 text-white/80 hover:bg-white/10 hover:text-white"
                 aria-label="關閉"
               >
                 <X className="h-4 w-4" />

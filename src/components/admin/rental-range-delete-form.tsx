@@ -20,7 +20,7 @@ export function RentalRangeDeleteForm({
   return (
     <form
       action={action}
-      className="rounded-xl border border-red-100 bg-red-50/50 p-6 shadow-sm space-y-4"
+      className="space-y-4 bg-white p-6"
       onSubmit={(e) => {
         const fd = new FormData(e.currentTarget);
         const courtIds = fd.getAll("courtIds");
@@ -41,17 +41,17 @@ export function RentalRangeDeleteForm({
       }}
     >
       <div>
-        <h2 className="font-semibold text-slate-800">依區間批量刪除</h2>
-        <p className="mt-1 text-sm text-slate-600">
+        <h2 className="text-[20px] font-black text-brand-navy">依區間批量刪除</h2>
+        <p className="mt-1 text-[14px] text-[var(--muted)]">
           刪除指定日期與球場內、狀態為開放或封鎖的時段；已有人預約的時段會保留。
         </p>
       </div>
       <fieldset>
-        <legend className="text-sm font-medium text-slate-700">球場（可多選）</legend>
+        <legend className="text-[14px] font-bold text-brand-navy">球場（可多選）</legend>
         <div className="mt-2 flex flex-wrap gap-3">
           {courts.map((c) => (
-            <label key={c.id} className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="courtIds" value={c.id} className="rounded" />
+            <label key={c.id} className="flex items-center gap-2 bg-[var(--bg)] px-3 py-2 text-[14px] font-bold text-brand-navy">
+              <input type="checkbox" name="courtIds" value={c.id} />
               {c.label}
             </label>
           ))}
@@ -59,29 +59,29 @@ export function RentalRangeDeleteForm({
       </fieldset>
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="block text-sm font-medium text-slate-700">開始日期</label>
+          <label className="block text-[14px] font-bold text-brand-navy">開始日期</label>
           <input
             type="date"
             name="startDate"
             required
             defaultValue={defaultStartDate}
-            className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+            className="mt-1 w-full bg-[var(--bg)] px-4 py-2 text-[14px] text-brand-navy"
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700">結束日期</label>
+          <label className="block text-[14px] font-bold text-brand-navy">結束日期</label>
           <input
             type="date"
             name="endDate"
             required
             defaultValue={defaultEndDate}
-            className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+            className="mt-1 w-full bg-[var(--bg)] px-4 py-2 text-[14px] text-brand-navy"
           />
         </div>
       </div>
       <button
         type="submit"
-        className="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+        className="bg-[#FCECE9] px-5 py-2.5 text-[14px] font-black text-[#B42318] hover:bg-[#F8D7D1]"
       >
         刪除區間內未預約時段
       </button>

@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { Logo } from "@/components/brand/logo";
 import { SiteHeaderNav } from "@/components/layout/site-header-nav";
+import { CourtMotion } from "@/components/ui/court-motion";
 import { ROUTES } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
@@ -13,13 +14,14 @@ export async function SiteHeader() {
     }));
 
   return (
-    <header className="relative z-30 border-b border-slate-200/80 bg-white/90 backdrop-blur-sm">
-      <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-3 px-4 sm:h-16">
+    <header className="relative z-30 bg-[var(--bg)]">
+      <CourtMotion />
+      <div className="page-wrap mx-auto flex h-16 w-full max-w-[1600px] items-center justify-between gap-4 px-5 sm:h-20 sm:px-8 lg:px-11">
         <Logo
           href={ROUTES.home}
           variant="horizontal"
           iconSize={40}
-          nameSize="md"
+          nameSize="lg"
           className="min-w-0 shrink"
         />
         <SiteHeaderNav

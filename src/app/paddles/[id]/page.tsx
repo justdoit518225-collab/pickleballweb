@@ -35,73 +35,96 @@ export default async function PaddleDetailPage({
   const paddle = await getPaddleBySlug(id, deal.showMemberPrice);
   if (!paddle) notFound();
 
+  const mainTitle = paddle.brand === "LUZZ" ? paddle.nameEn : paddle.nameZh;
+  const subTitle = paddle.brand === "LUZZ" ? paddle.nameZh : paddle.nameEn;
+
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:py-10">
+    <div className="page-wrap mx-auto w-full max-w-[1600px] px-5 py-10 sm:px-8 sm:py-14 lg:px-11">
       <Link
         href={ROUTES.paddles}
-        className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-brand-navy"
+        className="inline-flex items-center gap-2 bg-white px-4 py-2 text-sm font-bold text-brand-navy transition-colors hover:bg-brand-navy hover:text-white"
       >
         <ArrowLeft className="h-4 w-4" />
-        返回匹克球拍
+        返回球拍評測目錄
       </Link>
 
-      <article className="mt-5 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <PaddleThumb paddle={paddle} large />
+      <article className="mt-6 grid gap-8 bg-white p-6 sm:p-10 lg:grid-cols-12 lg:items-start">
+        <div className="lg:col-span-5">
+          <PaddleThumb paddle={paddle} large />
 
-        <div className="space-y-5 px-5 py-6 sm:px-7">
-          <header className="space-y-2">
-            <p className="text-sm font-semibold tracking-wide text-brand-teal">
-              {paddle.brand}
-              <span className="mx-1.5 text-slate-300">·</span>
-              {paddle.series}
-              {paddle.variant !== "-" ? (
-                <>
-                  <span className="mx-1.5 text-slate-300">·</span>
-                  {paddle.variant}
-                </>
-              ) : null}
+          <dl className="mt-6 grid gap-4 bg-[var(--bg)] p-6 text-sm sm:grid-cols-2">
+            <div>
+              <dd className="text-base font-extrabold text-brand-navy">
+                {paddle.brand}
+              </dd>
+              <dt className="mt-0.5 text-sm text-[var(--muted)]">品牌</dt>
+            </div>
+            <div>
+              <dd className="text-base font-extrabold text-brand-navy">
+                {paddle.series}
+              </dd>
+              <dt className="mt-0.5 text-sm text-[var(--muted)]">款式／系列</dt>
+            </div>
+            <div>
+              <dd className="text-base font-extrabold text-brand-navy">
+                {paddle.variant}
+              </dd>
+              <dt className="mt-0.5 text-sm text-[var(--muted)]">子版本／顏色</dt>
+            </div>
+            <div>
+              <dd className="text-base font-extrabold text-brand-navy">
+                {paddle.nameEn}
+              </dd>
+              <dt className="mt-0.5 text-sm text-[var(--muted)]">英文全名</dt>
+            </div>
+            <div className="sm:col-span-2">
+              <PaddlePriceDisplay
+                listPriceUsd={paddle.listPriceUsd}
+                priceSourceUrl={paddle.priceSourceUrl}
+                priceNote={paddle.priceNote}
+                showMemberPrice={deal.showMemberPrice}
+                memberPriceTwd={paddle.memberPriceTwd}
+                memberPriceNote={paddle.memberPriceNote}
+                joinHref={deal.joinHref}
+                joinCtaLabel={deal.joinCtaLabel}
+                variant="spec"
+              />
+            </div>
+          </dl>
+        </div>
+
+        <div className="space-y-8 lg:col-span-7">
+          <header className="space-y-3 bg-brand-navy p-6 text-white sm:p-8">
+            <h1 className="type-head font-extrabold text-white">{mainTitle}</h1>
+            <p className="text-base font-semibold text-white/80">
+              {subTitle} · {paddle.brand} {paddle.series}
+              {paddle.variant !== "-" ? ` · ${paddle.variant}` : ""}
             </p>
-            {paddle.brand === "LUZZ" ? (
-              <>
-                <h1 className="text-2xl font-bold text-brand-navy sm:text-3xl">
-                  {paddle.nameEn}
-                </h1>
-                <p className="text-sm text-slate-500">{paddle.nameZh}</p>
-              </>
-            ) : (
-              <>
-                <h1 className="text-2xl font-bold text-brand-navy sm:text-3xl">
-                  {paddle.nameZh}
-                </h1>
-                <p className="text-sm text-slate-500">{paddle.nameEn}</p>
-              </>
-            )}
-            <PaddlePriceDisplay
-              listPriceUsd={paddle.listPriceUsd}
-              priceSourceUrl={paddle.priceSourceUrl}
-              priceNote={paddle.priceNote}
-              showMemberPrice={deal.showMemberPrice}
-              memberPriceTwd={paddle.memberPriceTwd}
-              memberPriceNote={paddle.memberPriceNote}
-              joinHref={deal.joinHref}
-              joinCtaLabel={deal.joinCtaLabel}
-              variant="detail"
-            />
+            <div className="pt-2">
+              <PaddlePriceDisplay
+                listPriceUsd={paddle.listPriceUsd}
+                priceSourceUrl={paddle.priceSourceUrl}
+                priceNote={paddle.priceNote}
+                showMemberPrice={deal.showMemberPrice}
+                memberPriceTwd={paddle.memberPriceTwd}
+                memberPriceNote={paddle.memberPriceNote}
+                joinHref={deal.joinHref}
+                joinCtaLabel={deal.joinCtaLabel}
+                variant="detail"
+              />
+            </div>
           </header>
 
-          <section className="space-y-2">
-            <h2 className="text-sm font-semibold text-slate-900">詳細介紹</h2>
-            <PaddleDescriptionView content={paddle.description} />
-          </section>
-
           {paddle.highlights.length > 0 ? (
-            <section className="space-y-2">
-              <h2 className="text-sm font-semibold text-slate-900">特點</h2>
+            <section className="space-y-3">
+              <h2 className="text-xl font-extrabold text-brand-navy">
+                核心性能特點
+              </h2>
               <ul className="flex flex-wrap gap-2">
                 {paddle.highlights.map((item) => (
                   <li
                     key={item}
-                    className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700"
+                    className="bg-brand-lime-soft px-3.5 py-1.5 text-sm font-bold text-brand-navy"
                   >
                     {item}
                   </li>
@@ -110,38 +133,15 @@ export default async function PaddleDetailPage({
             </section>
           ) : null}
 
-          <dl className="grid gap-3 rounded-xl border border-slate-100 bg-slate-50/80 p-4 text-sm sm:grid-cols-2">
-            <div>
-              <dt className="text-xs text-slate-500">品牌</dt>
-              <dd className="mt-0.5 font-medium text-slate-900">{paddle.brand}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-slate-500">款式／系列</dt>
-              <dd className="mt-0.5 font-medium text-slate-900">{paddle.series}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-slate-500">子版本／顏色</dt>
-              <dd className="mt-0.5 font-medium text-slate-900">{paddle.variant}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-slate-500">英文全名</dt>
-              <dd className="mt-0.5 font-medium text-slate-900">{paddle.nameEn}</dd>
-            </div>
-            <PaddlePriceDisplay
-              listPriceUsd={paddle.listPriceUsd}
-              priceSourceUrl={paddle.priceSourceUrl}
-              priceNote={paddle.priceNote}
-              showMemberPrice={deal.showMemberPrice}
-              memberPriceTwd={paddle.memberPriceTwd}
-              memberPriceNote={paddle.memberPriceNote}
-              joinHref={deal.joinHref}
-              joinCtaLabel={deal.joinCtaLabel}
-              variant="spec"
-            />
-          </dl>
+          <section className="space-y-3">
+            <h2 className="text-xl font-extrabold text-brand-navy">
+              詳細規格與實測評析
+            </h2>
+            <PaddleDescriptionView content={paddle.description} />
+          </section>
 
-          <p className="rounded-xl border border-brand-teal/20 bg-brand-teal/5 px-4 py-3 text-sm text-slate-700">
-            想詢問／試打？請點右下角「聯繫我們」留言，我們會盡快回覆。
+          <p className="bg-[#e3ecec] px-5 py-4 text-base font-semibold text-brand-navy">
+            想詢問現貨或預約球場試打？請點選畫面右下角「聯繫我們」留言，我們會盡快回覆。
           </p>
         </div>
       </article>

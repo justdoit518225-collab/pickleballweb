@@ -11,9 +11,9 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-brand-navy hover:bg-slate-50 disabled:opacity-60"
+      className="btn-brand-lime shrink-0 disabled:opacity-60"
     >
-      {pending ? "驗證中…" : "輸入邀請碼加入"}
+      {pending ? "驗證通行中…" : "驗證邀請碼進入 →"}
     </button>
   );
 }
@@ -27,15 +27,15 @@ export function PrivateClubEntry({
 }) {
   if (!isLoggedIn) {
     return (
-      <div className="mt-4 space-y-2">
+      <div className="mt-6 space-y-3">
         <Link
           href={ROUTES.loginWithCallback(`${ROUTES.home}?private=1`)}
-          className="inline-flex rounded-lg bg-brand-navy px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+          className="btn-brand-lime"
         >
-          使用 Google / LINE 登入
+          使用 Google / LINE 登入以輸入邀請碼 →
         </Link>
         {error ? (
-          <p className="text-sm text-red-600" role="alert">
+          <p className="bg-rose-950/80 px-3 py-2 text-sm font-semibold text-rose-200" role="alert">
             {error}
           </p>
         ) : null}
@@ -44,19 +44,23 @@ export function PrivateClubEntry({
   }
 
   return (
-    <form action={submitHomePrivateAccessCode} className="mt-4 space-y-2">
-      <div className="flex flex-wrap gap-2">
+    <form action={submitHomePrivateAccessCode} className="mt-6 space-y-3">
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <label htmlFor="home-access-code" className="sr-only">
+          俱樂部邀請碼
+        </label>
         <input
+          id="home-access-code"
           name="accessCode"
           required
           autoComplete="off"
-          placeholder="請輸入邀請碼"
-          className="min-w-[200px] flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono uppercase tracking-wider"
+          placeholder="輸入俱樂部邀請碼（例如 CLUB2026）"
+          className="min-w-[220px] flex-1 bg-white px-4 py-3 text-base font-bold tracking-widest text-brand-navy uppercase placeholder:font-normal placeholder:tracking-normal placeholder:text-[#4a5d73] focus:outline-2 focus:outline-offset-2 focus:outline-brand-lime"
         />
         <SubmitButton />
       </div>
       {error ? (
-        <p className="text-sm text-red-600" role="alert">
+        <p className="bg-rose-950/80 px-3 py-2 text-sm font-semibold text-rose-200" role="alert">
           {error}
         </p>
       ) : null}

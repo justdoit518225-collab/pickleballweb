@@ -88,32 +88,37 @@ export function RentalCalendar({
   }
 
   if (courts.length === 0) {
-    return <p className="text-sm text-slate-500">近 30 天尚無開放租借時段</p>;
+    return <p className="text-sm font-semibold text-[var(--muted)]">近 30 天尚無開放租借時段</p>;
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-3 text-xs text-slate-600">
-        <span className="flex items-center gap-1">
-          <span className="h-3 w-3 rounded border border-brand-teal-soft bg-brand-lime-soft" /> 可預約
+    <div className="space-y-5" data-ui>
+      <div className="flex flex-wrap gap-3 text-xs font-bold text-brand-navy">
+        <span className="inline-flex items-center gap-1.5 bg-brand-lime-soft px-3 py-1">
+          <span className="h-2.5 w-2.5 bg-brand-teal" /> 可預約時段
         </span>
-        <span className="flex items-center gap-1">
-          <span className="h-3 w-3 rounded bg-slate-200" /> 已滿
+        <span className="inline-flex items-center gap-1.5 bg-[var(--surface-alt)] px-3 py-1 text-[var(--muted)]">
+          <span className="h-2.5 w-2.5 bg-[var(--muted)]" /> 已滿 / 未開放
         </span>
-        <span className="flex items-center gap-1">
-          <span className="h-3 w-3 rounded border border-blue-300 bg-blue-100" /> 我的預約
+        <span className="inline-flex items-center gap-1.5 bg-brand-lime px-3 py-1 text-brand-navy">
+          <span className="h-2.5 w-2.5 bg-brand-navy" /> 我的預約
         </span>
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="bg-rose-100 px-4 py-2.5 text-sm font-bold text-rose-900">{error}</p>}
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-        <table className="min-w-full text-xs">
+      <div className="overflow-x-auto border border-[var(--border)] bg-[var(--surface)]">
+        <table className="min-w-full border-collapse text-xs">
           <thead>
-            <tr className="border-b border-slate-100 bg-slate-50">
-              <th className="sticky left-0 z-10 bg-slate-50 px-2 py-2 text-left">球場</th>
+            <tr className="bg-brand-navy text-white">
+              <th className="sticky left-0 z-10 border-r border-white/15 bg-brand-navy px-3 py-3 text-left font-extrabold text-brand-lime">
+                球場
+              </th>
               {days.map((d) => (
-                <th key={d} className="min-w-[88px] px-1 py-2 text-center font-medium text-slate-600">
+                <th
+                  key={d}
+                  className="min-w-[100px] border-r border-white/15 px-2 py-3 text-center font-extrabold text-white tabular-nums last:border-r-0"
+                >
                   {formatDay(d)}
                 </th>
               ))}
@@ -121,31 +126,31 @@ export function RentalCalendar({
           </thead>
           <tbody>
             {courts.map((court) => (
-              <tr key={court.id} className="border-b border-slate-50">
-                <td className="sticky left-0 z-10 bg-white px-2 py-2 text-slate-800">
-                  <div className="font-medium">{court.courtName}</div>
-                  <div className="text-slate-500">{court.venueName}</div>
+              <tr key={court.id} className="border-b border-[var(--border)] last:border-0">
+                <td className="sticky left-0 z-10 border-r border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-brand-navy">
+                  <div className="font-extrabold">{court.courtName}</div>
+                  <div className="text-[11px] font-medium text-[var(--muted)]">{court.venueName}</div>
                 </td>
                 {days.map((dayKey) => {
                   const daySlots = slots.filter(
                     (s) => s.courtId === court.id && new Date(s.startAt).toDateString() === dayKey,
                   );
                   return (
-                    <td key={dayKey} className="align-top px-1 py-1">
-                      <div className="flex flex-col gap-1">
+                    <td key={dayKey} className="border-r border-[var(--border)]/50 align-top px-1.5 py-1.5 last:border-r-0">
+                      <div className="flex flex-col gap-1.5">
                         {daySlots.map((s) => (
                           <div
                             key={s.id}
-                            className={`rounded px-1 py-1 ${
+                            className={`px-2 py-1.5 tabular-nums ${
                               s.isMine
-                                ? "border border-blue-300 bg-blue-50"
+                                ? "bg-brand-lime font-bold text-brand-navy"
                                 : s.status === "OPEN"
-                                  ? "border border-brand-teal-soft bg-brand-lime-soft/50"
-                                  : "bg-slate-100 text-slate-400"
+                                  ? "border border-brand-teal/35 bg-brand-lime-soft/60 text-brand-navy"
+                                  : "bg-[var(--bg)] text-[var(--muted)]"
                             }`}
                           >
-                            <div>
-                              {formatTime(s.startAt)}-{formatTime(s.endAt)}
+                            <div className="font-bold">
+                              {formatTime(s.startAt)}–{formatTime(s.endAt)}
                             </div>
                             {s.status === "OPEN" && !s.isMine && pendingBookId !== s.id && (
                               <button
@@ -155,18 +160,18 @@ export function RentalCalendar({
                                   setPendingBookId(s.id);
                                   setRacketRental(0);
                                 }}
-                                className="mt-0.5 text-brand-navy underline"
+                                className="mt-1 inline-block font-extrabold text-brand-teal underline hover:text-brand-navy"
                               >
-                                預約
+                                預約 →
                               </button>
                             )}
                             {s.status === "OPEN" && !s.isMine && pendingBookId === s.id && (
-                              <div className="mt-1 space-y-1 rounded border border-slate-200 bg-white p-1.5">
-                                <label className="block text-[10px] text-slate-600">球拍</label>
+                              <div className="mt-1.5 space-y-1.5 border border-[var(--border)] bg-[var(--surface)] p-2">
+                                <label className="block text-[10px] font-bold text-brand-navy">球拍租借</label>
                                 <select
                                   value={racketRental}
                                   onChange={(e) => setRacketRental(Number(e.target.value))}
-                                  className="w-full rounded border border-slate-200 text-[10px]"
+                                  className="w-full border border-[var(--border)] bg-[var(--bg)] px-1 py-0.5 text-[10px] font-bold text-brand-navy"
                                 >
                                   <option value={0}>不要</option>
                                   {[1, 2, 3, 4].map((n) => (
@@ -180,14 +185,14 @@ export function RentalCalendar({
                                     type="button"
                                     disabled={loadingId === s.id}
                                     onClick={() => book(s.id, racketRental)}
-                                    className="flex-1 rounded bg-brand-navy px-1 py-0.5 text-[10px] text-white"
+                                    className="flex-1 bg-brand-navy px-1.5 py-1 text-[10px] font-bold text-white"
                                   >
                                     確認
                                   </button>
                                   <button
                                     type="button"
                                     onClick={() => setPendingBookId(null)}
-                                    className="rounded border border-slate-200 px-1 py-0.5 text-[10px]"
+                                    className="bg-[var(--surface-alt)] px-1.5 py-1 text-[10px] font-bold text-brand-navy"
                                   >
                                     取消
                                   </button>
@@ -199,9 +204,9 @@ export function RentalCalendar({
                                 type="button"
                                 disabled={loadingId === s.id}
                                 onClick={() => cancel(s.id)}
-                                className="mt-0.5 text-blue-700 underline"
+                                className="mt-1 inline-block font-extrabold text-brand-navy underline"
                               >
-                                取消
+                                取消預約
                               </button>
                             )}
                           </div>

@@ -1,19 +1,15 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist } from "next/font/google";
 import { AuthSessionProvider } from "@/components/providers/session-provider";
 import { ContactWidget } from "@/components/contact/contact-widget";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { CourtMotion } from "@/components/ui/court-motion";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
 import "./globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
   subsets: ["latin"],
 });
 
@@ -35,9 +31,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-Hant" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col bg-slate-50 text-slate-700">
+    <html lang="zh-Hant" className={`${geistSans.variable} h-full antialiased`}>
+      <body className="flex min-h-full flex-col bg-[var(--bg)] text-[var(--ink)] selection:bg-brand-lime selection:text-brand-navy">
         <AuthSessionProvider>
+          <CourtMotion />
           <SiteHeader />
           <main className="flex-1">{children}</main>
           <SiteFooter />

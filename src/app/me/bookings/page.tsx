@@ -33,35 +33,37 @@ export default async function MeBookingsPage() {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-        <h2 className="border-b border-slate-100 px-5 py-4 font-semibold text-slate-800">
-          臨打 / 活動報名
-        </h2>
+      <section className="bg-white">
+        <div className="bg-brand-navy px-6 py-4 text-white">
+          <h2 className="text-xl font-extrabold text-white">臨打與活動報名紀錄</h2>
+        </div>
         {bookings.length === 0 ? (
-          <p className="px-5 py-8 text-sm text-slate-500">尚無活動報名</p>
+          <p className="px-6 py-8 text-base text-[var(--muted)]">目前尚無活動報名紀錄。</p>
         ) : (
-          <ul className="divide-y divide-slate-100">
+          <ul className="space-y-1 bg-[var(--bg)] p-2">
             {bookings.map((b) => {
               const meta = buildBookingListMeta(b);
               const upcoming = b.activity.startAt > now;
               return (
                 <li
                   key={b.id}
-                  className="flex flex-wrap items-center justify-between gap-2 px-5 py-4"
+                  className="flex flex-wrap items-center justify-between gap-4 bg-white px-5 py-4"
                 >
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-slate-800">{b.activity.title}</p>
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-base font-extrabold text-brand-navy">
+                        {b.activity.title}
+                      </p>
                       {b.partySize > 1 && (
-                        <Badge variant="default">{b.partySize} 人</Badge>
+                        <Badge variant="default">{b.partySize} 人同行</Badge>
                       )}
                       {!upcoming && <Badge variant="default">已結束</Badge>}
                     </div>
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm font-semibold text-[#1D6D75]">
                       {b.activity.tenant.displayName} · {b.activity.venue.name}
                       {b.activity.court ? ` · ${b.activity.court.name}` : ""}
                     </p>
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-[var(--muted)] tabular-nums">
                       {formatActivityDateTime(b.activity.startAt)}
                       {meta ? ` · ${meta}` : ""}
                     </p>
@@ -80,35 +82,35 @@ export default async function MeBookingsPage() {
         )}
       </section>
 
-      <section className="rounded-xl border border-slate-200 bg-white shadow-sm">
-        <h2 className="border-b border-slate-100 px-5 py-4 font-semibold text-slate-800">
-          場地租借
-        </h2>
+      <section className="bg-white">
+        <div className="bg-[#1B6B73] px-6 py-4 text-white">
+          <h2 className="text-xl font-extrabold text-white">整面球場租借紀錄</h2>
+        </div>
         {rentals.length === 0 ? (
-          <p className="px-5 py-8 text-sm text-slate-500">尚無租借紀錄</p>
+          <p className="px-6 py-8 text-base text-[var(--muted)]">目前尚無場地租借紀錄。</p>
         ) : (
-          <ul className="divide-y divide-slate-100">
+          <ul className="space-y-1 bg-[var(--bg)] p-2">
             {rentals.map((r) => {
               const upcoming = r.slot.startAt > now;
               return (
                 <li
                   key={r.id}
-                  className="flex flex-wrap items-center justify-between gap-2 px-5 py-4"
+                  className="flex flex-wrap items-center justify-between gap-4 bg-white px-5 py-4"
                 >
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-slate-800">
+                  <div className="min-w-0 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-base font-extrabold text-brand-navy">
                         {r.slot.venue.name} · {r.slot.court.name}
                       </p>
                       {r.racketRental > 0 && (
-                        <Badge variant="default">球拍×{r.racketRental}</Badge>
+                        <Badge variant="default">租球拍 × {r.racketRental}</Badge>
                       )}
                       {!upcoming && <Badge variant="default">已結束</Badge>}
                     </div>
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm font-semibold text-[#1D6D75]">
                       {r.slot.tenant.displayName}
                     </p>
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-[var(--muted)] tabular-nums">
                       {r.slot.startAt.toLocaleString("zh-TW")}
                     </p>
                   </div>
@@ -127,12 +129,12 @@ export default async function MeBookingsPage() {
       </section>
 
       {waitlists.length > 0 && (
-        <section className="rounded-xl border border-amber-100 bg-amber-50/50 p-5">
-          <h2 className="font-semibold text-amber-900">候補中</h2>
-          <ul className="mt-2 space-y-1 text-sm text-amber-800">
+        <section className="bg-brand-lime-soft p-6">
+          <h2 className="text-xl font-extrabold text-brand-navy">候補排隊中</h2>
+          <ul className="mt-3 space-y-2 text-base font-semibold text-brand-navy tabular-nums">
             {waitlists.map((w) => (
-              <li key={w.id}>
-                {w.activity.title}（第 {w.position} 位）— {w.activity.tenant.displayName}
+              <li key={w.id} className="bg-white px-4 py-3">
+                {w.activity.title}（候補第 {w.position} 位）— {w.activity.tenant.displayName}
               </li>
             ))}
           </ul>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { MessageCircle, X } from "lucide-react";
 import { ContactThreadChat } from "@/components/contact/contact-thread-chat";
 import {
@@ -21,7 +21,7 @@ export function ContactAdminDock() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  const loadInbox = useEffectEvent(async () => {
+  const loadInbox = useCallback(async () => {
     abortRef.current?.abort();
     const ac = new AbortController();
     abortRef.current = ac;
@@ -41,14 +41,17 @@ export function ContactAdminDock() {
       window.clearTimeout(timeout);
       setLoading(false);
     }
-  });
+  }, []);
 
   useEffect(() => {
-    void loadInbox();
     const ms = inboxOpen ? 4000 : 8000;
+    const initial = window.setTimeout(() => void loadInbox(), 0);
     const t = window.setInterval(() => void loadInbox(), ms);
-    return () => window.clearInterval(t);
-  }, [inboxOpen]);
+    return () => {
+      window.clearTimeout(initial);
+      window.clearInterval(t);
+    };
+  }, [inboxOpen, loadInbox]);
 
   const active = threads.find((t) => t.id === activeId) ?? null;
   const waiting = threads.filter((t) => t.adminUnread > 0).length;
@@ -78,9 +81,9 @@ export function ContactAdminDock() {
                   <p className="text-sm font-semibold">訪客訊息</p>
                   <p className="text-xs text-white/75">
                     {waiting > 0
-                      ? `${waiting} 人待回覆 · 共 ${threads.length} 則對話`
+                      ? `${waiting} 人待回覆 · 各一對一對話`
                       : threads.length > 0
-                        ? `共 ${threads.length} 則對話`
+                        ? `${threads.length} 位訪客 · 各一對一`
                         : "尚無訪客留言"}
                   </p>
                 </div>

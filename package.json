@@ -14,7 +14,9 @@
     "db:studio": "prisma studio",
     "db:import-reservations": "tsx scripts/import-reservations.mjs",
     "db:open-loho-rentals": "tsx scripts/open-loho-day-rentals.mjs",
-    "db:open-loho-open-play": "tsx scripts/open-loho-day-open-play.mjs"
+    "db:open-loho-open-play": "tsx scripts/open-loho-day-open-play.mjs",
+    "skill:backfill-training": "tsx scripts/backfill-skill-training-samples.ts",
+    "skill:export-training": "tsx scripts/export-skill-training-samples.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

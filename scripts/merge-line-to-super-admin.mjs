@@ -74,22 +74,6 @@ await prisma.$transaction(async (tx) => {
     data: { platformRole: "SUPER_ADMIN" },
   });
 
-  const tenant = await tx.tenant.findUnique({ where: { slug: "active-pickleball" } });
-  if (tenant) {
-    const existingStaff = await tx.tenantStaffRole.findFirst({
-      where: {
-        tenantId: tenant.id,
-        userId: adminUser.id,
-        role: "TENANT_ADMIN",
-        venueId: null,
-      },
-    });
-    if (!existingStaff) {
-      await tx.tenantStaffRole.create({
-        data: { tenantId: tenant.id, userId: adminUser.id, role: "TENANT_ADMIN" },
-      });
-    }
-  }
 });
 
 console.log(

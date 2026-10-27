@@ -26,50 +26,63 @@ export default async function MeNotificationsPage({
   });
 
   return (
-    <section className="space-y-4">
-      <div className="flex items-center gap-2">
-        <h2 className="text-lg font-semibold text-slate-800">通知設定</h2>
-        <Badge variant="warning">LINE 推播</Badge>
+    <section className="space-y-6">
+      <div className="bg-white p-6">
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 className="text-2xl font-extrabold text-brand-navy">LINE 推播與通知設定</h2>
+          <Badge variant="warning">LINE 推播</Badge>
+        </div>
+        <p className="mt-2 max-w-[54ch] text-base text-[var(--muted)]">
+          使用 LINE 登入後即可自動綁定推播帳號，隨時接收報名成功、候補遞補與開課提醒。
+        </p>
+        {saved && (
+          <p className="mt-4 bg-brand-lime-soft px-4 py-2.5 text-sm font-bold text-brand-navy">
+            已儲存通知設定
+          </p>
+        )}
       </div>
-      <p className="text-sm text-slate-600">
-        使用 LINE 登入後可綁定推播帳號；請於 .env 設定 LINE_CHANNEL_ACCESS_TOKEN 以實際發送。
-      </p>
-      {saved && <p className="text-sm text-brand-teal">已儲存通知設定</p>}
+
       {prefs.length === 0 ? (
-        <p className="text-sm text-slate-500">加入場館後可設定各館通知偏好</p>
+        <div className="bg-white p-8">
+          <p className="text-base text-[var(--muted)]">加入任一俱樂部場館後，即可設定各館通知偏好。</p>
+        </div>
       ) : (
-        prefs.map((p) => (
-          <form
-            key={p.id}
-            action={updateNotificationPrefs}
-            className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
-          >
-            <input type="hidden" name="tenantId" value={p.tenantId} />
-            <h3 className="font-medium text-slate-800">{p.tenant.displayName}</h3>
-            <p className="mt-1 text-xs text-slate-500">
-              LINE {p.lineLinked ? `${"已綁定"} (${p.lineUserId?.slice(0, 8)}…)` : "未綁定 — 請用 LINE 登入一次"}
-            </p>
-            <ul className="mt-4 space-y-2">
-              {items.map((item) => (
-                <li key={item.key} className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    name={item.key}
-                    defaultChecked={p[item.key]}
-                    className="rounded border-slate-300"
-                  />
-                  <label>{item.label}</label>
-                </li>
-              ))}
-            </ul>
-            <button
-              type="submit"
-              className="mt-4 rounded-lg bg-brand-navy px-4 py-2 text-sm font-medium text-white"
+        <div className="grid gap-6 lg:grid-cols-2">
+          {prefs.map((p) => (
+            <form
+              key={p.id}
+              action={updateNotificationPrefs}
+              className="bg-white p-6"
             >
-              儲存設定
-            </button>
-          </form>
-        ))
+              <input type="hidden" name="tenantId" value={p.tenantId} />
+              <h3 className="text-xl font-extrabold text-brand-navy">
+                {p.tenant.displayName}
+              </h3>
+              <p className="mt-1 text-sm font-semibold text-[#1D6D75]">
+                LINE 狀態：{p.lineLinked ? `已綁定 (${p.lineUserId?.slice(0, 8)}…)` : "未綁定 — 請使用 LINE 登入一次"}
+              </p>
+              <ul className="mt-4 space-y-2.5 bg-[var(--bg)] p-4">
+                {items.map((item) => (
+                  <li key={item.key} className="flex items-center gap-2.5 text-base font-medium text-brand-navy">
+                    <input
+                      type="checkbox"
+                      name={item.key}
+                      defaultChecked={p[item.key]}
+                      className="h-4 w-4 accent-brand-navy"
+                    />
+                    <label>{item.label}</label>
+                  </li>
+                ))}
+              </ul>
+              <button
+                type="submit"
+                className="btn-brand mt-5 px-5 py-2.5 text-sm font-extrabold text-white"
+              >
+                儲存推播設定
+              </button>
+            </form>
+          ))}
+        </div>
       )}
     </section>
   );

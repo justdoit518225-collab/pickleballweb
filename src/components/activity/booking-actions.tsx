@@ -77,9 +77,9 @@ export function BookingActions({
 
   if (hasJoined) {
     return (
-      <div className="flex flex-col gap-2">
-        <span className="inline-flex w-fit rounded-lg bg-brand-lime-soft px-4 py-2 text-sm font-medium text-brand-navy">
-          您已報名
+      <div className="flex flex-col gap-3 bg-[var(--surface)] p-6" data-ui>
+        <span className="inline-flex w-fit bg-brand-lime px-4 py-2 text-sm font-extrabold text-brand-navy">
+          您已報名成功
           {joinedPartySize > 1 ? `（${joinedPartySize} 人）` : ""}
         </span>
         {canCancel ? (
@@ -87,61 +87,62 @@ export function BookingActions({
             type="button"
             disabled={loading}
             onClick={() => callApi("cancel")}
-            className="w-fit rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+            className="w-fit bg-[var(--surface-alt)] px-4 py-2.5 text-sm font-bold text-brand-navy hover:bg-[var(--border)] disabled:opacity-60"
           >
             {loading ? "處理中…" : "取消預約"}
           </button>
         ) : (
-          <p className="text-sm text-slate-500">已超過取消期限</p>
+          <p className="text-sm font-semibold text-[var(--muted)]">已超過取消期限</p>
         )}
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="bg-rose-100 px-3 py-2 text-sm font-bold text-rose-900">{error}</p>}
       </div>
     );
   }
 
   if (onWaitlist) {
     return (
-      <div className="flex flex-col gap-2">
-        <span className="rounded-lg bg-amber-50 px-4 py-2 text-sm text-amber-800">
+      <div className="flex flex-col gap-3 bg-[var(--surface)] p-6" data-ui>
+        <span className="w-fit bg-amber-200 px-4 py-2 text-sm font-extrabold text-amber-950 tabular-nums">
           候補中（第 {waitlistPosition} 位）
         </span>
         <button
           type="button"
           disabled={loading}
           onClick={() => callApi("waitlist", { action: "leave" })}
-          className="w-fit text-sm text-slate-600 underline"
+          className="w-fit text-sm font-bold text-[var(--muted)] underline hover:text-brand-navy"
         >
-          離開候補
+          離開候補名單
         </button>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="bg-rose-100 px-3 py-2 text-sm font-bold text-rose-900">{error}</p>}
       </div>
     );
   }
 
   if (isFull) {
     return (
-      <div className="flex flex-col gap-2">
-        <span className="rounded-lg bg-amber-100 px-4 py-2 text-sm font-medium text-amber-800">
-          名額已滿
+      <div className="flex flex-col gap-3 bg-[var(--surface)] p-6" data-ui>
+        <span className="w-fit bg-amber-200 px-4 py-2 text-sm font-extrabold text-amber-950">
+          目前名額已滿
         </span>
         <button
           type="button"
           disabled={loading}
           onClick={() => callApi("waitlist")}
-          className="w-fit rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-500 disabled:opacity-60"
+          className="btn-brand w-fit disabled:opacity-60"
         >
-          {loading ? "處理中…" : "加入候補"}
+          {loading ? "處理中…" : "加入候補名單"}
         </button>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="bg-rose-100 px-3 py-2 text-sm font-bold text-rose-900">{error}</p>}
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-slate-50/80 p-4">
-      <div className="grid gap-3 sm:grid-cols-2">
+    <div className="flex flex-col gap-5 bg-[var(--surface)] p-6" data-ui>
+      <h2 className="text-lg font-extrabold text-brand-navy">填寫預約資訊</h2>
+      <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label htmlFor="personal-start" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="personal-start" className="block text-xs font-bold text-brand-navy">
             您的開始時間
           </label>
           <input
@@ -151,11 +152,11 @@ export function BookingActions({
             min={minTime}
             max={maxTime}
             onChange={(e) => setStartTime(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+            className="mt-1.5 w-full border border-[var(--border)] bg-[var(--bg)] px-3.5 py-2.5 text-sm font-bold text-brand-navy tabular-nums"
           />
         </div>
         <div>
-          <label htmlFor="personal-end" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="personal-end" className="block text-xs font-bold text-brand-navy">
             您的結束時間
           </label>
           <input
@@ -165,17 +166,17 @@ export function BookingActions({
             min={minTime}
             max={maxTime}
             onChange={(e) => setEndTime(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+            className="mt-1.5 w-full border border-[var(--border)] bg-[var(--bg)] px-3.5 py-2.5 text-sm font-bold text-brand-navy tabular-nums"
           />
         </div>
       </div>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs font-semibold text-[var(--muted)] tabular-nums">
         活動開放時段 {minTime}–{maxTime}，可依實際到場時間調整（顯示於名單）
       </p>
 
       {allowPartySize && maxPartySize > 1 && (
         <div>
-          <label htmlFor="party-size" className="block text-sm font-medium text-slate-700">
+          <label htmlFor="party-size" className="block text-xs font-bold text-brand-navy">
             報名人數
           </label>
           <select
@@ -186,7 +187,7 @@ export function BookingActions({
               setPartySize(n);
               if (racketRental > n) setRacketRental(n);
             }}
-            className="mt-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+            className="mt-1.5 border border-[var(--border)] bg-[var(--bg)] px-3.5 py-2.5 text-sm font-bold text-brand-navy tabular-nums"
           >
             {Array.from({ length: maxPartySize }, (_, i) => i + 1).map((n) => (
               <option key={n} value={n}>
@@ -198,14 +199,14 @@ export function BookingActions({
       )}
 
       <div>
-        <label htmlFor="racket-rental" className="block text-sm font-medium text-slate-700">
+        <label htmlFor="racket-rental" className="block text-xs font-bold text-brand-navy">
           租借球拍（支）
         </label>
         <select
           id="racket-rental"
           value={racketRental}
           onChange={(e) => setRacketRental(Number(e.target.value))}
-          className="mt-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+          className="mt-1.5 border border-[var(--border)] bg-[var(--bg)] px-3.5 py-2.5 text-sm font-bold text-brand-navy tabular-nums"
         >
           <option value={0}>不需要</option>
           {Array.from({ length: allowPartySize ? partySize : 1 }, (_, i) => i + 1).map((n) => (
@@ -220,15 +221,15 @@ export function BookingActions({
         type="button"
         disabled={loading}
         onClick={() => callApi("book", buildBookBody())}
-        className="w-fit rounded-lg bg-brand-navy px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-60"
+        className="btn-brand w-fit disabled:opacity-60"
       >
         {loading
           ? "預約中…"
           : allowPartySize && partySize > 1
-            ? `報名 ${partySize} 人`
-            : "立即預約"}
+            ? `確認報名 ${partySize} 人 →`
+            : "確認立即預約 →"}
       </button>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="bg-rose-100 px-3 py-2 text-sm font-bold text-rose-900">{error}</p>}
     </div>
   );
 }

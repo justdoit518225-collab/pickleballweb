@@ -15,7 +15,7 @@ type FilterValues = {
 function SelectChevron() {
   return (
     <span
-      className="pointer-events-none absolute inset-y-0 right-3.5 flex w-5 items-center justify-center text-slate-500"
+      className="pointer-events-none absolute inset-y-0 right-3.5 flex w-5 items-center justify-center text-brand-navy"
       aria-hidden
     >
       <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
@@ -52,7 +52,7 @@ function FilterSelect({
         name={name}
         defaultValue={defaultValue}
         aria-label={label}
-        className="min-w-[8.25rem] w-full appearance-none rounded-lg border border-slate-200 bg-white py-2.5 pl-3 pr-12 text-sm text-slate-800"
+        className="min-w-[8.25rem] w-full appearance-none bg-white py-2.5 pl-4 pr-10 text-[14px] font-bold text-brand-navy"
       >
         {children}
       </select>
@@ -74,13 +74,10 @@ export function ActivityListFilters({
     values.type || values.status || values.when || values.venue || values.q?.trim(),
   );
 
-  const inputClass =
-    "w-full min-w-[140px] rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800";
-
   return (
     <form
       method="get"
-      className="mt-4 flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-slate-50/80 p-4"
+      className="mt-4 flex flex-wrap items-end gap-3 bg-[var(--bg)] p-4"
     >
       <FilterSelect id="filter-type" name="type" label="類型" defaultValue={values.type ?? ""}>
         <option value="">全部類型</option>
@@ -123,20 +120,20 @@ export function ActivityListFilters({
           type="search"
           placeholder="搜尋活動標題…"
           defaultValue={values.q ?? ""}
-          className={inputClass}
+          className="w-full min-w-[140px] bg-white px-4 py-2.5 text-[14px] text-brand-navy"
           aria-label="搜尋標題"
         />
       </div>
       <button
         type="submit"
-        className="rounded-lg bg-brand-navy px-4 py-2.5 text-sm font-medium text-white hover:opacity-90"
+        className="bg-brand-navy px-5 py-2.5 text-[14px] font-black text-white hover:bg-brand-lime hover:text-brand-navy"
       >
         套用
       </button>
       {hasFilter && (
         <Link
           href={ROUTES.tenantAdmin(tenantSlug)}
-          className="rounded-lg border border-slate-200 bg-white px-4 py-2.5 text-sm text-slate-600 hover:bg-slate-50"
+          className="bg-white px-4 py-2.5 text-[14px] font-bold text-brand-navy hover:bg-[var(--surface-alt)]"
         >
           清除
         </Link>

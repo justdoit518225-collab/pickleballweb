@@ -73,7 +73,7 @@ export function SkillEstimateUpload({
   return (
     <div className="space-y-3">
       <label className="block">
-        <span className="text-sm font-medium text-slate-700">
+        <span className="text-[14px] font-bold text-brand-navy">
           {existingJobId ? "重新上傳影片" : "上傳對打影片"}
         </span>
         <input
@@ -81,18 +81,18 @@ export function SkillEstimateUpload({
           accept="video/mp4,video/webm,video/quicktime"
           disabled={!analyzerConfigured || busy}
           onChange={(e) => void onFile(e.target.files?.[0])}
-          className="mt-1 block w-full text-sm file:mr-3 file:rounded-lg file:border-0 file:bg-brand-navy file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white disabled:opacity-50"
+          className="mt-1 block w-full text-[14px] file:mr-3 file:border-0 file:bg-brand-navy file:px-4 file:py-2 file:text-[14px] file:font-black file:text-white disabled:opacity-50"
         />
       </label>
       {busy && (
-        <div className="h-2 overflow-hidden rounded-full bg-slate-100">
-          <div className="h-full bg-brand-teal transition-all" style={{ width: `${progress}%` }} />
+        <div className="h-2 overflow-hidden bg-[var(--bg)]">
+          <div className="h-full bg-[#1B6B73] transition-all" style={{ width: `${progress}%` }} />
         </div>
       )}
       {!analyzerConfigured && (
-        <p className="text-sm text-amber-700">分析服務未連線，請先啟動本機 skill-analyzer。</p>
+        <p className="text-[14px] font-bold text-[#9A5B00]">分析服務未連線，請先啟動本機 skill-analyzer。</p>
       )}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-[14px] font-bold text-[#B42318]">{error}</p>}
     </div>
   );
 }

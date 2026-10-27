@@ -34,19 +34,21 @@ export default async function LoginPage({
   const errorMessage = error ? AUTH_ERROR_MESSAGES[error] : undefined;
 
   return (
-    <div className="mx-auto flex max-w-md flex-col items-center px-4 py-16">
-      <Logo variant="stacked" iconSize={100} nameSize="xl" href={ROUTES.home} />
-      <h1 className="mt-8 text-xl font-bold text-brand-navy">登入 / 註冊</h1>
-      <p className="mt-2 text-center text-sm text-slate-600">
-        使用 Google 或 LINE 帳號加入會員後，才能加入俱樂部與預約活動
-      </p>
-      {errorMessage ? (
-        <p className="mt-4 w-full max-w-sm rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-900">
-          {errorMessage}
+    <div className="page-wrap py-16 sm:py-24">
+      <div className="mx-auto max-w-lg bg-[var(--surface)] p-8 sm:p-12">
+        <Logo variant="horizontal" iconSize={44} nameSize="lg" href={ROUTES.home} />
+        <h1 className="type-head mt-8 text-brand-navy">會員登入與註冊</h1>
+        <p className="mt-3 text-base leading-relaxed text-[var(--muted)]">
+          使用 Google 或 LINE 帳號一鍵登入，即可加入俱樂部、報名臨打球敘與預約球場時段。
         </p>
-      ) : null}
-      <div className="mt-8 flex w-full justify-center">
-        <SignInButtons callbackUrl={callbackUrl} />
+        {errorMessage ? (
+          <p className="mt-5 bg-amber-200 px-4 py-3 text-sm font-bold text-amber-950">
+            {errorMessage}
+          </p>
+        ) : null}
+        <div className="mt-8">
+          <SignInButtons callbackUrl={callbackUrl} />
+        </div>
       </div>
     </div>
   );

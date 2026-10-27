@@ -20,7 +20,7 @@ export function SignInButtons({ callbackUrl }: { callbackUrl?: string }) {
 
   if (!providers) {
     return (
-      <p className="text-center text-sm text-slate-500">載入登入方式…</p>
+      <p className="text-sm font-semibold text-[var(--muted)]">載入登入方式…</p>
     );
   }
 
@@ -28,17 +28,17 @@ export function SignInButtons({ callbackUrl }: { callbackUrl?: string }) {
   const hasLine = Boolean(providers.line);
 
   return (
-    <div className="flex w-full max-w-sm flex-col gap-3">
+    <div className="flex w-full flex-col gap-3" data-ui>
       {hasGoogle ? (
         <button
           type="button"
           onClick={() => signIn("google", { callbackUrl: nextUrl })}
-          className="rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-medium hover:bg-slate-50"
+          className="w-full border border-[var(--border)] bg-[var(--bg)] px-5 py-3.5 text-sm font-extrabold text-brand-navy transition-colors hover:bg-brand-navy hover:text-white"
         >
-          使用 Google 登入
+          使用 Google 帳號登入 →
         </button>
       ) : (
-        <p className="rounded-lg border border-dashed border-slate-300 px-4 py-3 text-center text-sm text-slate-500">
+        <p className="bg-[var(--surface-alt)] px-4 py-3 text-sm font-medium text-[var(--muted)]">
           Google 登入尚未設定（見 .env 的 GOOGLE_CLIENT_ID）
         </p>
       )}
@@ -46,12 +46,12 @@ export function SignInButtons({ callbackUrl }: { callbackUrl?: string }) {
         <button
           type="button"
           onClick={() => signIn("line", { callbackUrl: nextUrl })}
-          className="rounded-lg bg-[#06C755] px-4 py-3 text-sm font-medium text-white hover:bg-[#05b34c]"
+          className="w-full bg-[#06C755] px-5 py-3.5 text-sm font-extrabold text-white transition-colors hover:bg-[#05b34c]"
         >
-          使用 LINE 登入
+          使用 LINE 帳號登入 →
         </button>
       ) : (
-        <p className="rounded-lg border border-dashed border-slate-200 px-4 py-3 text-center text-sm text-slate-500">
+        <p className="bg-[var(--surface-alt)] px-4 py-3 text-sm font-medium text-[var(--muted)]">
           LINE 登入尚未設定（見 docs/LINE_LOGIN.md）
         </p>
       )}

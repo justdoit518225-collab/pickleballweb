@@ -25,37 +25,37 @@ export default async function PlatformPaddleBrandPage({
   if (!brand) notFound();
 
   return (
-    <>
+    <div className="space-y-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
           <Link
             href={ROUTES.platformPaddles}
-            className="text-sm text-slate-600 hover:text-brand-navy"
+            className="text-[14px] font-black text-[#1B6B73] hover:text-brand-navy"
           >
             ← 品牌列表
           </Link>
-          <h1 className="mt-1 text-2xl font-bold text-slate-800">{brand.name}</h1>
-          <p className="mt-1 text-sm text-slate-600">管理此品牌的球拍與縮圖</p>
+          <h2 className="mt-1 text-[24px] font-black text-brand-navy">{brand.name}</h2>
+          <p className="mt-1 text-[14px] text-[var(--muted)]">管理此品牌的球拍與縮圖</p>
         </div>
-        <Link href={ROUTES.paddles} className="text-sm text-brand-teal hover:underline">
-          查看前台
+        <Link href={ROUTES.paddles} className="text-[14px] font-black text-[#1B6B73] hover:underline">
+          查看前台 →
         </Link>
       </div>
 
       {saved && (
-        <p className="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+        <p className="bg-[var(--surface-tint)] px-4 py-3 text-[14px] font-bold text-[#1B6B73]">
           已儲存
         </p>
       )}
       {error && (
-        <p className="mt-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+        <p className="bg-[#FCECE9] px-4 py-3 text-[14px] font-bold text-[#B42318]">{error}</p>
       )}
 
-      <section className="mt-6 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="font-semibold text-slate-800">新增球拍</h2>
+      <section className="bg-white p-6">
+        <h3 className="text-[20px] font-black text-brand-navy">新增球拍</h3>
         <form
           action={createPaddle.bind(null, brandId)}
-          className="mt-4 grid gap-3 sm:grid-cols-2"
+          className="mt-4 grid gap-4 sm:grid-cols-2"
         >
           <Field label="中文全名" name="nameZh" required />
           <Field label="英文全名" name="nameEn" required />
@@ -96,28 +96,28 @@ export default async function PlatformPaddleBrandPage({
             placeholder="例：贈拍套、電洽"
           />
           <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-slate-700">
+            <label className="block text-[14px] font-bold text-brand-navy">
               詳細介紹
             </label>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-[14px] text-[var(--muted)]">
               可用工具列設定粗體、標題與列表。
             </p>
             <PaddleRichEditor name="description" required />
           </div>
           <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-slate-700" htmlFor="highlights">
+            <label className="block text-[14px] font-bold text-brand-navy" htmlFor="highlights">
               特點（逗號或換行分隔）
             </label>
             <textarea
               id="highlights"
               name="highlights"
               rows={2}
-              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+              className="mt-1 w-full bg-[var(--bg)] px-4 py-2.5 text-[14px] text-brand-navy"
               placeholder="例：地獄火系列, 控球取向"
             />
           </div>
           <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-slate-700" htmlFor="image">
+            <label className="block text-[14px] font-bold text-brand-navy" htmlFor="image">
               縮圖（JPG／PNG／WebP，&lt; 1MB）
             </label>
             <input
@@ -125,73 +125,70 @@ export default async function PlatformPaddleBrandPage({
               name="image"
               type="file"
               accept="image/jpeg,image/png,image/webp"
-              className="mt-1 block w-full text-sm"
+              className="mt-1 block w-full text-[14px]"
             />
           </div>
           <div className="sm:col-span-2">
-            <button
-              type="submit"
-              className="rounded-lg bg-brand-navy px-4 py-2 text-sm font-medium text-white hover:opacity-90"
-            >
+            <button type="submit" className="btn-brand">
               新增球拍
             </button>
           </div>
         </form>
       </section>
 
-      <section className="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-slate-100 bg-slate-50 text-slate-600">
+      <section className="overflow-hidden bg-white">
+        <table className="w-full text-left text-[14px]">
+          <thead className="bg-brand-navy text-white">
             <tr>
-              <th className="px-4 py-3 font-medium">縮圖</th>
-              <th className="px-4 py-3 font-medium">名稱</th>
-              <th className="px-4 py-3 font-medium">系列</th>
-              <th className="px-4 py-3 font-medium">操作</th>
+              <th className="px-4 py-3 font-black">縮圖</th>
+              <th className="px-4 py-3 font-black">名稱</th>
+              <th className="px-4 py-3 font-black">系列</th>
+              <th className="px-4 py-3 font-black">操作</th>
             </tr>
           </thead>
           <tbody>
             {brand.paddles.length === 0 ? (
               <tr>
-                <td colSpan={4} className="px-4 py-6 text-slate-500">
+                <td colSpan={4} className="px-4 py-6 text-[var(--muted)]">
                   尚無球拍
                 </td>
               </tr>
             ) : (
               brand.paddles.map((p) => (
-                <tr key={p.id} className="border-b border-slate-100 last:border-0">
+                <tr key={p.id} className="border-t border-[var(--line)]">
                   <td className="px-4 py-3">
                     {p.imageDataUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={p.imageDataUrl}
                         alt=""
-                        className="h-12 w-12 rounded object-cover"
+                        className="h-12 w-12 object-cover"
                       />
                     ) : (
-                      <div className="flex h-12 w-12 items-center justify-center rounded bg-slate-100 text-[10px] text-slate-400">
+                      <div className="flex h-12 w-12 items-center justify-center bg-[var(--bg)] text-[14px] font-bold text-[var(--muted)]">
                         無圖
                       </div>
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <p className="font-medium text-slate-900">{p.nameZh}</p>
-                    <p className="text-xs text-slate-500">{p.nameEn}</p>
+                    <p className="font-black text-brand-navy">{p.nameZh}</p>
+                    <p className="text-[14px] text-[var(--muted)]">{p.nameEn}</p>
                   </td>
-                  <td className="px-4 py-3 text-slate-600">
+                  <td className="px-4 py-3 text-[var(--muted)]">
                     {p.series}
                     {p.variant !== "-" ? ` · ${p.variant}` : ""}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 font-bold">
                     <Link
                       href={ROUTES.platformPaddleEdit(brandId, p.id)}
-                      className="text-brand-teal hover:underline"
+                      className="text-[#1B6B73] hover:underline"
                     >
                       編輯
                     </Link>
                     {" · "}
                     <Link
                       href={ROUTES.paddle(p.slug)}
-                      className="text-slate-600 hover:underline"
+                      className="text-brand-navy hover:underline"
                     >
                       前台
                     </Link>
@@ -200,7 +197,7 @@ export default async function PlatformPaddleBrandPage({
                       <ConfirmSubmitButton
                         label="刪除"
                         confirmMessage={`確定刪除「${p.nameZh}」？`}
-                        className="text-red-600 hover:underline"
+                        className="font-bold text-[#B42318] hover:underline"
                       />
                     </form>
                   </td>
@@ -210,7 +207,7 @@ export default async function PlatformPaddleBrandPage({
           </tbody>
         </table>
       </section>
-    </>
+    </div>
   );
 }
 
@@ -233,7 +230,7 @@ function Field({
 }) {
   return (
     <div className={className}>
-      <label className="block text-sm font-medium text-slate-700" htmlFor={name}>
+      <label className="block text-[14px] font-bold text-brand-navy" htmlFor={name}>
         {label}
       </label>
       <input
@@ -243,7 +240,7 @@ function Field({
         placeholder={placeholder}
         defaultValue={defaultValue}
         inputMode={inputMode}
-        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
+        className="mt-1 w-full bg-[var(--bg)] px-4 py-2.5 text-[14px] text-brand-navy"
       />
     </div>
   );

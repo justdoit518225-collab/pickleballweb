@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { formatBoardHourWindow } from "@/lib/venue-timezone";
 import type {
   HourlyCell,
@@ -117,12 +117,12 @@ function resolveDropInActivities(
 }
 
 const kindStyles: Record<HourlyCellKind, string> = {
-  empty: "border-slate-100 bg-slate-50/80 text-slate-400",
-  "drop-in": "border-brand-teal/30 bg-brand-lime-soft/30 text-brand-navy",
-  rental: "border-slate-200 bg-white text-slate-800",
-  dual: "border-violet-200 bg-violet-50/50 text-slate-800",
-  course: "border-blue-200 bg-blue-50/80 text-blue-900",
-  dupr: "border-indigo-200 bg-indigo-50/80 text-indigo-900",
+  empty: "border-[var(--border)] bg-[var(--bg)] text-[var(--muted)]",
+  "drop-in": "border-brand-teal/35 bg-brand-lime-soft/45 text-brand-navy",
+  rental: "border-[var(--border)] bg-[var(--surface)] text-brand-navy",
+  dual: "border-brand-teal/40 bg-[var(--surface)] text-brand-navy",
+  course: "border-brand-teal bg-brand-teal-soft text-brand-navy",
+  dupr: "border-brand-navy bg-brand-navy text-white",
 };
 
 export function HourlyBoardClient({
@@ -204,33 +204,48 @@ export function HourlyBoardClient({
 
   function onSpecialCellClick(cell: HourlyCell) {
     if (cell.kind === "dupr" && cell.dropIn?.activityId) {
-      window.location.href = ROUTES.tenantActivity(tenantSlug, cell.dropIn.activityId);
+      router.push(ROUTES.tenantActivity(tenantSlug, cell.dropIn.activityId));
     }
   }
 
   return (
-    <div className="space-y-4">
-      <header>
-        <p className="text-sm text-slate-500">{dateLabel}</p>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">今日球場</h1>
-        <p className="mt-1 text-sm text-slate-600">
-          營業 09:00–24:00 · A → B → C。每格左側為
-          <span className="text-brand-teal">臨打</span>、右側為
-          <span className="text-slate-700">租場</span>；確認頁可調整多小時。
-        </p>
+    <div className="space-y-5" data-ui>
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-xs font-extrabold text-brand-teal tabular-nums">{dateLabel}</p>
+          <h2 className="mt-1 text-2xl font-extrabold text-brand-navy sm:text-3xl">
+            今日球場矩陣看板
+          </h2>
+          <p className="mt-1.5 text-sm text-[var(--muted)]">
+            營業 09:00–24:00 · 每格左半為
+            <span className="mx-1 font-extrabold text-brand-teal">臨打球敘</span>、右半為
+            <span className="mx-1 font-extrabold text-brand-navy">整場租借</span>；點擊時段可選擇連續多小時預約。
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3 text-xs font-bold">
+          <span className="inline-flex items-center gap-1.5 bg-brand-lime-soft px-2.5 py-1 text-brand-navy">
+            <span className="h-2.5 w-2.5 bg-brand-teal" /> 臨打可報名
+          </span>
+          <span className="inline-flex items-center gap-1.5 bg-[var(--surface)] px-2.5 py-1 text-brand-navy">
+            <span className="h-2.5 w-2.5 bg-brand-navy" /> 租場可預約
+          </span>
+          <span className="inline-flex items-center gap-1.5 bg-brand-lime px-2.5 py-1 text-brand-navy">
+            已報名 / 我的預約
+          </span>
+        </div>
       </header>
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-        <table className="w-full min-w-[640px] border-collapse text-sm">
+      <div className="overflow-x-auto border border-[var(--border)] bg-[var(--surface)]">
+        <table className="w-full min-w-[680px] border-collapse text-sm">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50">
-              <th className="sticky left-0 z-10 w-16 border-r border-slate-200 bg-slate-50 px-2 py-2 text-left text-xs font-medium text-slate-500">
+            <tr className="bg-brand-navy text-white">
+              <th className="sticky left-0 z-10 w-18 border-r border-white/15 bg-brand-navy px-3 py-3 text-left text-xs font-extrabold tracking-wide text-brand-lime">
                 時段
               </th>
               {columns.map((c) => (
                 <th
                   key={c.courtId}
-                  className="min-w-[220px] px-2 py-2 text-center text-sm font-bold text-brand-navy"
+                  className="min-w-[230px] border-r border-white/15 px-3 py-3 text-center text-sm font-extrabold text-white last:border-r-0"
                 >
                   {c.courtName}
                 </th>
@@ -239,14 +254,14 @@ export function HourlyBoardClient({
           </thead>
           <tbody>
             {hours.map(({ hour, label }) => (
-              <tr key={hour} className="border-b border-slate-100 last:border-0">
-                <td className="sticky left-0 z-10 border-r border-slate-100 bg-white px-2 py-1 text-xs font-medium tabular-nums text-slate-500">
+              <tr key={hour} className="border-b border-[var(--border)] last:border-0">
+                <td className="sticky left-0 z-10 border-r border-[var(--border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-extrabold text-brand-navy tabular-nums">
                   {label}
                 </td>
                 {columns.map((col) => {
                   const cell = col.cells.find((c) => c.hour === hour)!;
                   return (
-                    <td key={col.courtId} className="p-1">
+                    <td key={col.courtId} className="p-1.5">
                       <CourtCell
                         cell={cell}
                         loggedIn={loggedIn}
@@ -264,12 +279,14 @@ export function HourlyBoardClient({
       </div>
 
       {!loggedIn && (
-        <p className="text-center text-sm text-slate-600">
-          <Link href="/login" className="font-medium text-brand-navy underline">
-            登入
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-[var(--surface)] p-4 text-sm">
+          <span className="font-semibold text-[var(--muted)]">
+            登入會員後即可直接在看板上報名臨打或預約整面球場。
+          </span>
+          <Link href="/login" className="btn-brand">
+            Google / LINE 登入 →
           </Link>
-          後可報名臨打或租場
-        </p>
+        </div>
       )}
 
       {modal?.mode === "booking-confirm" && (() => {
@@ -311,22 +328,22 @@ function DropInRoster({
   return (
     <div className={compact ? "mt-0.5" : "mt-2"}>
       <p
-        className={`font-medium text-brand-navy ${compact ? "text-[10px]" : "text-xs"}`}
+        className={`font-bold text-brand-navy tabular-nums ${compact ? "text-[11px]" : "text-xs"}`}
       >
-        臨打名單 {dropIn.headCount}/{dropIn.capacity} 人
+        名單 {dropIn.headCount}/{dropIn.capacity} 人
         {dropIn.isFull ? " · 已滿" : ""}
       </p>
       {shown.length === 0 ? (
-        <p className={`text-slate-400 ${compact ? "text-[10px]" : "text-xs"}`}>尚無報名</p>
+        <p className={`text-[var(--muted)] ${compact ? "text-[10px]" : "text-xs"}`}>尚無報名</p>
       ) : (
-        <ul className={`mt-0.5 space-y-0.5 ${compact ? "text-[10px]" : "text-xs"} text-slate-600`}>
+        <ul className={`mt-0.5 space-y-0.5 ${compact ? "text-[10px]" : "text-xs"} text-brand-navy/85`}>
           {shown.map((entry, i) => (
-            <li key={`${entry.displayName}-${i}`} className="truncate">
+            <li key={`${entry.displayName}-${i}`} className="truncate font-medium">
               {entry.displayName}
-              {entry.meta ? <span className="text-slate-400"> · {entry.meta}</span> : null}
+              {entry.meta ? <span className="text-[var(--muted)]"> · {entry.meta}</span> : null}
             </li>
           ))}
-          {rest > 0 && <li className="text-slate-400">還有 {rest} 人…</li>}
+          {rest > 0 && <li className="text-[var(--muted)]">還有 {rest} 人…</li>}
         </ul>
       )}
     </div>
@@ -348,7 +365,7 @@ function CourtCell({
 }) {
   if (cell.kind === "empty") {
     return (
-      <div className="flex min-h-[80px] items-center justify-center rounded-lg border border-slate-100 bg-slate-50/80 px-2 text-xs text-slate-400">
+      <div className="flex min-h-[82px] items-center justify-center border border-[var(--border)] bg-[var(--bg)] px-2 text-xs text-[var(--muted)]">
         —
       </div>
     );
@@ -356,10 +373,12 @@ function CourtCell({
 
   if (cell.kind === "course" && cell.dropIn) {
     return (
-      <div className={`min-h-[80px] rounded-lg border px-2 py-1.5 ${kindStyles.course}`}>
-        <span className="text-[10px] font-semibold text-blue-700">課程</span>
-        <span className="block text-xs font-medium">{cell.dropIn.label}</span>
-        <span className="text-[10px] text-blue-600/80">僅供查看</span>
+      <div className={`min-h-[82px] border px-2.5 py-2 ${kindStyles.course}`}>
+        <span className="inline-block bg-brand-teal px-1.5 py-0.5 text-[10px] font-extrabold text-white">
+          教練課程
+        </span>
+        <span className="mt-1 block text-xs font-extrabold text-brand-navy">{cell.dropIn.label}</span>
+        <span className="mt-0.5 block text-[10px] font-semibold text-[var(--muted)]">課程專用時段</span>
       </div>
     );
   }
@@ -369,10 +388,12 @@ function CourtCell({
       <button
         type="button"
         onClick={onSpecialClick}
-        className={`min-h-[80px] w-full rounded-lg border px-2 py-1.5 text-left transition hover:ring-2 hover:ring-indigo-300 ${kindStyles.dupr}`}
+        className={`min-h-[82px] w-full border px-2.5 py-2 text-left transition hover:bg-brand-teal ${kindStyles.dupr}`}
       >
-        <span className="text-[10px] font-semibold text-indigo-700">DUPR</span>
-        <span className="block text-xs font-medium">{cell.dropIn.label}</span>
+        <span className="inline-block bg-brand-lime px-1.5 py-0.5 text-[10px] font-extrabold text-brand-navy">
+          DUPR 積分賽
+        </span>
+        <span className="mt-1 block text-xs font-bold text-white">{cell.dropIn.label}</span>
       </button>
     );
   }
@@ -382,7 +403,7 @@ function CourtCell({
 
   return (
     <div
-      className={`flex min-h-[80px] w-full divide-x overflow-hidden rounded-lg border ${kindStyles[cell.kind]}`}
+      className={`flex min-h-[82px] w-full divide-x divide-[var(--border)] overflow-hidden border ${kindStyles[cell.kind]}`}
     >
       <DropInHalf
         dropIn={showDropIn ? cell.dropIn : null}
@@ -413,7 +434,7 @@ function DropInHalf({
 
   if (!dropIn) {
     return (
-      <div className="flex min-w-0 flex-1 flex-col justify-center bg-slate-50/50 px-1.5 py-1 text-[10px] text-slate-300">
+      <div className="flex min-w-0 flex-1 flex-col justify-center bg-[var(--bg)] px-2 py-1.5 text-[10px] text-[var(--muted)]/60">
         臨打
         <span className="mt-0.5">—</span>
       </div>
@@ -425,20 +446,26 @@ function DropInHalf({
       type="button"
       disabled={!interactive && !loggedIn}
       onClick={interactive ? onClick : undefined}
-      className={`flex min-w-0 flex-1 flex-col items-stretch px-1.5 py-1 text-left transition ${
-        interactive ? "cursor-pointer bg-brand-lime-soft/25 hover:bg-brand-lime-soft/45" : "bg-brand-lime-soft/15"
+      className={`flex min-w-0 flex-1 flex-col items-stretch px-2 py-1.5 text-left transition ${
+        dropIn.hasJoined
+          ? "bg-brand-lime/45 hover:bg-brand-lime/65"
+          : interactive
+            ? "cursor-pointer bg-brand-lime-soft/60 hover:bg-brand-lime-soft"
+            : "bg-brand-lime-soft/25"
       } disabled:cursor-default`}
     >
-      <span className="text-[10px] font-semibold text-brand-teal">臨打</span>
+      <span className="text-[10px] font-extrabold text-brand-teal">臨打</span>
       <DropInRoster dropIn={dropIn} compact maxItems={2} />
       {loggedIn && dropIn.hasJoined && (
-        <span className="mt-auto text-[10px] font-medium text-brand-teal">已報名·點取消</span>
+        <span className="mt-auto inline-block bg-brand-lime px-1.5 py-0.5 text-[10px] font-extrabold text-brand-navy">
+          已報名 · 點取消
+        </span>
       )}
       {loggedIn && canBook && (
-        <span className="mt-auto text-[10px] text-emerald-700">點擊報名 →</span>
+        <span className="mt-auto text-[10px] font-extrabold text-brand-teal">點擊報名 →</span>
       )}
       {dropIn.isFull && !dropIn.hasJoined && (
-        <span className="mt-auto text-[10px] text-amber-700">已滿</span>
+        <span className="mt-auto text-[10px] font-bold text-amber-800">已滿</span>
       )}
     </button>
   );
@@ -459,7 +486,7 @@ function RentalHalf({
 
   if (!rental) {
     return (
-      <div className="flex min-w-0 flex-1 flex-col justify-center bg-slate-50/50 px-1.5 py-1 text-[10px] text-slate-300">
+      <div className="flex min-w-0 flex-1 flex-col justify-center bg-[var(--bg)] px-2 py-1.5 text-[10px] text-[var(--muted)]/60">
         租場
         <span className="mt-0.5">—</span>
       </div>
@@ -471,20 +498,26 @@ function RentalHalf({
       type="button"
       disabled={!interactive && !loggedIn}
       onClick={interactive ? onClick : undefined}
-      className={`flex min-w-0 flex-1 flex-col items-stretch px-1.5 py-1 text-left transition ${
-        interactive ? "cursor-pointer bg-white hover:bg-slate-50" : "bg-white/80"
+      className={`flex min-w-0 flex-1 flex-col items-stretch px-2 py-1.5 text-left transition ${
+        rental.isMineRental
+          ? "bg-brand-lime/45 hover:bg-brand-lime/65"
+          : interactive
+            ? "cursor-pointer bg-[var(--surface)] hover:bg-[var(--surface-alt)]"
+            : "bg-[var(--surface)]/80"
       } disabled:cursor-default`}
     >
-      <span className="text-[10px] font-semibold text-slate-600">租場</span>
-      <span className="text-xs font-medium">{rental.label}</span>
+      <span className="text-[10px] font-extrabold text-[var(--muted)]">租場</span>
+      <span className="text-xs font-bold text-brand-navy">{rental.label}</span>
       {rental.isBooked && !rental.isMineRental && (
-        <span className="text-[10px] text-slate-500">已被預約</span>
+        <span className="text-[10px] text-[var(--muted)]">已被預約</span>
       )}
       {loggedIn && canBook && (
-        <span className="mt-auto text-[10px] text-emerald-700">點擊租場 →</span>
+        <span className="mt-auto text-[10px] font-extrabold text-brand-navy">點擊租場 →</span>
       )}
       {loggedIn && canCancel && (
-        <span className="mt-auto text-[10px] text-slate-500">點擊取消</span>
+        <span className="mt-auto inline-block bg-brand-lime px-1.5 py-0.5 text-[10px] font-extrabold text-brand-navy">
+          我的租場 · 取消
+        </span>
       )}
     </button>
   );
@@ -513,33 +546,42 @@ function ModalShell({
 }) {
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-brand-navy/50 p-4 sm:items-center"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl"
+        className="w-full max-w-md bg-[var(--surface)] p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start justify-between gap-2 border-b border-[var(--border)] pb-4">
           <div>
-            <h3 className="text-lg font-bold text-slate-900">{title}</h3>
-            <p className="mt-0.5 text-sm text-slate-500">{subtitle}</p>
+            <h3 className="text-xl font-extrabold text-brand-navy">{title}</h3>
+            <p className="mt-0.5 text-sm font-semibold text-brand-teal tabular-nums">{subtitle}</p>
           </div>
-          <button type="button" onClick={onClose} className="rounded-full p-1 text-slate-400">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-2 py-1 text-sm font-bold text-[var(--muted)] hover:bg-[var(--surface-alt)] hover:text-brand-navy"
+            aria-label="關閉"
+          >
             ✕
           </button>
         </div>
-        <div className="mt-4 space-y-4">{children}</div>
-        {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
-        <div className="mt-5 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded-lg border px-4 py-2 text-sm">
+        <div className="mt-5 space-y-4">{children}</div>
+        {error && <p className="mt-3 bg-rose-100 px-3 py-2 text-sm font-bold text-rose-900">{error}</p>}
+        <div className="mt-6 flex justify-end gap-2 pt-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="bg-[var(--surface-alt)] px-4 py-2.5 text-sm font-bold text-brand-navy hover:bg-[var(--border)]"
+          >
             關閉
           </button>
           <button
             type="button"
             disabled={loading || submitDisabled}
             onClick={onSubmit}
-            className="rounded-lg bg-brand-navy px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+            className="bg-brand-navy px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-teal disabled:opacity-60"
           >
             {loading ? "處理中…" : submitLabel}
           </button>
@@ -612,11 +654,7 @@ function BookingConfirmModal({
         ? "rental"
         : null;
 
-  useEffect(() => {
-    if (partySize > remaining) {
-      setPartySize(remaining);
-    }
-  }, [partySize, remaining]);
+  const clampedPartySize = Math.max(1, Math.min(partySize, remaining));
 
   function handleStartChange(nextStart: number) {
     setStartHour(nextStart);
@@ -651,17 +689,17 @@ function BookingConfirmModal({
 
     onDropInSubmit({
       activityIds: dropInResult.activityIds,
-      partySize,
+      partySize: clampedPartySize,
       racketRental,
     });
   }
 
   const submitLabel =
     activeKind === "drop-in"
-      ? partySize > 1
+      ? clampedPartySize > 1
         ? dropInHourCount > 1
-          ? `確認報名 ${partySize} 人 · ${dropInHourCount} 小時`
-          : `確認報名 ${partySize} 人`
+          ? `確認報名 ${clampedPartySize} 人 · ${dropInHourCount} 小時`
+          : `確認報名 ${clampedPartySize} 人`
         : dropInHourCount > 1
           ? `確認報名臨打 ${dropInHourCount} 小時`
           : "確認報名臨打"
@@ -671,7 +709,7 @@ function BookingConfirmModal({
 
   return (
     <ModalShell
-      title="確認預約"
+      title="確認預約時段"
       subtitle={`${courtName} · ${windowLabel}`}
       loading={loading}
       error={displayError}
@@ -681,26 +719,26 @@ function BookingConfirmModal({
       submitDisabled={!activeKind}
     >
       {canDropIn && canRent ? (
-        <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+        <div className="grid grid-cols-2 gap-1 bg-[var(--bg)] p-1">
           <button
             type="button"
             onClick={() => {
               setKind("drop-in");
               setLocalError(null);
             }}
-            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition ${
+            className={`px-3 py-2.5 text-sm font-bold transition ${
               activeKind === "drop-in"
-                ? "bg-brand-teal text-white shadow-sm"
-                : "text-slate-600 hover:bg-white"
+                ? "bg-brand-teal text-white"
+                : "text-brand-navy hover:bg-[var(--surface)]"
             }`}
           >
-            臨打
+            臨打球敘
             {canDropIn ? (
-              <span className="mt-0.5 block text-[10px] font-normal opacity-90">
+              <span className="mt-0.5 block text-[10px] font-medium opacity-90">
                 {dropInHourCount > 1 ? `可連續 ${dropInHourCount} 小時` : "可報名"}
               </span>
             ) : (
-              <span className="mt-0.5 block text-[10px] font-normal opacity-90">此範圍不可報名</span>
+              <span className="mt-0.5 block text-[10px] font-medium opacity-90">此範圍不可報名</span>
             )}
           </button>
           <button
@@ -709,55 +747,57 @@ function BookingConfirmModal({
               setKind("rental");
               setLocalError(null);
             }}
-            className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition ${
+            className={`px-3 py-2.5 text-sm font-bold transition ${
               activeKind === "rental"
-                ? "bg-brand-navy text-white shadow-sm"
-                : "text-slate-600 hover:bg-white"
+                ? "bg-brand-navy text-white"
+                : "text-brand-navy hover:bg-[var(--surface)]"
             }`}
           >
-            租場
-            <span className="mt-0.5 block text-[10px] font-normal opacity-90">
+            整場租借
+            <span className="mt-0.5 block text-[10px] font-medium opacity-90">
               {canRent ? (hourCount > 1 ? `可連續 ${hourCount} 小時` : "整面球場") : "此範圍不可租"}
             </span>
           </button>
         </div>
       ) : activeKind === "drop-in" && dropIn ? (
         <div className="space-y-2">
-          <p className="rounded-lg bg-brand-lime-soft/40 px-3 py-2 text-sm text-brand-navy">
+          <p className="bg-brand-lime-soft px-3.5 py-2.5 text-sm font-bold text-brand-navy">
             臨打 · {dropIn.label}
             {dropInHourCount > 1 ? `（${dropInHourCount} 個時段）` : ""}
           </p>
           <DropInRoster dropIn={dropIn} />
         </div>
       ) : activeKind === "rental" ? (
-        <p className="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-700">
+        <p className="bg-[var(--surface-alt)] px-3.5 py-2.5 text-sm font-bold text-brand-navy">
           租場 · 整面球場預約
           {hourCount > 1 ? `（${hourCount} 小時）` : ""}
         </p>
       ) : kind === "drop-in" && !canDropIn ? (
-        <p className="text-sm text-amber-700">
+        <p className="bg-amber-100 px-3 py-2 text-sm font-semibold text-amber-950">
           所選時段中有無法報名臨打的格子，請縮短範圍或改選租場。
         </p>
       ) : kind === "rental" && !canRent ? (
-        <p className="text-sm text-amber-700">
+        <p className="bg-amber-100 px-3 py-2 text-sm font-semibold text-amber-950">
           所選時段中有無法租用的格子，請縮短範圍或改選臨打。
         </p>
       ) : (
-        <p className="text-sm text-amber-700">此時段目前無法預約，請調整開始或結束時間。</p>
+        <p className="bg-amber-100 px-3 py-2 text-sm font-semibold text-amber-950">
+          此時段目前無法預約，請調整開始或結束時間。
+        </p>
       )}
 
-      <p className="text-sm text-slate-600">
-        可調整時段（每小時一格）。目前為 <strong>{windowLabel}</strong>
+      <p className="text-sm text-[var(--muted)] tabular-nums">
+        可調整時段（每小時一格）。目前為 <strong className="text-brand-navy">{windowLabel}</strong>
         {hourCount > 1 ? `，共 ${hourCount} 小時` : ""}。
       </p>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-sm font-medium text-slate-700">開始時間</label>
+          <label className="block text-xs font-bold text-brand-navy">開始時間</label>
           <select
             value={startHour}
             onChange={(e) => handleStartChange(Number(e.target.value))}
-            className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
+            className="mt-1 w-full border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm font-bold text-brand-navy tabular-nums"
           >
             {boardHours
               .filter((h) => h <= maxStartHour)
@@ -769,11 +809,11 @@ function BookingConfirmModal({
           </select>
         </div>
         <div>
-          <label className="block text-sm font-medium text-slate-700">結束時間</label>
+          <label className="block text-xs font-bold text-brand-navy">結束時間</label>
           <select
             value={endHour + 1}
             onChange={(e) => handleEndExclusiveChange(Number(e.target.value))}
-            className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
+            className="mt-1 w-full border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm font-bold text-brand-navy tabular-nums"
           >
             {endExclusiveOptions.map((h) => (
               <option key={h} value={h}>
@@ -786,11 +826,11 @@ function BookingConfirmModal({
 
       {activeKind === "drop-in" && (
         <div>
-          <label className="block text-sm font-medium text-slate-700">人數</label>
+          <label className="block text-xs font-bold text-brand-navy">報名人數</label>
           <select
-            value={partySize}
+            value={clampedPartySize}
             onChange={(e) => setPartySize(Number(e.target.value))}
-            className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
+            className="mt-1 w-full border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm font-bold text-brand-navy tabular-nums"
           >
             {Array.from({ length: remaining }, (_, i) => i + 1).map((n) => (
               <option key={n} value={n}>
@@ -802,15 +842,15 @@ function BookingConfirmModal({
       )}
 
       <div>
-        <label className="block text-sm font-medium text-slate-700">租借球拍（支）</label>
+        <label className="block text-xs font-bold text-brand-navy">租借球拍（支）</label>
         <select
           value={racketRental}
           onChange={(e) => setRacketRental(Number(e.target.value))}
-          className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
+          className="mt-1 w-full border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm font-bold text-brand-navy tabular-nums"
         >
           <option value={0}>不需要</option>
           {(activeKind === "drop-in"
-            ? Array.from({ length: partySize }, (_, i) => i + 1)
+            ? Array.from({ length: clampedPartySize }, (_, i) => i + 1)
             : [1, 2, 3, 4]
           ).map((n) => (
             <option key={n} value={n}>

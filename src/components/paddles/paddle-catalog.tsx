@@ -15,7 +15,7 @@ function PaddleGlyph({ className }: { className?: string }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.5"
+      strokeWidth="1.75"
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
@@ -79,97 +79,139 @@ export function PaddleCatalog({
 
   if (brands.length === 0) {
     return (
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:py-10">
-        <h1 className="text-2xl font-bold text-brand-navy sm:text-3xl">匹克球拍</h1>
-        <p className="mt-3 text-sm text-slate-600">目前尚無球拍資料。</p>
+      <div className="page-wrap mx-auto w-full max-w-[1600px] px-5 py-12 sm:px-8 sm:py-16 lg:px-11">
+        <h1 className="type-display text-brand-navy">匹克球拍 · 規格評測目錄</h1>
+        <p className="mt-4 text-base text-[var(--muted)]">目前尚無球拍資料。</p>
       </div>
     );
   }
 
-  const heading = brand === ALL_BRAND ? "全部球拍" : brand;
+  const heading = brand === ALL_BRAND ? "全部球拍款式" : `${brand} 系列球拍`;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:py-10">
-      <header className="mb-6 space-y-1">
-        <h1 className="text-2xl font-bold text-brand-navy sm:text-3xl">匹克球拍</h1>
-      </header>
+    <div>
+      {/* Top Court Header Band */}
+      <section className="bg-brand-navy py-12 text-white sm:py-16">
+        <div className="page-wrap mx-auto w-full max-w-[1600px] px-5 sm:px-8 lg:px-11">
+          <div className="grid gap-8 lg:grid-cols-12 lg:items-end">
+            <div className="min-w-0 lg:col-span-8" data-enter>
+              <h1 className="type-display text-white">匹克球拍 · 規格評測目錄</h1>
+              <p className="mt-4 max-w-[54ch] text-xl leading-relaxed text-white/85">
+                {`收錄 ${allPaddles.length} 款主流品牌球拍規格、六維度戰力雷達圖、擊球手感分析與全台俱樂部會員專屬優惠售價。`}
+              </p>
+            </div>
+            <div className="min-w-0 lg:col-span-4" data-enter data-delay="1">
+              <label className="relative block w-full">
+                <span className="sr-only">搜尋球拍</span>
+                <Search
+                  className="pointer-events-none absolute top-1/2 left-4 h-5 w-5 -translate-y-1/2 text-[var(--muted)]"
+                  aria-hidden
+                />
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="搜尋球拍名稱、系列、品牌…"
+                  className="w-full bg-white py-3.5 pr-4 pl-12 text-base font-semibold text-brand-navy outline-none placeholder:font-normal placeholder:text-[var(--muted)] focus:outline-2 focus:outline-offset-2 focus:outline-brand-lime"
+                />
+              </label>
+            </div>
+          </div>
+        </div>
+      </section>
 
-      <div className="flex flex-col gap-6 md:flex-row md:items-start md:gap-8">
-        <aside className="w-full shrink-0 md:w-52 lg:w-56">
-          <p className="mb-2 text-xs font-semibold tracking-wide text-slate-500 uppercase">
-            Brand
-          </p>
-          <nav
-            aria-label="品牌"
-            className="flex gap-2 overflow-x-auto pb-1 md:flex-col md:gap-0 md:overflow-visible md:border-t md:border-slate-200 md:pb-0"
-          >
-            {brandOptions.map((b) => {
-              const active = b === brand;
-              return (
-                <button
-                  key={b}
-                  type="button"
-                  onClick={() => setBrand(b)}
-                  className={[
-                    "shrink-0 rounded-full px-3.5 py-2 text-left text-sm font-medium transition md:rounded-none md:border-b md:border-slate-100 md:px-0 md:py-3",
-                    active
-                      ? "bg-brand-navy text-white md:bg-transparent md:font-semibold md:text-brand-navy md:underline md:decoration-brand-teal md:underline-offset-4"
-                      : "bg-slate-100 text-slate-700 hover:bg-slate-200 md:bg-transparent md:text-slate-600 md:hover:bg-transparent md:hover:text-brand-navy",
-                  ].join(" ")}
-                >
-                  {b}
-                </button>
-              );
-            })}
-          </nav>
-        </aside>
+      {/* Catalog Split Grid */}
+      <section className="page-wrap mx-auto w-full max-w-[1600px] px-5 py-12 sm:px-8 sm:py-16 lg:px-11">
+        <div className="grid gap-8 lg:grid-cols-12 lg:items-start">
+          <aside className="min-w-0 lg:col-span-3" data-ui data-enter>
+            <div className="bg-white p-5">
+              <p className="mb-3 text-sm font-extrabold text-brand-navy">
+                依品牌篩選 ({brands.length})
+              </p>
+              <nav
+                aria-label="品牌"
+                className="flex flex-wrap gap-2 lg:flex-col lg:gap-1"
+              >
+                {brandOptions.map((b) => {
+                  const active = b === brand;
+                  const count =
+                    b === ALL_BRAND
+                      ? allPaddles.length
+                      : (paddlesByBrand[b]?.length ?? 0);
+                  return (
+                    <button
+                      key={b}
+                      type="button"
+                      onClick={() => setBrand(b)}
+                      className={[
+                        "flex items-center justify-between gap-2.5 px-3.5 py-2.5 text-left text-base font-bold transition-colors lg:w-full",
+                        active
+                          ? "bg-brand-navy text-white"
+                          : "bg-[var(--bg)] text-brand-navy hover:bg-[var(--surface-alt)]",
+                      ].join(" ")}
+                    >
+                      <span>{b === ALL_BRAND ? "全部品牌" : b}</span>
+                      <span
+                        className={[
+                          "px-2 py-0.5 text-sm font-extrabold tabular-nums",
+                          active
+                            ? "bg-brand-lime text-brand-navy"
+                            : "bg-white text-[var(--muted)]",
+                        ].join(" ")}
+                      >
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+          </aside>
 
-        <section className="min-w-0 flex-1">
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-baseline justify-between gap-3 sm:justify-start sm:gap-4">
-              <h2 className="text-lg font-semibold text-slate-900">{heading}</h2>
-              <p className="text-sm text-slate-500">{paddles.length} 款</p>
+          <div className="min-w-0 lg:col-span-9">
+            <div
+              className="mb-6 flex flex-wrap items-baseline justify-between gap-4 bg-white px-6 py-4"
+              data-enter
+            >
+              <h2 className="text-2xl font-extrabold text-brand-navy">
+                {heading}
+              </h2>
+              <p className="text-base font-bold text-[#1D6D75] tabular-nums">
+                共 {paddles.length} 款球拍
+              </p>
             </div>
 
-            <label className="relative block w-full sm:max-w-xs">
-              <span className="sr-only">搜尋球拍</span>
-              <Search
-                className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400"
-                aria-hidden
-              />
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="搜尋名稱、系列、品牌…"
-                className="w-full rounded-lg border border-slate-200 bg-white py-2 pr-3 pl-9 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-brand-teal focus:ring-2 focus:ring-brand-teal/20"
-              />
-            </label>
+            {paddles.length === 0 ? (
+              <div className="bg-white px-6 py-12 text-center">
+                <p className="text-base font-semibold text-[var(--muted)]">
+                  {deferredQuery
+                    ? `找不到符合「${deferredQuery}」的球拍款式`
+                    : "此品牌尚無球拍"}
+                </p>
+              </div>
+            ) : (
+              <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
+                {paddles.map((paddle, idx) => (
+                  <li
+                    key={paddle.id}
+                    className="bg-white"
+                    data-enter
+                    data-delay={String((idx % 3) + 1)}
+                  >
+                    <PaddleCard
+                      paddle={paddle}
+                      showBrand={brand === ALL_BRAND}
+                      showMemberPrice={showMemberPrice}
+                      joinHref={joinHref}
+                      joinCtaLabel={joinCtaLabel}
+                    />
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
-
-          {paddles.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
-              {deferredQuery
-                ? `找不到符合「${deferredQuery}」的球拍`
-                : "此品牌尚無球拍"}
-            </p>
-          ) : (
-            <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 lg:gap-5">
-          {paddles.map((paddle) => (
-            <li key={paddle.id}>
-              <PaddleCard
-                paddle={paddle}
-                showBrand={brand === ALL_BRAND}
-                showMemberPrice={showMemberPrice}
-                joinHref={joinHref}
-                joinCtaLabel={joinCtaLabel}
-              />
-            </li>
-          ))}
-            </ul>
-          )}
-        </section>
-      </div>
+        </div>
+      </section>
     </div>
   );
 }
@@ -192,28 +234,26 @@ function PaddleCard({
   const subtitle = isLuzz
     ? paddle.nameZh
     : paddle.variant !== "-"
-      ? `${paddle.series} ${paddle.variant}`
+      ? `${paddle.series} · ${paddle.variant}`
       : paddle.series;
 
   return (
-    <div className="group block">
+    <div className="group flex h-full flex-col justify-between transition-colors hover:bg-[var(--surface-alt)]">
       <Link href={ROUTES.paddle(paddle.slug)} className="block">
-        <div className="overflow-hidden rounded-lg bg-[#ececec] transition group-hover:bg-[#e4e4e4]">
+        <div className="overflow-hidden bg-[var(--bg)]">
           <PaddleThumb paddle={paddle} />
         </div>
-        <div className="mt-2.5 space-y-0.5 px-0.5">
-          {showBrand ? (
-            <p className="text-[11px] font-semibold tracking-wide text-brand-teal">
-              {paddle.brand}
-            </p>
-          ) : null}
-          <h3 className="text-sm font-semibold leading-snug text-slate-900 group-hover:text-brand-navy">
+        <div className="px-5 pt-4 space-y-1">
+          <h3 className="text-xl font-extrabold leading-snug text-brand-navy">
             {title}
           </h3>
-          <p className="text-xs text-slate-500">{subtitle}</p>
+          <p className="text-sm font-semibold text-[var(--muted)]">
+            {showBrand ? `${paddle.brand} · ` : ""}
+            {subtitle}
+          </p>
         </div>
       </Link>
-      <div className="mt-0.5 px-0.5">
+      <div className="px-5 pb-5 pt-4">
         <PaddlePriceDisplay
           listPriceUsd={paddle.listPriceUsd}
           showMemberPrice={showMemberPrice}
@@ -236,18 +276,17 @@ export function PaddleThumb({
   large?: boolean;
 }) {
   const box = large
-    ? "aspect-[4/3] w-full bg-[#ececec]"
-    : "aspect-square w-full bg-[#ececec]";
+    ? "aspect-[4/3] w-full bg-[var(--bg)]"
+    : "aspect-square w-full bg-[var(--bg)]";
 
   if (paddle.imageDataUrl) {
     return (
       <div className={`relative overflow-hidden ${box}`}>
-        {/* data URL 不走 next/image */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={paddle.imageDataUrl}
           alt={paddle.nameZh}
-          className="h-full w-full object-contain p-3 transition duration-300 group-hover:scale-[1.04]"
+          className="h-full w-full object-contain p-4 transition duration-300 group-hover:scale-[1.03]"
         />
       </div>
     );
@@ -255,10 +294,10 @@ export function PaddleThumb({
 
   return (
     <div
-      className={`flex flex-col items-center justify-center gap-2 bg-gradient-to-br from-slate-200 via-slate-100 to-slate-200 ${box}`}
+      className={`flex flex-col items-center justify-center gap-2 bg-[var(--surface-alt)] ${box}`}
     >
-      <PaddleGlyph className="h-12 w-12 text-slate-500" />
-      <span className="text-[10px] font-semibold tracking-[0.18em] text-slate-500">
+      <PaddleGlyph className="h-12 w-12 text-brand-navy/60" />
+      <span className="text-sm font-bold text-brand-navy">
         {paddle.brand}
       </span>
     </div>

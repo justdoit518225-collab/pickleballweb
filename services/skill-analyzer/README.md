@@ -105,4 +105,15 @@ celery -A skill_analyzer.celery_app worker --loglevel=info --pool=solo
 2. 服務抽幀並標出人物框
 3. 使用者點選目標球員與球場四角（近端左→近端右→遠端右→遠端左）
 4. YOLOv8-Pose + ByteTrack + 黃球顏色追蹤 + 四點 homography
-5. 依失誤代理、廚房區停留、動作流暢度輸出 2.0–5.5 區間（`heuristic-v1`）
+5. 抽出 8 維特徵，對齊公開技能等級剖面（`rubric-match-v1`）；若已有 `models/supervised-v1.json` 則與監督回歸混合
+6. 訓練資料以機器人從 YouTube 蒐集標題含 DUPR／技能等級的對打片為主（自動球場校正），會員確認官方 DUPR 為輔
+
+```powershell
+cd services/skill-analyzer
+.\.venv\Scripts\pip.exe install -r requirements.txt
+# 只搜尋有標籤的影片
+.\.venv\Scripts\python.exe -m skill_analyzer.pipeline.harvest --discover-only
+# 下載前 3 分鐘、抽特徵、寫 JSONL（CPU 上每支可能數分鐘）
+.\.venv\Scripts\python.exe -m skill_analyzer.pipeline.harvest --max-videos 12
+.\.venv\Scripts\python.exe -m skill_analyzer.pipeline.train
+```

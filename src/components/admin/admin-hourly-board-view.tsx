@@ -16,11 +16,11 @@ import type {
 import { LOHO_BOARD_HOUR_END, LOHO_BOARD_HOUR_START } from "@/lib/hourly-board";
 
 const inputCls =
-  "rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs";
+  "bg-white px-2 py-1 text-[14px] text-brand-navy";
 const btnCls =
-  "rounded-lg bg-brand-navy px-2 py-1 text-xs font-medium text-white hover:opacity-90";
+  "bg-brand-navy px-2.5 py-1 text-[14px] font-black text-white hover:bg-brand-lime hover:text-brand-navy";
 const subtleBtn =
-  "rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-600 hover:bg-slate-50";
+  "bg-white px-2.5 py-1 text-[14px] font-bold text-brand-navy hover:bg-[var(--surface-alt)]";
 
 function HiddenCtx({
   tenantSlug,
@@ -76,8 +76,8 @@ function AdminCellPanel({
 
   if (cell.kind === "empty") {
     return (
-      <details className="text-xs">
-        <summary className="cursor-pointer text-brand-navy">開放時段</summary>
+      <details className="text-[14px]">
+        <summary className="cursor-pointer font-bold text-brand-navy">開放時段</summary>
         <form action={adminCreateSlot} className="mt-1 flex flex-wrap items-end gap-1">
           <HiddenCtx tenantSlug={tenantSlug} date={date} />
           <input type="hidden" name="courtId" value={court.courtId} />
@@ -98,20 +98,20 @@ function AdminCellPanel({
   }
 
   return (
-    <details className="text-xs">
-      <summary className="cursor-pointer text-brand-navy">管理</summary>
+    <details className="text-[14px]">
+      <summary className="cursor-pointer font-bold text-brand-navy">管理</summary>
       <div className="mt-1 space-y-2">
         {cell.dropIn && (
-          <div className="rounded border border-brand-teal/20 bg-brand-lime-soft/20 p-1.5">
-            <p className="font-medium text-brand-navy">
+          <div className="bg-[var(--bg)] p-2">
+            <p className="font-bold text-brand-navy">
               臨打 · {cell.dropIn.label}
               {!cell.dropIn.bookable && "（課程）"}
             </p>
             {cell.dropIn.bookings.length > 0 ? (
               <ul className="mt-1 space-y-1">
                 {cell.dropIn.bookings.map((b) => (
-                  <li key={b.bookingId} className="rounded bg-white/80 p-1">
-                    <span className="font-medium">{b.displayName}</span>
+                  <li key={b.bookingId} className="bg-white p-2">
+                    <span className="font-bold text-brand-navy">{b.displayName}</span>
                     {b.partySize > 1 && ` +${b.partySize - 1}`}
                     <div className="mt-1 flex flex-wrap gap-1">
                       <form action={adminCancelBooking}>
@@ -125,7 +125,7 @@ function AdminCellPanel({
                     <form action={adminUpdateBooking} className="mt-1 flex flex-wrap gap-1">
                       <HiddenCtx tenantSlug={tenantSlug} date={date} />
                       <input type="hidden" name="bookingId" value={b.bookingId} />
-                      <input type="number" name="partySize" defaultValue={b.partySize} min={1} className={`${inputCls} w-10`} />
+                      <input type="number" name="partySize" defaultValue={b.partySize} min={1} className={`${inputCls} w-12`} />
                       <input type="time" name="startTime" defaultValue={b.startTime} className={inputCls} />
                       <input type="time" name="endTime" defaultValue={b.endTime} className={inputCls} />
                       <button type="submit" className={btnCls}>
@@ -150,17 +150,17 @@ function AdminCellPanel({
                 ))}
               </ul>
             ) : (
-              <p className="text-slate-500">尚無報名</p>
+              <p className="text-[var(--muted)]">尚無報名</p>
             )}
             {cell.dropIn.bookable && (
-              <form action={adminAddBooking} className="mt-1 space-y-1 border-t border-brand-teal/20 pt-1">
+              <form action={adminAddBooking} className="mt-2 space-y-1 border-t border-[var(--line)] pt-2">
                 <HiddenCtx tenantSlug={tenantSlug} date={date} />
                 <input type="hidden" name="activityId" value={cell.dropIn.activityId} />
                 <input type="hidden" name="startTime" value={hourToTime(cell.hour)} />
                 <input type="hidden" name="endTime" value={hourToTime(cell.hour, true)} />
                 <MemberOrWalkin members={members} />
                 <div className="flex gap-1">
-                  <input type="number" name="partySize" defaultValue={1} min={1} className={`${inputCls} w-10`} />
+                  <input type="number" name="partySize" defaultValue={1} min={1} className={`${inputCls} w-12`} />
                   <button type="submit" className={btnCls}>
                     代訂臨打
                   </button>
@@ -171,8 +171,8 @@ function AdminCellPanel({
         )}
 
         {cell.rental && (
-          <div className="rounded border border-slate-200 bg-slate-50 p-1.5">
-            <p className="font-medium">
+          <div className="bg-[var(--bg)] p-2">
+            <p className="font-bold text-brand-navy">
               租場 · {cell.rental.isBooked ? cell.rental.label : "可租"}
             </p>
             {cell.rental.isBooked ? (
@@ -196,13 +196,13 @@ function AdminCellPanel({
           </div>
         )}
 
-        <form action={adminCreateSlot} className="flex flex-wrap items-end gap-1 border-t border-slate-100 pt-1">
+        <form action={adminCreateSlot} className="flex flex-wrap items-end gap-1 border-t border-[var(--line)] pt-1">
           <HiddenCtx tenantSlug={tenantSlug} date={date} />
           <input type="hidden" name="courtId" value={court.courtId} />
           <input type="hidden" name="venueId" value={court.venueId} />
           <input type="hidden" name="startTime" value={hourToTime(cell.hour)} />
           <input type="hidden" name="endTime" value={hourToTime(cell.hour, true)} />
-          <span className="text-slate-400">＋</span>
+          <span className="text-[var(--muted)]">＋</span>
           <select name="kind" className={inputCls}>
             <option value="open-play">臨打</option>
             <option value="rental">租場</option>
@@ -233,11 +233,11 @@ function cellSummary(cell: AdminHourlyCell): string {
 }
 
 function cellBg(cell: AdminHourlyCell): string {
-  if (cell.kind === "empty") return "bg-slate-50";
-  if (cell.kind === "course") return "bg-blue-50/80";
-  if (cell.kind === "dupr") return "bg-indigo-50/80";
-  if (cell.kind === "dual") return "bg-violet-50/50";
-  if (cell.kind === "drop-in") return "bg-brand-lime-soft/25";
+  if (cell.kind === "empty") return "bg-[var(--bg)]";
+  if (cell.kind === "course") return "bg-[var(--surface-tint)]";
+  if (cell.kind === "dupr") return "bg-[var(--surface-tint)]";
+  if (cell.kind === "dual") return "bg-[var(--surface-alt)]";
+  if (cell.kind === "drop-in") return "bg-brand-lime/30";
   if (cell.kind === "rental") return "bg-white";
   return "bg-white";
 }
@@ -263,23 +263,23 @@ export function AdminHourlyBoardView({
 
   return (
     <div className="space-y-4">
-      <header>
-        <p className="text-sm text-slate-500">{dateLabel}</p>
-        <h2 className="mt-1 text-lg font-bold text-slate-900">當日看板（管理）</h2>
-        <p className="mt-1 text-sm text-slate-600">
+      <header className="bg-white p-6">
+        <p className="text-[14px] font-bold text-[#1B6B73]">{dateLabel}</p>
+        <h2 className="mt-1 text-[24px] font-black text-brand-navy">當日看板（管理）</h2>
+        <p className="mt-1 text-[14px] text-[var(--muted)]">
           營業 {String(LOHO_BOARD_HOUR_START).padStart(2, "0")}:00–24:00，與前台相同每小時表。空白格可開放時段；點「管理」改報名。
         </p>
       </header>
 
-      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-        <table className="w-full min-w-[720px] border-collapse text-sm">
+      <div className="overflow-x-auto bg-white">
+        <table className="w-full min-w-[720px] border-collapse text-[14px]">
           <thead>
-            <tr className="border-b border-slate-200 bg-slate-50">
-              <th className="sticky left-0 z-10 w-14 border-r border-slate-200 bg-slate-50 px-1 py-2 text-xs text-slate-500">
+            <tr className="bg-brand-navy text-white">
+              <th className="sticky left-0 z-10 w-16 bg-brand-navy px-2 py-2.5 text-[14px] font-black">
                 時
               </th>
               {columns.map((c) => (
-                <th key={c.courtId} className="min-w-[180px] px-1 py-2 text-center font-bold text-brand-navy">
+                <th key={c.courtId} className="min-w-[180px] px-2 py-2.5 text-center font-black">
                   {c.courtName}
                 </th>
               ))}
@@ -287,15 +287,15 @@ export function AdminHourlyBoardView({
           </thead>
           <tbody>
             {hours.map(({ hour, label }) => (
-              <tr key={hour} className="border-b border-slate-100 align-top">
-                <td className="sticky left-0 z-10 border-r border-slate-100 bg-white px-1 py-1 text-xs tabular-nums text-slate-500">
+              <tr key={hour} className="border-t border-[var(--line)] align-top">
+                <td className="sticky left-0 z-10 bg-white px-2 py-2 font-mono text-[14px] font-bold tabular-nums text-brand-navy">
                   {label}
                 </td>
                 {columns.map((col) => {
                   const cell = col.cells.find((c) => c.hour === hour)!;
                   return (
-                    <td key={col.courtId} className={`p-1 ${cellBg(cell)}`}>
-                      <p className="text-[11px] font-medium leading-tight text-slate-800">
+                    <td key={col.courtId} className={`p-2 ${cellBg(cell)}`}>
+                      <p className="text-[14px] font-bold leading-tight text-brand-navy">
                         {cellSummary(cell)}
                       </p>
                       <AdminCellPanel cell={cell} court={col} ctx={ctx} />

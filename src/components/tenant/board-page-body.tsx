@@ -51,41 +51,44 @@ export async function BoardPageBody({
   next.setDate(next.getDate() + 1);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-ui>
       <form
         method="get"
-        className="flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4"
+        className="flex flex-wrap items-end justify-between gap-4 bg-[var(--surface)] p-5"
       >
-        <div>
-          <label htmlFor="board-date" className="block text-xs font-medium text-slate-600">
-            選擇日期
-          </label>
-          <input
-            id="board-date"
-            type="date"
-            name="date"
-            defaultValue={dateValue}
-            className="mt-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
-          />
+        <div className="flex flex-wrap items-end gap-3">
+          <div>
+            <label htmlFor="board-date" className="block text-xs font-bold text-[var(--muted)]">
+              選擇查詢日期
+            </label>
+            <input
+              id="board-date"
+              type="date"
+              name="date"
+              defaultValue={dateValue}
+              className="mt-1.5 bg-[var(--bg)] px-3.5 py-2 text-sm font-bold text-brand-navy tabular-nums focus:outline-2 focus:outline-brand-teal"
+            />
+          </div>
+          <button
+            type="submit"
+            className="bg-brand-navy px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-brand-teal"
+          >
+            切換日期
+          </button>
         </div>
-        <button
-          type="submit"
-          className="rounded-lg bg-brand-navy px-4 py-2 text-sm font-medium text-white hover:opacity-90"
-        >
-          查看
-        </button>
-        <div className="flex gap-2 text-sm">
+
+        <div className="flex gap-2 text-sm font-bold">
           <Link
             href={dateLink(prev)}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-600 hover:bg-slate-50"
+            className="bg-[var(--surface-alt)] px-4 py-2 text-brand-navy transition-colors hover:bg-brand-navy hover:text-white"
           >
-            前一天
+            ← 前一天
           </Link>
           <Link
             href={dateLink(next)}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-slate-600 hover:bg-slate-50"
+            className="bg-[var(--surface-alt)] px-4 py-2 text-brand-navy transition-colors hover:bg-brand-navy hover:text-white"
           >
-            後一天
+            後一天 →
           </Link>
         </div>
       </form>

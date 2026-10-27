@@ -73,17 +73,17 @@ export function RentalSlotsList({
   const bulkBlockAction = bulkBlockRentalSlots.bind(null, tenantSlug);
 
   return (
-    <div className="mt-3 space-y-3">
+    <div className="mt-4 space-y-3">
       {selectableIds.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+        <div className="flex flex-wrap items-center gap-2 bg-[var(--bg)] px-4 py-3 text-[14px]">
           <button
             type="button"
             onClick={toggleAll}
-            className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-slate-700 hover:bg-slate-50"
+            className="bg-white px-3 py-1.5 font-bold text-brand-navy hover:bg-brand-lime"
           >
             {allSelected ? "取消全選" : "全選可刪除"}
           </button>
-          <span className="text-slate-500">
+          <span className="font-bold text-[var(--muted)]">
             已選 {selectedCount} / {selectableIds.length}（不含已預約）
           </span>
           <button
@@ -95,7 +95,7 @@ export function RentalSlotsList({
                 `確定封鎖所選 ${selectedCount} 個開放時段？`,
               )
             }
-            className="rounded-lg border border-amber-200 bg-white px-3 py-1.5 text-amber-700 hover:bg-amber-50 disabled:opacity-50"
+            className="bg-[#FFF4E5] px-3 py-1.5 font-black text-[#9A5B00] disabled:opacity-40"
           >
             批量封鎖
           </button>
@@ -108,7 +108,7 @@ export function RentalSlotsList({
                 `確定刪除所選 ${selectedCount} 個時段？此動作無法復原。`,
               )
             }
-            className="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-red-600 hover:bg-red-50 disabled:opacity-50"
+            className="bg-[#FCECE9] px-3 py-1.5 font-black text-[#B42318] disabled:opacity-40"
           >
             {pending ? "處理中…" : "批量刪除"}
           </button>
@@ -124,12 +124,11 @@ export function RentalSlotsList({
           return (
             <li
               key={s.id}
-              className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm"
+              className="flex flex-wrap items-center gap-3 bg-[var(--bg)] px-4 py-3 text-[14px]"
             >
               {selectable ? (
                 <input
                   type="checkbox"
-                  className="rounded"
                   checked={selected.has(s.id)}
                   onChange={() => toggle(s.id)}
                   aria-label={`選取 ${s.startLabel}`}
@@ -137,7 +136,7 @@ export function RentalSlotsList({
               ) : (
                 <span className="w-4 shrink-0" aria-hidden />
               )}
-              <span className="min-w-0 flex-1">
+              <span className="min-w-0 flex-1 font-bold text-brand-navy">
                 {s.startLabel} · {s.venueName} {s.courtName} · {s.status}
                 {s.bookedByLabel && ` · ${s.bookedByLabel}`}
               </span>
@@ -149,7 +148,7 @@ export function RentalSlotsList({
                       if (!confirm("確定封鎖此時段？")) e.preventDefault();
                     }}
                   >
-                    <button type="submit" className="text-amber-600 hover:underline">
+                    <button type="submit" className="font-black text-[#9A5B00] hover:underline">
                       封鎖
                     </button>
                   </form>
@@ -161,7 +160,7 @@ export function RentalSlotsList({
                       if (!confirm("確定刪除此時段？")) e.preventDefault();
                     }}
                   >
-                    <button type="submit" className="text-red-600 hover:underline">
+                    <button type="submit" className="font-black text-[#B42318] hover:underline">
                       刪除
                     </button>
                   </form>
@@ -173,7 +172,7 @@ export function RentalSlotsList({
       </ul>
 
       {slots.length === 0 && (
-        <p className="text-sm text-slate-500">此區間尚無時段</p>
+        <p className="text-[14px] text-[var(--muted)]">此區間尚無時段</p>
       )}
     </div>
   );

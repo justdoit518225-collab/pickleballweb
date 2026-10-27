@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Image from "@tiptap/extension-image";
@@ -83,7 +83,11 @@ export function PaddleRichEditor({
         },
       }),
     ],
-    content: plainTextToHtml(initialValue),
+    onCreate: ({ editor: ed }) => {
+      const next = ed.getHTML();
+      setHtml(next);
+      setPlainOk(hasEditorContent(next, ed.getText()));
+    },
     onUpdate: ({ editor: ed }) => {
       const next = ed.getHTML();
       setHtml(next);
@@ -92,30 +96,23 @@ export function PaddleRichEditor({
     editorProps: {
       attributes: {
         class:
-          "min-h-[220px] px-3 py-2 text-sm leading-relaxed text-slate-800 outline-none [&_h2]:mb-2 [&_h2]:mt-3 [&_h2]:text-base [&_h2]:font-bold [&_h3]:mb-1.5 [&_h3]:mt-2 [&_h3]:text-sm [&_h3]:font-semibold [&_p]:mb-2 [&_ul]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mb-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5 [&_strong]:font-bold [&_img.paddle-editor-img]:mx-auto [&_img.paddle-editor-img]:my-3 [&_img.paddle-editor-img]:block [&_img.paddle-editor-img]:h-auto [&_img.paddle-editor-img]:max-w-[min(100%,42rem)] [&_img.paddle-editor-img]:rounded-xl [&_img.paddle-editor-img]:border [&_img.paddle-editor-img]:border-slate-200",
+          "min-h-[220px] px-4 py-3 text-[14px] leading-relaxed text-brand-navy outline-none [&_h2]:mb-2 [&_h2]:mt-3 [&_h2]:text-[16px] [&_h2]:font-black [&_h3]:mb-1.5 [&_h3]:mt-2 [&_h3]:text-[14px] [&_h3]:font-black [&_p]:mb-2 [&_ul]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mb-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_li]:my-0.5 [&_strong]:font-bold [&_img.paddle-editor-img]:mx-auto [&_img.paddle-editor-img]:my-3 [&_img.paddle-editor-img]:block [&_img.paddle-editor-img]:h-auto [&_img.paddle-editor-img]:max-w-[min(100%,42rem)]",
       },
     },
   });
 
-  useEffect(() => {
-    if (!editor) return;
-    const next = editor.getHTML();
-    setHtml(next);
-    setPlainOk(hasEditorContent(next, editor.getText()));
-  }, [editor]);
-
   if (!editor) {
     return (
-      <div className="mt-2 h-[260px] animate-pulse rounded-lg border border-slate-200 bg-slate-50" />
+      <div className="mt-2 h-[260px] animate-pulse bg-[var(--bg)]" />
     );
   }
 
   const btn = (active: boolean) =>
     [
-      "inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-xs font-medium transition",
+      "inline-flex items-center gap-1 px-2.5 py-1.5 text-[14px] font-bold transition",
       active
         ? "bg-brand-navy text-white"
-        : "bg-white text-slate-700 hover:bg-slate-100",
+        : "bg-white text-brand-navy hover:bg-brand-lime",
     ].join(" ");
 
   async function onPickFile(file: File | undefined) {
@@ -158,8 +155,8 @@ export function PaddleRichEditor({
   }
 
   return (
-    <div className="relative mt-2 overflow-hidden rounded-lg border border-slate-200 bg-white">
-      <div className="flex flex-wrap gap-1 border-b border-slate-100 bg-slate-50 px-2 py-1.5">
+    <div className="relative mt-2 overflow-hidden bg-[var(--bg)]">
+      <div className="flex flex-wrap gap-1 border-b border-[var(--line)] bg-[var(--surface-alt)] px-2 py-1.5">
         <button
           type="button"
           className={btn(editor.isActive("bold"))}
@@ -222,11 +219,11 @@ export function PaddleRichEditor({
       <EditorContent editor={editor} />
 
       {error ? (
-        <p className="border-t border-red-100 bg-red-50 px-3 py-2 text-xs text-red-700">
+        <p className="border-t border-[var(--line)] bg-[#FCECE9] px-3 py-2 text-[14px] font-bold text-[#B42318]">
           {error}
         </p>
       ) : (
-        <p className="border-t border-slate-100 bg-slate-50/80 px-3 py-1.5 text-[11px] text-slate-500">
+        <p className="border-t border-[var(--line)] bg-[var(--surface-alt)] px-3 py-1.5 text-[14px] text-[var(--muted)]">
           可上傳圖片，或用「圖片網址」插入站內檔（例如雷達圖
           /paddles/honolulu-j2cr-crystal-blue-radar.jpg）
         </p>

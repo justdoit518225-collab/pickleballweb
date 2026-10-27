@@ -1,21 +1,54 @@
 @import "tailwindcss";
+@source "../";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #334155;
-  --card: #ffffff;
-  --border: #e2e8f0;
+  /* PlayPlayPlay × tasteskill v2 Court Token System */
+  --bg: #f4f6f3;
+  --surface: #ffffff;
+  --surface-alt: #eaeee8;
+  --surface-tint: #e3ecec;
+  --ink: #0b2447;
+  --muted: #43556b;
+  --border: #d5ddd3;
+
+  /* Official Brand Palette (kept from official logo) */
   --brand-navy: #0b2447;
   --brand-teal: #2d8b94;
   --brand-lime: #8bc34a;
-  --brand-navy-soft: #e8eef5;
-  --brand-teal-soft: #e6f3f4;
-  --brand-lime-soft: #f1f8e9;
+  --brand-navy-soft: #e3e9f0;
+  --brand-teal-soft: #e1eff0;
+  --brand-lime-soft: #eef6e4;
+
+  /* Accent & Colour Fields */
+  --accent: #8bc34a;
+  --accent-ink: #0b2447;
+  --field-navy: #0b2447;
+  --field-navy-ink: #f4f6f3;
+  --field-teal: #2d8b94;
+  --field-teal-ink: #ffffff;
+  --field-lime: #8bc34a;
+  --field-lime-ink: #0b2447;
+
+  /* Layout & Grid */
+  --margin: clamp(1.25rem, 3vw, 2.75rem);
+  --gutter: clamp(0.75rem, 1.5vw, 1.5rem);
+
+  /* Type Scale: Strict 5-step hierarchy (14 / 16 / 20 / 44 / 68 px) */
+  --step-small: 0.875rem;
+  --step-body: 1rem;
+  --step-lead: 1.25rem;
+  --step-head: clamp(1.75rem, 1.2rem + 2vw, 2.75rem);
+  --step-display: clamp(2.5rem, 1.2rem + 3.2vw, 4.25rem);
+
+  /* Legacy aliases for existing components */
+  --background: var(--bg);
+  --foreground: var(--ink);
+  --card: var(--surface);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--bg);
+  --color-foreground: var(--ink);
   --color-brand-navy: var(--brand-navy);
   --color-brand-teal: var(--brand-teal);
   --color-brand-lime: var(--brand-lime);
@@ -23,17 +56,50 @@
   --color-brand-teal-soft: var(--brand-teal-soft);
   --color-brand-lime-soft: var(--brand-lime-soft);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
 html {
   color-scheme: light;
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+  font-size: var(--step-body);
+  line-height: 1.55;
+  font-kerning: normal;
+  text-rendering: optimizeLegibility;
+}
+
+/* Display & Section Typography (House Rules: 2 lines or fewer, tight tracking) */
+.type-display {
+  font-size: var(--step-display);
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+  font-weight: 800;
+}
+
+.type-head {
+  font-size: var(--step-head);
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  font-weight: 800;
+}
+
+.type-lead {
+  font-size: var(--step-lead);
+  line-height: 1.5;
+  max-width: 44ch;
+}
+
+/* Frame & Container */
+.page-wrap {
+  width: 100%;
+  max-width: 1600px;
+  margin-inline: auto;
+  padding-inline: var(--margin);
 }
 
 /* 品牌圖示：透明 PNG，避免出現白底方塊 */
@@ -41,11 +107,124 @@ body {
   background: transparent;
 }
 
-/* 品牌主按鈕 */
+/* 品牌按鈕：平塗無漸層、無靜態陰影、鮮明邊角（Laws of the craft: flat, square/sharp） */
 .btn-brand {
-  @apply rounded-lg bg-brand-navy px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:opacity-90;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: var(--brand-navy);
+  color: #ffffff;
+  padding: 0.75rem 1.375rem;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  transition: background-color 140ms ease, transform 120ms ease;
+}
+
+.btn-brand:hover {
+  background-color: var(--brand-teal);
+}
+
+.btn-brand:active {
+  transform: translateY(1px);
+}
+
+.btn-brand-lime {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: var(--brand-lime);
+  color: var(--brand-navy);
+  padding: 0.75rem 1.375rem;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  transition: background-color 140ms ease, transform 120ms ease;
+}
+
+.btn-brand-lime:hover {
+  background-color: #9ccc65;
+}
+
+.btn-brand-lime:active {
+  transform: translateY(1px);
 }
 
 .btn-brand-outline {
-  @apply rounded-lg border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-brand-navy transition-colors hover:bg-brand-navy-soft;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: var(--surface);
+  color: var(--brand-navy);
+  padding: 0.75rem 1.375rem;
+  font-size: 1rem;
+  font-weight: 700;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.btn-brand-outline:hover {
+  background-color: var(--surface-alt);
+}
+
+/* Staggered Section Entrance Motion (Step 9: Move) */
+@keyframes court-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes court-pan {
+  0% {
+    transform: scale(1) translateY(0);
+  }
+  50% {
+    transform: scale(1.035) translateY(-4px);
+  }
+  100% {
+    transform: scale(1) translateY(0);
+  }
+}
+
+.enter-rise {
+  animation: court-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.enter-delay-1 {
+  animation-delay: 65ms;
+}
+
+.enter-delay-2 {
+  animation-delay: 130ms;
+}
+
+.enter-delay-3 {
+  animation-delay: 195ms;
+}
+
+.enter-delay-4 {
+  animation-delay: 260ms;
+}
+
+.court-photo-pan {
+  animation: court-pan 14s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .enter-rise,
+  .court-photo-pan {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }
