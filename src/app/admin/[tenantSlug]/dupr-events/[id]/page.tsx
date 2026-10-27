@@ -21,6 +21,7 @@ import {
   updateDuprEventInfo,
 } from "@/app/admin/[tenantSlug]/dupr-events/actions";
 import { ConfirmForm } from "@/components/admin/confirm-form";
+import { CheckInAutoRefresh } from "@/components/dupr/check-in-auto-refresh";
 import { QrCodeSvg } from "@/components/dupr/qr-code-svg";
 import { Badge } from "@/components/ui/badge";
 import { requireTenantStaff } from "@/lib/authz";
@@ -202,6 +203,7 @@ export default async function AdminDuprEventPage({
 
       {event.status === "CHECK_IN" && (
         <section className="bg-brand-navy p-6 text-white">
+          <CheckInAutoRefresh />
           <div className="grid gap-8 lg:grid-cols-12 lg:items-center">
             <div className="flex flex-col items-center bg-[#163560] p-6 text-center lg:col-span-5">
               <span className="bg-brand-lime px-3 py-1 text-[12px] font-black text-brand-navy">

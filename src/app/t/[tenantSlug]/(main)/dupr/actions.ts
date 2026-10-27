@@ -7,7 +7,6 @@ import { ROUTES } from "@/lib/constants";
 import {
   cancelUserDuprRegistration,
   checkInAllPlayers,
-  checkInPlayerByUser,
   DuprEventError,
   generateEventSchedule,
   matchPlayerSeqs,
@@ -93,19 +92,6 @@ export async function cancelDuprRegistrationAction(tenantSlug: string, eventId: 
   await runFrontEventAction(tenantSlug, eventId, async ({ tenantId }) => {
     await cancelUserDuprRegistration(tenantId, eventId, session.user.id);
     return "已取消你的報名";
-  });
-}
-
-/** 球友本人於報到階段點擊自助報到 */
-export async function selfCheckInDuprAction(tenantSlug: string, eventId: string) {
-  const pagePath = ROUTES.tenantDuprEvent(tenantSlug, eventId);
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect(ROUTES.loginWithCallback(pagePath));
-  }
-  await runFrontEventAction(tenantSlug, eventId, async ({ tenantId }) => {
-    const p = await checkInPlayerByUser(tenantId, eventId, session.user.id);
-    return `編號 #${p.seq} ${p.name} 已完成報到！請等待工作人員開始賽程`;
   });
 }
 

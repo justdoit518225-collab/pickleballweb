@@ -7,7 +7,6 @@ import {
   cancelDuprRegistrationAction,
   enterScoringPin,
   registerDuprAction,
-  selfCheckInDuprAction,
   setPlayerConfirmation,
   staffCheckInAllAction,
   staffRevertCheckInAction,
@@ -16,6 +15,7 @@ import {
   staffTogglePlayerCheckInAction,
   submitMatchScore,
 } from "@/app/t/[tenantSlug]/(main)/dupr/actions";
+import { CheckInAutoRefresh } from "@/components/dupr/check-in-auto-refresh";
 import { DuprScoringBoard } from "@/components/dupr/dupr-scoring-board";
 import { QrCodeSvg } from "@/components/dupr/qr-code-svg";
 import { ScoringPinForm } from "@/components/dupr/scoring-pin-form";
@@ -403,6 +403,7 @@ export default async function DuprScoringPage({
           {/* ─── 階段 2：活動開始 · 報到進行中 (CHECK_IN) ─────────────────────── */}
           {event.status === "CHECK_IN" && (
             <div className="space-y-8">
+              <CheckInAutoRefresh />
               {isStaff && (
                 <section className="bg-brand-navy p-6 text-white sm:p-8">
                   <div className="grid gap-8 lg:grid-cols-12 lg:items-center">
@@ -552,32 +553,32 @@ export default async function DuprScoringPage({
                   </div>
                 ) : (
                   <div className="mt-4 grid gap-6 bg-[var(--bg)] p-6 sm:grid-cols-12 sm:items-center">
-                    <div className="space-y-3 sm:col-span-8">
+                    <div className="space-y-3 sm:col-span-7">
                       <span className="bg-amber-300 px-2.5 py-0.5 text-[12px] font-black text-brand-navy">
-                        待報到 · 編號 #{myPlayer.seq} {myPlayer.name}
+                        待現場報到 · 編號 #{myPlayer.seq} {myPlayer.name}
                       </span>
                       <h3 className="text-[20px] font-black text-brand-navy">
-                        請選擇以下任一方式完成報到：
+                        請向現場工作人員完成互動報到（無法自行線上點擊報到）
                       </h3>
-                      <ul className="list-decimal space-y-1 pl-5 text-[14px] text-brand-navy">
-                        <li>用手機相機掃描現場櫃檯／工作人員出示的「活動報到 QR Code」</li>
-                        <li>點擊下方「我已到場，立即報到」按鈕</li>
-                        <li>出示右側你的「個人參賽 QR Code」由工作人員掃描</li>
+                      <p className="text-[14px] text-[var(--muted)]">
+                        為確保所有排入賽程的球友皆已實際到場，報到須與現場工作人員互動完成：
+                      </p>
+                      <ul className="list-decimal space-y-1.5 pl-5 text-[14px] font-bold text-brand-navy">
+                        <li>出示右側你的「個人參賽報到 QR Code」，由現場工作人員掃描完成報到</li>
+                        <li>或使用手機相機／LINE 掃描現場工作人員手持出示的「活動報到 QR Code」</li>
                       </ul>
-                      <form
-                        action={selfCheckInDuprAction.bind(null, tenantSlug, event.id)}
-                        className="pt-2"
-                      >
-                        <button type="submit" className="btn-brand">
-                          我已到場，立即完成報到 →
-                        </button>
-                      </form>
+                      <p className="pt-1 text-[12px] font-bold text-[#1B6B73]">
+                        工作人員掃描或確認後，本畫面將自動更新為「報到完成」。
+                      </p>
                     </div>
                     {myPlayerCheckInUrl && (
-                      <div className="flex flex-col items-center text-center sm:col-span-4">
-                        <QrCodeSvg value={myPlayerCheckInUrl} size={160} />
-                        <p className="mt-2 text-[12px] font-bold text-brand-navy">
-                          #{myPlayer.seq} {myPlayer.name} 個人報到碼
+                      <div className="flex flex-col items-center bg-white p-5 text-center sm:col-span-5">
+                        <QrCodeSvg value={myPlayerCheckInUrl} size={190} />
+                        <p className="mt-2 text-[14px] font-black text-brand-navy">
+                          編號 #{myPlayer.seq} {myPlayer.name} 個人報到碼
+                        </p>
+                        <p className="mt-0.5 text-[12px] font-bold text-[var(--muted)]">
+                          請出示此 QR Code 給現場工作人員掃描
                         </p>
                       </div>
                     )}
