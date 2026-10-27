@@ -2,21 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ROUTES } from "@/lib/constants";
+import { isDuprOnlyTenant, ROUTES } from "@/lib/constants";
 
-const links = (slug: string, isTenantAdmin: boolean) => [
-  { href: ROUTES.tenantAdmin(slug), label: "活動總覽", exact: true },
-  { href: ROUTES.tenantAdminDuprEvents(slug), label: "DUPR 對戰" },
-  { href: ROUTES.tenantAdminVenues(slug), label: "場館／球場" },
-  { href: ROUTES.tenantAdminRentals(slug), label: "租借時段" },
-  { href: ROUTES.tenantAdminMembers(slug), label: "會員名單" },
-  ...(isTenantAdmin
-    ? [
-        { href: ROUTES.tenantAdminStaff(slug), label: "員工權限" },
-        { href: ROUTES.tenantAdminSettings(slug), label: "存取設定" },
-      ]
-    : []),
-];
+const links = (slug: string, isTenantAdmin: boolean) => {
+  const duprOnly = isDuprOnlyTenant(slug);
+  return [
+    ...(!duprOnly ? [{ href: ROUTES.tenantAdmin(slug), label: "活動總覽", exact: true }] : []),
+    { href: ROUTES.tenantAdminDuprEvents(slug), label: "DUPR 活動管理", exact: false },
+    { href: ROUTES.tenantAdminVenues(slug), label: "場館／球場", exact: false },
+    ...(!duprOnly ? [{ href: ROUTES.tenantAdminRentals(slug), label: "租借時段", exact: false }] : []),
+    { href: ROUTES.tenantAdminMembers(slug), label: "會員名單", exact: false },
+    ...(isTenantAdmin
+      ? [
+          { href: ROUTES.tenantAdminStaff(slug), label: "員工權限", exact: false },
+          { href: ROUTES.tenantAdminSettings(slug), label: "存取設定", exact: false },
+        ]
+      : []),
+  ];
+};
 
 export function AdminNav({
   tenantSlug,

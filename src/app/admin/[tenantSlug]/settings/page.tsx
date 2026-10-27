@@ -1,32 +1,22 @@
-import { ConfirmForm } from "@/components/admin/confirm-form";
 import { requireTenantAdmin } from "@/lib/authz";
-import { getFitbookStore } from "@/lib/fitbook";
-import { getFitbookConnection } from "@/lib/fitbook-session";
-import { formatTaipeiDateTime } from "@/lib/format-datetime";
 import { prisma } from "@/lib/prisma";
-import {
-  clearFitbookCookie,
-  saveFitbookCookie,
-  updateTenantAccessSettings,
-} from "@/app/admin/[tenantSlug]/manage-actions";
+import { updateTenantAccessSettings } from "@/app/admin/[tenantSlug]/manage-actions";
 
 export default async function TenantSettingsPage({
   params,
   searchParams,
 }: {
   params: Promise<{ tenantSlug: string }>;
-  searchParams: Promise<{ saved?: string; error?: string; fbSaved?: string; fbError?: string }>;
+  searchParams: Promise<{ saved?: string; error?: string }>;
 }) {
   const { tenantSlug } = await params;
-  const { saved, error, fbSaved, fbError } = await searchParams;
+  const { saved, error } = await searchParams;
   const { tenant } = await requireTenantAdmin(tenantSlug);
 
   const full = await prisma.tenant.findUniqueOrThrow({
     where: { id: tenant.id },
     select: { visibility: true, accessCodeHash: true },
   });
-  const fitbookStore = getFitbookStore(tenantSlug);
-  const fitbook = fitbookStore ? await getFitbookConnection(tenant.id) : null;
 
   const action = updateTenantAccessSettings.bind(null, tenantSlug);
 
@@ -83,72 +73,6 @@ export default async function TenantSettingsPage({
           </button>
         </form>
       </section>
-
-      {fitbook && (
-        <section id="fitbook" className="max-w-xl bg-white p-6">
-          <h2 className="text-[20px] font-black text-brand-navy">FitBook 連線</h2>
-          <p className="mt-2 text-[14px] text-[var(--muted)]">
-            設定後，DUPR 對戰按「匯入名單」會即時到 FitBook 抓取該場「已預約會員」。FitBook 只能用 LINE 登入，
-            需由你提供瀏覽器登入後的 Cookie；它等同該 FitBook 帳號的登入權限，會加密保存，只用來讀取課程頁。
-            FitBook 登入效期 7 天、每次使用會延長，系統每天自動讀取一次維持登入；若在 FitBook 按「登出」會立即失效。
-          </p>
-
-          <div className="mt-4 bg-[var(--bg)] px-4 py-3 text-[14px]">
-            {fitbook.status === "none" && <p className="text-[var(--muted)]">尚未連線</p>}
-            {fitbook.status === "ok" && (
-              <p className="font-bold text-[#1B6B73]">
-                已連線{fitbook.accountName ? `（帳號：${fitbook.accountName}）` : ""}
-              </p>
-            )}
-            {fitbook.status === "expired" && (
-              <p className="font-bold text-[#B42318]">登入已失效，請重新貼上 Cookie</p>
-            )}
-            {fitbook.status !== "none" && (
-              <p className="mt-1 text-[14px] text-[var(--muted)]">
-                {fitbook.setAt && `設定於 ${formatTaipeiDateTime(fitbook.setAt)}`}
-                {fitbook.lastOkAt && ` · 最後成功 ${formatTaipeiDateTime(fitbook.lastOkAt)}`}
-              </p>
-            )}
-          </div>
-          {fbSaved && <p className="mt-2 text-[14px] font-bold text-[#1B6B73]">{fbSaved}</p>}
-          {fbError && <p className="mt-2 text-[14px] font-bold text-[#B42318]">{fbError}</p>}
-
-          <details className="mt-4 text-[14px] text-[var(--muted)]" open={fitbook.status !== "ok"}>
-            <summary className="cursor-pointer font-bold text-brand-navy">如何取得 Cookie</summary>
-            <ol className="mt-2 list-decimal space-y-1 pl-5 text-[14px] leading-relaxed">
-              <li>用電腦版 Chrome 開啟 FitBook，以 LINE 登入（建議用場館專用帳號）。</li>
-              <li>打開任一場課程頁，按 F12 開啟開發者工具，切到「Network」分頁後重新整理。</li>
-              <li>點清單最上面那一筆（網址含 /member/course/），在「Request Headers」找到「cookie」。</li>
-              <li>在 cookie 的值上按右鍵「Copy value」，貼到下方。</li>
-            </ol>
-          </details>
-
-          <form action={saveFitbookCookie.bind(null, tenantSlug)} className="mt-4 space-y-3">
-            <textarea
-              name="cookie"
-              rows={4}
-              required
-              placeholder="XSRF-TOKEN=...; laravel_session=..."
-              className="w-full bg-[var(--bg)] px-4 py-2 font-mono text-[14px] text-brand-navy"
-            />
-            <button type="submit" className="btn-brand">
-              儲存並測試
-            </button>
-          </form>
-
-          {fitbook.status !== "none" && (
-            <ConfirmForm
-              action={clearFitbookCookie.bind(null, tenantSlug)}
-              message="確定移除 FitBook 連線？之後匯入名單會改回模擬名單或需手動貼上。"
-              className="mt-3"
-            >
-              <button type="submit" className="text-[14px] font-bold text-[#B42318] hover:underline">
-                移除連線
-              </button>
-            </ConfirmForm>
-          )}
-        </section>
-      )}
     </div>
   );
 }

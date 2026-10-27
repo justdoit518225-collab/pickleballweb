@@ -10,14 +10,15 @@ import { prisma } from "@/lib/prisma";
 import { getTaipeiYmd } from "@/lib/venue-timezone";
 
 export const DUPR_EVENT_STATUS_LABELS: Record<DuprEventStatus, string> = {
-  DRAFT: "名單編輯中",
-  SCHEDULED: "比賽進行中",
+  DRAFT: "開放報名中",
+  CHECK_IN: "報到進行中",
+  SCHEDULED: "賽程進行中",
   FINALIZED: "已最終確認",
   SUBMITTED: "已匯入 DUPR",
 };
 
 export const DUPR_EVENT_SOURCE_LABELS: Record<DuprEventSource, string> = {
-  MANUAL: "手動名單",
+  MANUAL: "站內報名",
   FITBOOK: "FitBook",
   FITBOOK_MOCK: "FitBook（模擬名單）",
 };
@@ -80,12 +81,17 @@ export async function createDuprEvent(input: {
   startAt: Date;
   endAt?: Date | null;
   location?: string | null;
+  capacity?: number;
   source: DuprEventSource;
   fitbookCourseId?: string | null;
   fitbookUrl?: string | null;
   courtCount: number;
   roster: RosterInput[];
 }) {
+  const capacity = Math.min(
+    MAX_PLAYERS,
+    Math.max(MIN_PLAYERS, input.capacity ?? Math.max(16, input.roster.length)),
+  );
   if (input.roster.length > MAX_PLAYERS) {
     throw new DuprEventError(`名單最多 ${MAX_PLAYERS} 人`);
   }
@@ -102,6 +108,7 @@ export async function createDuprEvent(input: {
       startAt: input.startAt,
       endAt: input.endAt ?? null,
       location: input.location ?? null,
+      capacity,
       source: input.source,
       fitbookCourseId: input.fitbookCourseId ?? null,
       fitbookUrl: input.fitbookUrl ?? null,
@@ -138,9 +145,9 @@ export async function getTenantDuprEvent(tenantId: string, eventId: string) {
 
 export type DuprEventDetail = NonNullable<Awaited<ReturnType<typeof getTenantDuprEvent>>>;
 
-/** 平板入口：進行中的活動，以及近幾天已確認的活動 */
+/** 前台顯示：開放報名／報到中／進行中的活動，以及近幾天已確認的活動 */
 const DAY_MS = 24 * 60 * 60 * 1000;
-/** 前台只列近期活動：進行中但超過此天數未最終確認的視為遺留，不再顯示 */
+const LIVE_OPEN_PAST_DAYS = 1;
 const LIVE_SCHEDULED_DAYS = 7;
 const LIVE_FINISHED_DAYS = 3;
 
@@ -149,8 +156,18 @@ function liveDuprEventWhere(tenantId: string): Prisma.DuprEventWhereInput {
   return {
     tenantId,
     OR: [
-      { status: "SCHEDULED", startAt: { gte: new Date(now - LIVE_SCHEDULED_DAYS * DAY_MS) } },
-      { status: { in: ["FINALIZED", "SUBMITTED"] }, startAt: { gte: new Date(now - LIVE_FINISHED_DAYS * DAY_MS) } },
+      {
+        status: { in: ["DRAFT", "CHECK_IN"] },
+        startAt: { gte: new Date(now - LIVE_OPEN_PAST_DAYS * DAY_MS) },
+      },
+      {
+        status: "SCHEDULED",
+        startAt: { gte: new Date(now - LIVE_SCHEDULED_DAYS * DAY_MS) },
+      },
+      {
+        status: { in: ["FINALIZED", "SUBMITTED"] },
+        startAt: { gte: new Date(now - LIVE_FINISHED_DAYS * DAY_MS) },
+      },
     ],
   };
 }
@@ -165,6 +182,7 @@ export async function listLiveDuprEvents(tenantId: string) {
     orderBy: { startAt: "asc" },
     include: {
       _count: { select: { players: true, matches: true } },
+      players: { select: { id: true, userId: true, checkedInAt: true } },
       matches: { select: { confirmedAt: true } },
     },
   });
@@ -201,6 +219,166 @@ function assertEditable(status: DuprEventStatus) {
   }
 }
 
+function canModifyRoster(status: DuprEventStatus) {
+  return status === "DRAFT" || status === "CHECK_IN";
+}
+
+/** 球友登入後自行報名 DUPR 活動 */
+export async function registerUserForDuprEvent(
+  tenantId: string,
+  eventId: string,
+  userId: string,
+  input?: { name?: string; duprId?: string | null },
+) {
+  const event = await loadEventOrThrow(tenantId, eventId);
+  if (event.status !== "DRAFT") {
+    throw new DuprEventError("此活動已開始報到或進行中，不再開放線上報名，請洽現場工作人員");
+  }
+  const existing = event.players.find((p) => p.userId === userId);
+  if (existing) {
+    throw new DuprEventError("你已經報名過此場 DUPR 活動");
+  }
+  if (event.players.length >= event.capacity) {
+    throw new DuprEventError("本場活動報名名額已滿");
+  }
+
+  const [user, membership] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, email: true, duprProfile: { select: { duprId: true } } },
+    }),
+    prisma.tenantMembership.findUnique({
+      where: { tenantId_userId: { tenantId, userId } },
+      select: { nickname: true, isBanned: true },
+    }),
+  ]);
+  if (!user) throw new DuprEventError("請先登入帳號");
+  if (membership?.isBanned) throw new DuprEventError("你的俱樂部會員資格已被停權");
+
+  if (!membership) {
+    await prisma.tenantMembership.create({
+      data: { tenantId, userId },
+    });
+  }
+
+  const displayName =
+    input?.name?.trim() ||
+    membership?.nickname?.trim() ||
+    user.name?.trim() ||
+    user.email?.split("@")[0] ||
+    "參賽球友";
+  const duprId = normalizeDuprId(input?.duprId) ?? user.duprProfile?.duprId ?? null;
+  const nextSeq = event.players.reduce((max, p) => Math.max(max, p.seq), 0) + 1;
+
+  return prisma.duprEventPlayer.create({
+    data: {
+      eventId,
+      seq: nextSeq,
+      name: displayName,
+      duprId,
+      userId,
+    },
+  });
+}
+
+/** 球友於活動開始前取消自己的報名 */
+export async function cancelUserDuprRegistration(
+  tenantId: string,
+  eventId: string,
+  userId: string,
+) {
+  const event = await loadEventOrThrow(tenantId, eventId);
+  if (event.status !== "DRAFT") {
+    throw new DuprEventError("活動已開始報到或開賽，無法線上取消報名，請聯絡現場工作人員");
+  }
+  const player = event.players.find((p) => p.userId === userId);
+  if (!player) throw new DuprEventError("找不到你的報名紀錄");
+  await removeEventPlayer(tenantId, eventId, player.id);
+}
+
+/** 員工按下「開始活動」→ 進入報到程序（CHECK_IN） */
+export async function startEventCheckIn(tenantId: string, eventId: string) {
+  const event = await loadEventOrThrow(tenantId, eventId);
+  if (event.status !== "DRAFT") {
+    throw new DuprEventError("只有開放報名中的活動可以啟動報到程序");
+  }
+  await prisma.duprEvent.update({
+    where: { id: eventId },
+    data: { status: "CHECK_IN" },
+  });
+}
+
+/** 員工退回「開放報名中（DRAFT）」 */
+export async function revertCheckInToDraft(tenantId: string, eventId: string) {
+  const event = await loadEventOrThrow(tenantId, eventId);
+  if (event.status !== "CHECK_IN") {
+    throw new DuprEventError("目前不在報到階段");
+  }
+  await prisma.duprEvent.update({
+    where: { id: eventId },
+    data: { status: "DRAFT" },
+  });
+}
+
+/** 球友本人掃描現場 QR Code 或點擊自助報到 */
+export async function checkInPlayerByUser(
+  tenantId: string,
+  eventId: string,
+  userId: string,
+) {
+  const event = await loadEventOrThrow(tenantId, eventId);
+  if (event.status !== "CHECK_IN") {
+    throw new DuprEventError(
+      event.status === "DRAFT"
+        ? "工作人員尚未開始報到程序，請稍候"
+        : "報到階段已結束",
+    );
+  }
+  const player = event.players.find((p) => p.userId === userId);
+  if (!player) {
+    throw new DuprEventError("你尚未報名本場 DUPR 活動，請洽現場工作人員");
+  }
+  if (!player.checkedInAt) {
+    await prisma.duprEventPlayer.update({
+      where: { id: player.id },
+      data: { checkedInAt: new Date() },
+    });
+  }
+  return player;
+}
+
+/** 員工手動切換或掃描球友 QR Code 設定報到狀態 */
+export async function setPlayerCheckInStatus(
+  tenantId: string,
+  eventId: string,
+  playerId: string,
+  checkedIn: boolean,
+) {
+  const event = await loadEventOrThrow(tenantId, eventId);
+  if (!canModifyRoster(event.status)) {
+    throw new DuprEventError("賽程已展開，無法變更報到狀態");
+  }
+  const player = event.players.find((p) => p.id === playerId);
+  if (!player) throw new DuprEventError("找不到該名參賽球員");
+  await prisma.duprEventPlayer.update({
+    where: { id: player.id },
+    data: { checkedInAt: checkedIn ? new Date() : null },
+  });
+  return player;
+}
+
+/** 員工一鍵將所有報名球員標記為已報到 */
+export async function checkInAllPlayers(tenantId: string, eventId: string) {
+  const event = await loadEventOrThrow(tenantId, eventId);
+  if (!canModifyRoster(event.status)) {
+    throw new DuprEventError("賽程已展開，無法變更報到狀態");
+  }
+  await prisma.duprEventPlayer.updateMany({
+    where: { eventId, checkedInAt: null },
+    data: { checkedInAt: new Date() },
+  });
+}
+
 export async function updateEventRoster(
   tenantId: string,
   eventId: string,
@@ -226,12 +404,13 @@ export async function updateEventRoster(
 
 export async function addEventPlayers(tenantId: string, eventId: string, roster: RosterInput[]) {
   const event = await loadEventOrThrow(tenantId, eventId);
-  if (event.status !== "DRAFT") throw new DuprEventError("已產生對戰表，請先退回名單編輯");
+  if (!canModifyRoster(event.status)) throw new DuprEventError("已產生對戰表，請先退回報到／名單階段");
   if (event.players.length + roster.length > MAX_PLAYERS) {
     throw new DuprEventError(`名單最多 ${MAX_PLAYERS} 人`);
   }
   const memberDupr = await lookupMemberDupr(tenantId, roster.map((r) => r.name));
   const start = event.players.reduce((max, p) => Math.max(max, p.seq), 0);
+  const autoCheckIn = event.status === "CHECK_IN" ? new Date() : null;
   await prisma.duprEventPlayer.createMany({
     data: roster.map((r, i) => {
       const linked = memberDupr.get(r.name.trim().toLowerCase());
@@ -241,6 +420,7 @@ export async function addEventPlayers(tenantId: string, eventId: string, roster:
         name: r.name.trim(),
         duprId: normalizeDuprId(r.duprId) ?? linked?.duprId ?? null,
         userId: linked?.userId ?? null,
+        checkedInAt: autoCheckIn,
       };
     }),
   });
@@ -249,7 +429,7 @@ export async function addEventPlayers(tenantId: string, eventId: string, roster:
 /** 移除球員後重新編號，維持 1..N 連續（對戰表以編號表示） */
 export async function removeEventPlayer(tenantId: string, eventId: string, playerId: string) {
   const event = await loadEventOrThrow(tenantId, eventId);
-  if (event.status !== "DRAFT") throw new DuprEventError("已產生對戰表，請先退回名單編輯");
+  if (!canModifyRoster(event.status)) throw new DuprEventError("已產生對戰表，請先退回報到／名單階段");
   const remaining = event.players.filter((p) => p.id !== playerId);
   if (remaining.length === event.players.length) return;
   await prisma.$transaction(async (tx) => {
@@ -266,15 +446,27 @@ export async function removeEventPlayer(tenantId: string, eventId: string, playe
 export async function generateEventSchedule(
   tenantId: string,
   eventId: string,
-  options: { courtCount: number; rounds?: number },
+  options: { courtCount: number; rounds?: number; onlyCheckedIn?: boolean },
 ) {
   const event = await loadEventOrThrow(tenantId, eventId);
   assertEditable(event.status);
   if (event.matches.some((m) => m.scoreA != null || m.scoreB != null)) {
     throw new DuprEventError("已有比賽填入分數，無法重新產生對戰表");
   }
-  const n = event.players.length;
-  if (n < MIN_PLAYERS) throw new DuprEventError(`至少需要 ${MIN_PLAYERS} 位球員`);
+
+  const checkedInPlayers = event.players.filter((p) => p.checkedInAt != null);
+  const useOnlyCheckedIn =
+    options.onlyCheckedIn ?? (event.status === "CHECK_IN" && checkedInPlayers.length > 0);
+
+  const activePlayers = useOnlyCheckedIn ? checkedInPlayers : event.players;
+  const n = activePlayers.length;
+  if (n < MIN_PLAYERS) {
+    throw new DuprEventError(
+      useOnlyCheckedIn
+        ? `已報到人數至少需要 ${MIN_PLAYERS} 位球員（目前 ${n} 人已報到）`
+        : `至少需要 ${MIN_PLAYERS} 位球員（目前 ${n} 人）`,
+    );
+  }
 
   const schedule = generateDuprSchedule({
     playerCount: n,
@@ -283,6 +475,25 @@ export async function generateEventSchedule(
   });
 
   await prisma.$transaction(async (tx) => {
+    if (useOnlyCheckedIn && activePlayers.length < event.players.length) {
+      const keepIds = new Set(activePlayers.map((p) => p.id));
+      const dropIds = event.players.filter((p) => !keepIds.has(p.id)).map((p) => p.id);
+      if (dropIds.length > 0) {
+        await tx.duprEventPlayer.deleteMany({ where: { id: { in: dropIds } } });
+      }
+      for (const p of activePlayers) {
+        await tx.duprEventPlayer.update({ where: { id: p.id }, data: { seq: -p.seq } });
+      }
+      for (const [i, p] of activePlayers.entries()) {
+        await tx.duprEventPlayer.update({ where: { id: p.id }, data: { seq: i + 1 } });
+      }
+    } else if (!useOnlyCheckedIn) {
+      await tx.duprEventPlayer.updateMany({
+        where: { eventId, checkedInAt: null },
+        data: { checkedInAt: new Date() },
+      });
+    }
+
     await tx.duprEventMatch.deleteMany({ where: { eventId } });
     await tx.duprEventMatch.createMany({
       data: schedule.map((m, i) => ({
@@ -308,11 +519,11 @@ export async function resetEventToDraft(tenantId: string, eventId: string) {
   const event = await loadEventOrThrow(tenantId, eventId);
   assertEditable(event.status);
   if (event.matches.some((m) => m.scoreA != null || m.scoreB != null)) {
-    throw new DuprEventError("已有比賽填入分數，請先清除分數再退回名單編輯");
+    throw new DuprEventError("已有比賽填入分數，請先清除分數再退回報到階段");
   }
   await prisma.$transaction(async (tx) => {
     await tx.duprEventMatch.deleteMany({ where: { eventId } });
-    await tx.duprEvent.update({ where: { id: eventId }, data: { status: "DRAFT" } });
+    await tx.duprEvent.update({ where: { id: eventId }, data: { status: "CHECK_IN" } });
   });
 }
 
@@ -337,26 +548,49 @@ async function loadMatchForScoring(eventId: string, matchId: string) {
   return match;
 }
 
-/** 分數變更會清除既有確認，四人需重新確認 */
+/** 分數變更會清除既有確認，四人需重新確認；若由該場參賽球員本人送出，自動勾選本人確認 */
 export async function saveMatchScore(
   eventId: string,
   matchId: string,
   scoreA: number,
   scoreB: number,
-  options: { allowConfirmed?: boolean } = {},
+  options: { allowConfirmed?: boolean; autoConfirmSeq?: number | null } = {},
 ) {
   validateScore(scoreA, scoreB);
   const match = await loadMatchForScoring(eventId, matchId);
   if (match.confirmedAt && !options.allowConfirmed) {
     throw new DuprEventError("此場四人皆已確認，如需修改請聯絡負責人");
   }
-  if (match.scoreA === scoreA && match.scoreB === scoreB) return;
+  const seqs = matchPlayerSeqs(match);
+  const autoSeq =
+    options.autoConfirmSeq && seqs.includes(options.autoConfirmSeq)
+      ? options.autoConfirmSeq
+      : null;
+
   await prisma.$transaction(async (tx) => {
-    await tx.duprMatchConfirmation.deleteMany({ where: { matchId } });
-    await tx.duprEventMatch.update({
-      where: { id: matchId },
-      data: { scoreA, scoreB, scoredAt: new Date(), confirmedAt: null },
-    });
+    if (match.scoreA !== scoreA || match.scoreB !== scoreB) {
+      await tx.duprMatchConfirmation.deleteMany({ where: { matchId } });
+      await tx.duprEventMatch.update({
+        where: { id: matchId },
+        data: { scoreA, scoreB, scoredAt: new Date(), confirmedAt: null },
+      });
+    }
+    if (autoSeq != null) {
+      await tx.duprMatchConfirmation.upsert({
+        where: { matchId_playerSeq: { matchId, playerSeq: autoSeq } },
+        create: { matchId, playerSeq: autoSeq },
+        update: {},
+      });
+      const count = await tx.duprMatchConfirmation.count({
+        where: { matchId, playerSeq: { in: seqs } },
+      });
+      if (count >= 4) {
+        await tx.duprEventMatch.update({
+          where: { id: matchId },
+          data: { confirmedAt: new Date() },
+        });
+      }
+    }
   });
 }
 

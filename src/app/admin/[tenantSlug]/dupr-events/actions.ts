@@ -6,6 +6,7 @@ import { requireTenantStaff } from "@/lib/authz";
 import { ROUTES } from "@/lib/constants";
 import {
   addEventPlayers,
+  checkInAllPlayers,
   clearMatchScore,
   createDuprEvent,
   DuprEventError,
@@ -17,21 +18,15 @@ import {
   reopenEvent,
   reopenMatch,
   resetEventToDraft,
+  revertCheckInToDraft,
   saveMatchScore,
+  setPlayerCheckInStatus,
+  startEventCheckIn,
   submitEventToDupr,
   updateEventRoster,
 } from "@/lib/dupr-event";
-import {
-  findFitbookCourse,
-  fitbookScheduleUrl,
-  getFitbookStore,
-  isValidYmd,
-  mockFitbookRoster,
-  parseFitbookMemberList,
-  type FitbookRosterEntry,
-} from "@/lib/fitbook";
-import { fetchTenantFitbookRoster, FitbookSessionError } from "@/lib/fitbook-session";
-import { MIN_PLAYERS } from "@/lib/dupr-schedule";
+import { isValidYmd } from "@/lib/fitbook";
+import { MAX_PLAYERS, MIN_PLAYERS } from "@/lib/dupr-schedule";
 import { prisma } from "@/lib/prisma";
 
 function withQuery(path: string, key: "error" | "saved", message: string) {
@@ -58,77 +53,10 @@ async function runEventAction(
     throw e;
   }
   revalidatePath(back);
+  revalidatePath(ROUTES.tenant(tenantSlug));
+  revalidatePath(ROUTES.tenantDuprEvents(tenantSlug));
   revalidatePath(ROUTES.tenantDuprEvent(tenantSlug, eventId));
   redirect(withQuery(back, "saved", message || "已儲存"));
-}
-
-export async function createDuprEventFromFitbook(tenantSlug: string, formData: FormData) {
-  const { tenant, session } = await requireTenantStaff(tenantSlug);
-  const date = String(formData.get("date") ?? "");
-  const courseId = String(formData.get("courseId") ?? "");
-  const listPath = ROUTES.tenantAdminDuprEvents(tenantSlug, date);
-  const store = getFitbookStore(tenantSlug);
-  if (!store) redirect(withQuery(ROUTES.tenantAdminDuprEvents(tenantSlug), "error", "此俱樂部尚未設定 FitBook"));
-  if (!isValidYmd(date) || !courseId) redirect(withQuery(listPath, "error", "請選擇 FitBook 場次"));
-
-  let course: Awaited<ReturnType<typeof findFitbookCourse>> = null;
-  try {
-    course = await findFitbookCourse(store, date, courseId);
-  } catch {
-    redirect(withQuery(listPath, "error", "無法連線 FitBook，請稍後再試"));
-  }
-  if (!course) redirect(withQuery(listPath, "error", "FitBook 找不到此場次"));
-
-  let roster = parseFitbookMemberList(String(formData.get("roster") ?? ""));
-  let origin: "pasted" | "live" | "mock" = "pasted";
-  if (roster.length === 0) {
-    let live: FitbookRosterEntry[] | null = null;
-    try {
-      live = await fetchTenantFitbookRoster(tenant.id, store, course.courseId);
-    } catch (e) {
-      if (!(e instanceof FitbookSessionError)) throw e;
-      redirect(withQuery(listPath, "error", e.message));
-    }
-    if (live) {
-      roster = live;
-      origin = "live";
-    } else {
-      roster = mockFitbookRoster(course.courseId, course.reservationCount);
-      origin = "mock";
-    }
-  }
-  const isReal = origin !== "mock";
-  if (roster.length < MIN_PLAYERS) {
-    redirect(withQuery(listPath, "error", `名單至少需要 ${MIN_PLAYERS} 人（目前 ${roster.length} 人）`));
-  }
-  const event = await createDuprEvent({
-    tenantId: tenant.id,
-    createdById: session.user.id,
-    title: `DUPR｜${course.name}`,
-    startAt: course.startAt,
-    endAt: course.endAt,
-    location: course.location,
-    source: isReal ? "FITBOOK" : "FITBOOK_MOCK",
-    fitbookCourseId: course.courseId,
-    fitbookUrl: fitbookScheduleUrl(store, date),
-    courtCount: intField(formData, "courtCount", Math.max(1, Math.floor(roster.length / 6))),
-    roster,
-  });
-
-  const countNote =
-    isReal && roster.length !== course.reservationCount
-      ? `（FitBook 顯示報名 ${course.reservationCount} 人，請確認名單是否完整）`
-      : "";
-  revalidatePath(ROUTES.tenantAdminDuprEvents(tenantSlug));
-  redirect(
-    withQuery(
-      ROUTES.tenantAdminDuprEvent(tenantSlug, event.id),
-      "saved",
-      origin === "live"
-        ? `已從 FitBook 即時抓取 ${roster.length} 位報名者${countNote}`
-        : `已從 FitBook 匯入 ${roster.length} 位報名者${isReal ? countNote : "（模擬名單）"}`,
-    ),
-  );
 }
 
 export async function createDuprEventManual(tenantSlug: string, formData: FormData) {
@@ -139,6 +67,7 @@ export async function createDuprEventManual(tenantSlug: string, formData: FormDa
   const startTime = String(formData.get("startTime") ?? "") || "19:00";
   const endTime = String(formData.get("endTime") ?? "");
   const location = String(formData.get("location") ?? "").trim() || null;
+  const capacity = intField(formData, "capacity", 16);
   const roster = parseRosterText(String(formData.get("roster") ?? ""));
 
   if (!title) redirect(withQuery(listPath, "error", "請填寫活動名稱"));
@@ -157,6 +86,7 @@ export async function createDuprEventManual(tenantSlug: string, formData: FormDa
       startAt,
       endAt: endAt && !Number.isNaN(endAt.getTime()) ? endAt : null,
       location,
+      capacity,
       source: "MANUAL",
       courtCount: intField(formData, "courtCount", 1),
       roster,
@@ -168,20 +98,56 @@ export async function createDuprEventManual(tenantSlug: string, formData: FormDa
   }
 
   revalidatePath(listPath);
-  redirect(withQuery(ROUTES.tenantAdminDuprEvent(tenantSlug, eventId), "saved", "已建立活動"));
+  revalidatePath(ROUTES.tenant(tenantSlug));
+  revalidatePath(ROUTES.tenantDuprEvents(tenantSlug));
+  redirect(withQuery(ROUTES.tenantAdminDuprEvent(tenantSlug, eventId), "saved", "已建立活動並開放球友登入報名"));
 }
 
 export async function updateDuprEventInfo(tenantSlug: string, eventId: string, formData: FormData) {
   await runEventAction(tenantSlug, eventId, async ({ tenantId }) => {
     const title = String(formData.get("title") ?? "").trim();
     const location = String(formData.get("location") ?? "").trim() || null;
+    const capacity = Math.min(MAX_PLAYERS, Math.max(MIN_PLAYERS, intField(formData, "capacity", 16)));
     if (!title) throw new DuprEventError("請填寫活動名稱");
     const { count } = await prisma.duprEvent.updateMany({
       where: { id: eventId, tenantId },
-      data: { title, location },
+      data: { title, location, capacity },
     });
     if (count === 0) throw new DuprEventError("找不到此 DUPR 活動");
     return "已更新活動資訊";
+  });
+}
+
+export async function adminStartCheckIn(tenantSlug: string, eventId: string) {
+  await runEventAction(tenantSlug, eventId, async ({ tenantId }) => {
+    await startEventCheckIn(tenantId, eventId);
+    return "已開始活動並進入報到階段！可出示下方 QR Code 讓球友掃描報到";
+  });
+}
+
+export async function adminRevertCheckInToDraft(tenantSlug: string, eventId: string) {
+  await runEventAction(tenantSlug, eventId, async ({ tenantId }) => {
+    await revertCheckInToDraft(tenantId, eventId);
+    return "已退回開放報名階段";
+  });
+}
+
+export async function adminTogglePlayerCheckIn(
+  tenantSlug: string,
+  eventId: string,
+  playerId: string,
+  checkedIn: boolean,
+) {
+  await runEventAction(tenantSlug, eventId, async ({ tenantId }) => {
+    const p = await setPlayerCheckInStatus(tenantId, eventId, playerId, checkedIn);
+    return checkedIn ? `已為 #${p.seq} ${p.name} 完成報到` : `已取消 #${p.seq} ${p.name} 的報到狀態`;
+  });
+}
+
+export async function adminCheckInAllPlayers(tenantSlug: string, eventId: string) {
+  await runEventAction(tenantSlug, eventId, async ({ tenantId }) => {
+    await checkInAllPlayers(tenantId, eventId);
+    return "已將全部報名球員標記為已報到";
   });
 }
 
@@ -222,25 +188,28 @@ export async function generateDuprEventSchedule(
 ) {
   await runEventAction(tenantSlug, eventId, async ({ tenantId }) => {
     const roundsRaw = String(formData.get("rounds") ?? "").trim();
+    const rosterScope = String(formData.get("rosterScope") ?? "checkedIn");
+    const onlyCheckedIn = rosterScope !== "all";
     await generateEventSchedule(tenantId, eventId, {
       courtCount: intField(formData, "courtCount", 1),
       rounds: roundsRaw ? intField(formData, "rounds", 1) : undefined,
+      onlyCheckedIn,
     });
-    return "已產生對戰表，可開始比賽";
+    return "已展開今日 DUPR 賽程，參賽球員可查看場次並輸入比分";
   });
 }
 
 export async function resetDuprEventToDraft(tenantSlug: string, eventId: string) {
   await runEventAction(tenantSlug, eventId, async ({ tenantId }) => {
     await resetEventToDraft(tenantId, eventId);
-    return "已退回名單編輯，對戰表已清除";
+    return "已退回報到階段，對戰表已清除";
   });
 }
 
 export async function regenerateDuprScoringPin(tenantSlug: string, eventId: string) {
   await runEventAction(tenantSlug, eventId, async ({ tenantId }) => {
     await regenerateScoringPin(tenantId, eventId);
-    return "已更換現場碼，平板需重新輸入";
+    return "已更換現場碼";
   });
 }
 
@@ -309,6 +278,8 @@ export async function deleteDuprEvent(tenantSlug: string, eventId: string) {
     redirect(withQuery(ROUTES.tenantAdminDuprEvent(tenantSlug, eventId), "error", "已匯入 DUPR 的活動不可刪除"));
   }
   if (event) await prisma.duprEvent.delete({ where: { id: eventId } });
+  revalidatePath(ROUTES.tenant(tenantSlug));
+  revalidatePath(ROUTES.tenantDuprEvents(tenantSlug));
   revalidatePath(ROUTES.tenantAdminDuprEvents(tenantSlug));
   redirect(withQuery(ROUTES.tenantAdminDuprEvents(tenantSlug), "saved", "已刪除活動"));
 }

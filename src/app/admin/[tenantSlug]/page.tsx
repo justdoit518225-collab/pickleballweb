@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { ActivityListFilters } from "@/components/admin/activity-list-filters";
 import { requireTenantStaff } from "@/lib/authz";
@@ -12,7 +13,12 @@ import {
 } from "@/lib/admin-activity-filters";
 import { withPrisma } from "@/lib/prisma";
 import { sumPartySize } from "@/lib/activity-capacity";
-import { activityKindBadgeVariant, adminActivityKindLabel, ROUTES } from "@/lib/constants";
+import {
+  activityKindBadgeVariant,
+  adminActivityKindLabel,
+  isDuprOnlyTenant,
+  ROUTES,
+} from "@/lib/constants";
 import { formatAdminActivityDateTime } from "@/lib/format-datetime";
 
 export default async function TenantAdminPage({
@@ -25,6 +31,9 @@ export default async function TenantAdminPage({
   >;
 }) {
   const { tenantSlug } = await params;
+  if (isDuprOnlyTenant(tenantSlug)) {
+    redirect(ROUTES.tenantAdminDuprEvents(tenantSlug));
+  }
   const sp = await searchParams;
   const { batchCreated, type, status, when, venue, q } = sp;
   const { tenant } = await requireTenantStaff(tenantSlug);

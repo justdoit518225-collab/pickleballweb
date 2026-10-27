@@ -10,11 +10,51 @@ function cookieName(eventId: string) {
   return `${COOKIE_PREFIX}${eventId}`;
 }
 
-/** 更換現場碼後舊平板的 cookie 自動失效 */
-function sign(eventId: string, pin: string): string {
+function getSecret(): string {
   const secret = process.env.AUTH_SECRET;
   if (!secret) throw new Error("AUTH_SECRET is not configured");
-  return createHmac("sha256", secret).update(`${eventId}:${pin}`).digest("base64url");
+  return secret;
+}
+
+/** 更換現場碼後舊平板的 cookie 自動失效 */
+function sign(eventId: string, pin: string): string {
+  return createHmac("sha256", getSecret()).update(`${eventId}:${pin}`).digest("base64url");
+}
+
+function safeEqual(aStr: string, bStr: string): boolean {
+  const a = Buffer.from(aStr);
+  const b = Buffer.from(bStr);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+/** 產生「活動現場報到 QR Code」簽章 token（球友掃描員工出示的 QR Code 即完成本人報到） */
+export function signEventCheckInToken(eventId: string): string {
+  return createHmac("sha256", getSecret())
+    .update(`checkin-event:${eventId}`)
+    .digest("base64url")
+    .slice(0, 24);
+}
+
+export function verifyEventCheckInToken(eventId: string, token: string): boolean {
+  if (!token) return false;
+  return safeEqual(token, signEventCheckInToken(eventId));
+}
+
+/** 產生「球友個人報到 QR Code」簽章 token（員工掃描球友出示的 QR Code 即幫該球友完成報到） */
+export function signPlayerCheckInToken(eventId: string, playerId: string): string {
+  return createHmac("sha256", getSecret())
+    .update(`checkin-player:${eventId}:${playerId}`)
+    .digest("base64url")
+    .slice(0, 24);
+}
+
+export function verifyPlayerCheckInToken(
+  eventId: string,
+  playerId: string,
+  token: string,
+): boolean {
+  if (!token || !playerId) return false;
+  return safeEqual(token, signPlayerCheckInToken(eventId, playerId));
 }
 
 export async function isTenantStaffUser(tenantId: string): Promise<boolean> {
@@ -32,9 +72,7 @@ export async function hasScoringCookie(eventId: string, pin: string): Promise<bo
   const jar = await cookies();
   const raw = jar.get(cookieName(eventId))?.value;
   if (!raw) return false;
-  const a = Buffer.from(raw);
-  const b = Buffer.from(sign(eventId, pin));
-  return a.length === b.length && timingSafeEqual(a, b);
+  return safeEqual(raw, sign(eventId, pin));
 }
 
 export async function grantScoringAccess(eventId: string, pin: string) {
@@ -48,7 +86,12 @@ export async function grantScoringAccess(eventId: string, pin: string) {
   });
 }
 
-export async function canScoreEvent(event: { id: string; tenantId: string; scoringPin: string }) {
+/** 是否具備全場計分權限（俱樂部管理員／員工／已輸入現場碼的公用平板） */
+export async function canScoreEvent(event: {
+  id: string;
+  tenantId: string;
+  scoringPin: string;
+}) {
   if (await hasScoringCookie(event.id, event.scoringPin)) return true;
   return isTenantStaffUser(event.tenantId);
 }

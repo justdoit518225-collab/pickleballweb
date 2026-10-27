@@ -4,6 +4,13 @@ export const APP_TAGLINE = "匹克球多場館預約平台";
 /** 使用「今日 × 球場 × 每小時」看板為首頁的租戶 slug */
 export const LOHO_TENANT_SLUG = "loho2";
 
+/** 僅辦理 DUPR 積分認證賽（無一般球敘與教練課程）的租戶 slug */
+export const ACTIVE_TENANT_SLUG = "active-pickleball-club";
+
+export function isDuprOnlyTenant(slug: string) {
+  return slug === ACTIVE_TENANT_SLUG;
+}
+
 /**
  * 球拍會員優惠價所綁定的俱樂部。
  * 可用環境變數 PADDLE_DEAL_TENANT_SLUG 覆寫。
